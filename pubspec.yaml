@@ -1,0 +1,46 @@
+name: workshop_dms
+description: "Automotive Workshop Management System (DMS)"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Persistence & Database (Drift SQLite)
+  drift: ^2.24.0
+  sqlite3_flutter_libs: ^0.5.28
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # Hardware, Media & Audio
+  camera: ^0.11.1
+  record: ^5.2.0
+
+  # Cloud & Networking
+  supabase_flutter: ^2.8.3
+  url_launcher: ^6.3.1
+
+  # Utilities, Crypto & Localization
+  uuid: ^4.5.1
+  crypto: ^3.0.6
+  intl: ^0.20.2
+
+  # Documents, Invoices & QR
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  qr_flutter: ^4.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.24.0
+  build_runner: ^2.4.15
+
+flutter:
+  uses-material-design: true
