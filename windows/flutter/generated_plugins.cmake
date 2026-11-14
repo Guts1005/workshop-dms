@@ -4,6 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  camera_windows
+  permission_handler_windows
   printing
   record_windows
   sqlite3_flutter_libs
