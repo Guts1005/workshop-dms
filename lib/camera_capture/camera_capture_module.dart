@@ -360,23 +360,28 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
       return const Center(child: Text('Initializing camera preview...'));
     }
 
+    final double previewRatio = c.value.isInitialized && c.value.aspectRatio > 0
+        ? c.value.aspectRatio
+        : 16 / 9;
+
     return Stack(
       children: [
         Positioned.fill(
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: c.value.previewSize?.height ?? 1920,
-              height: c.value.previewSize?.width ?? 1080,
-              child: CameraPreview(c),
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: previewRatio,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CameraPreview(c),
+                  // Custom Wireframe Guide Overlay aligned to camera frame
+                  if (widget.wireframeGuide != null)
+                    CustomPaint(painter: widget.wireframeGuide!),
+                ],
+              ),
             ),
           ),
         ),
-        // Custom Wireframe Guide Overlay
-        if (widget.wireframeGuide != null)
-          Positioned.fill(
-            child: CustomPaint(painter: widget.wireframeGuide!),
-          ),
         // Header Instruction Banner
         Positioned(
           top: 16.0,
