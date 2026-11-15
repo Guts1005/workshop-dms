@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:workshop_dms/features/bay_capture/bay_capture_controller.dart';
+import 'package:workshop_dms/features/bay_capture/bay_capture_models.dart';
 import 'package:workshop_dms/features/bay_capture/bay_capture_screen.dart';
 
 void main() {
@@ -38,16 +40,19 @@ void main() {
       expect(find.text('MANAGER OVERRIDE'), findsOneWidget);
     });
 
-    testWidgets('Simulating a shot capture increments progress counter', (WidgetTester tester) async {
+    testWidgets('Recording a shot capture updates progress counter and slot status', (WidgetTester tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
 
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
             home: BayCaptureScreen(
               jobCardId: 'JC-1002',
               registrationNumber: 'RJ27CA1024',
-              initialSimulationMode: true,
             ),
           ),
         ),
@@ -56,11 +61,13 @@ void main() {
 
       expect(find.text('0/6 MANDATORY'), findsOneWidget);
 
-      // Tap CAPTURE SHOT NOW
-      final captureBtn = find.text('CAPTURE SHOT NOW');
-      expect(captureBtn, findsOneWidget);
-      await tester.tap(captureBtn);
-      await tester.pump();
+      // Record a real shot capture into the controller
+      await container.read(bayCaptureControllerProvider.notifier).recordCapturedPhoto(
+        shotType: CheckInShotType.frontLeft45,
+        filePath: '/sandbox/real_capture_fl45.jpg',
+        sha256Hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        fileSizeBytes: 24500,
+      );
       await tester.pumpAndSettle();
 
       // Progress counter incremented to 1/6

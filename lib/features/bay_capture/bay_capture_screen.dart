@@ -1,27 +1,21 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
 import '../../camera_capture/camera_capture_module.dart';
 import '../../ui_kit/tokens/app_tokens.dart';
 import '../../ui_kit/widgets/sharp_button.dart';
 import '../../ui_kit/widgets/status_chip.dart';
-import 'bay_camera_guides.dart';
 import 'bay_capture_controller.dart';
 import 'bay_capture_models.dart';
 
 class BayCaptureScreen extends ConsumerStatefulWidget {
   final String? jobCardId;
   final String? registrationNumber;
-  final bool initialSimulationMode;
 
   const BayCaptureScreen({
     super.key,
     this.jobCardId,
     this.registrationNumber,
-    this.initialSimulationMode = false,
   });
 
   @override
@@ -29,12 +23,9 @@ class BayCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
-  late bool _useSimulationMode;
-
   @override
   void initState() {
     super.initState();
-    _useSimulationMode = widget.initialSimulationMode;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.jobCardId != null || widget.registrationNumber != null) {
         ref.read(bayCaptureControllerProvider.notifier).initSession(
@@ -43,23 +34,6 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
             );
       }
     });
-  }
-
-  Future<void> _simulateDesktopCapture(CheckInShotType shotType) async {
-    final controller = ref.read(bayCaptureControllerProvider.notifier);
-    final mockBytes = List<int>.generate(256, (i) => (i * 7 + shotType.index) % 256);
-    final hash = CapturedCheckInPhoto.computeHash(mockBytes);
-
-    final path = kIsWeb
-        ? 'simulated://${shotType.name}.jpg'
-        : p.join(Directory.systemTemp.path, 'simulated_${shotType.name}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-
-    await controller.recordCapturedPhoto(
-      shotType: shotType,
-      filePath: path,
-      sha256Hash: hash,
-      fileSizeBytes: mockBytes.length,
-    );
   }
 
   void _showManagerOverrideDialog() {
@@ -213,7 +187,6 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(bayCaptureControllerProvider);
     final controller = ref.read(bayCaptureControllerProvider.notifier);
-
     final isNarrow = MediaQuery.of(context).size.width < 900.0;
 
     return Scaffold(
@@ -244,7 +217,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 ),
               ),
 
-            // Main Content Zone
+            // Main Content Zone (Responsive, zero horizontal overflow)
             Expanded(
               child: isNarrow ? _buildNarrowLayout(state, controller) : _buildWideLayout(state, controller),
             ),
@@ -335,7 +308,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
         children: [
           _buildActiveShotGuidanceCard(state),
           const SizedBox(height: 12.0),
-          _buildCameraWorkspace(state, controller, height: 320.0),
+          _buildCameraWorkspace(state, controller, height: 340.0),
           const SizedBox(height: 14.0),
           _buildShotsGrid(state, controller, crossAxisCount: 2),
         ],
@@ -349,7 +322,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left Sidebar: Shot Selector and Progress
+          // Left Sidebar: Shot Selector & Visual Progress List
           SizedBox(
             width: 380.0,
             child: SingleChildScrollView(
@@ -364,7 +337,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
             ),
           ),
           const SizedBox(width: 16.0),
-          // Right Area: Active Camera View / Review Frame
+          // Right Area: Active Hardware Camera View / Review Frame
           Expanded(
             child: _buildCameraWorkspace(state, controller, height: double.infinity),
           ),
@@ -415,13 +388,15 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
             Container(
               padding: const EdgeInsets.all(6.0),
               color: AppTokens.base,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  const Text('HASH (SHA-256):', style: TextStyle(fontSize: 9.0, fontWeight: FontWeight.bold)),
-                  Text(
-                    captured.sha256Hash,
-                    style: AppTokens.fontMonospace(fontSize: 9.0, color: AppTokens.green, fontWeight: FontWeight.bold),
+                  const Icon(Icons.check_circle, color: Color(0xFF00E676), size: 14.0),
+                  const SizedBox(width: 6.0),
+                  Expanded(
+                    child: Text(
+                      'VERIFIED: ${captured.sha256Hash.substring(0, 16)}...',
+                      style: AppTokens.fontMonospace(fontSize: 9.5, color: const Color(0xFF00E676), fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -445,79 +420,16 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // If already captured and not actively retaking, show preview thumbnail
           if (captured != null)
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_circle_outline, color: AppTokens.green, size: 54.0),
-                const SizedBox(height: 12.0),
-                Text(
-                  '${active.title} CAPTURED',
-                  style: AppTokens.fontMonospace(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14.0),
-                ),
-                const SizedBox(height: 6.0),
-                Text(
-                  'SHA-256: ${captured.sha256Hash.substring(0, 16)}...',
-                  style: AppTokens.fontMonospace(color: AppTokens.surface, fontSize: 11.0),
-                ),
-                const SizedBox(height: 16.0),
-                SharpButton(
-                  label: 'RETAKE THIS SHOT',
-                  variant: SharpButtonVariant.secondary,
-                  onPressed: () => controller.retakeShot(active),
-                  width: 200.0,
-                ),
-              ],
-            )
-          else if (_useSimulationMode)
-            // Desktop / Web / Testing Fallback Simulator
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(24.0),
-                constraints: const BoxConstraints(maxWidth: 440.0),
-                decoration: BoxDecoration(
-                  color: AppTokens.surface,
-                  border: Border.all(color: AppTokens.borderSolid, width: 1.0),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.videocam_outlined, size: 48.0, color: AppTokens.textPrimary),
-                    const SizedBox(height: 12.0),
-                    Text(
-                      'SIMULATED BAY CAMERA: ${active.title}',
-                      textAlign: TextAlign.center,
-                      style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
-                    ),
-                    const SizedBox(height: 8.0),
-                    Text(
-                      active.instruction,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12.0, color: AppTokens.textSecondary),
-                    ),
-                    const SizedBox(height: 16.0),
-                    SharpButton(
-                      label: 'CAPTURE SHOT NOW',
-                      icon: Icons.camera,
-                      onPressed: () => _simulateDesktopCapture(active),
-                    ),
-                    const SizedBox(height: 10.0),
-                    SharpButton(
-                      label: 'SWITCH TO LIVE HARDWARE CAMERA',
-                      variant: SharpButtonVariant.secondary,
-                      onPressed: () => setState(() => _useSimulationMode = false),
-                    ),
-                  ],
-                ),
-              ),
-            )
+            // Captured Shot Evidence Card with instant RETAKE action
+            _buildCapturedEvidenceCard(active, captured, controller)
           else
-            // Full Cross-Platform Live Camera Module (Web, Windows, Android, iOS)
+            // Real Hardware Camera Capture with intelligent visual guides
             CameraCaptureModule(
+              key: ValueKey(active.name),
               title: active.title,
               instruction: active.instruction,
-              wireframeGuide: BayCameraGuidePainter(shotType: active),
+              shotType: active,
               onPhotoConfirmed: (photoPath, hash, sizeBytes) async {
                 await controller.recordCapturedPhoto(
                   shotType: active,
@@ -526,10 +438,62 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   fileSizeBytes: sizeBytes,
                 );
               },
-              onFallbackToSimulation: () {
-                setState(() => _useSimulationMode = true);
-              },
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapturedEvidenceCard(
+    CheckInShotType active,
+    CapturedCheckInPhoto captured,
+    BayCaptureController controller,
+  ) {
+    return Container(
+      color: AppTokens.base,
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.check_circle, color: Color(0xFF00E676), size: 56.0),
+          const SizedBox(height: 14.0),
+          Text(
+            '${active.title} RECORDED',
+            textAlign: TextAlign.center,
+            style: AppTokens.fontMonospace(color: AppTokens.textPrimary, fontWeight: FontWeight.w900, fontSize: 16.0),
+          ),
+          const SizedBox(height: 8.0),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+            color: AppTokens.surface,
+            child: Column(
+              children: [
+                Text(
+                  'TAMPER-PROOF SHA-256 HASH:',
+                  style: AppTokens.fontMonospace(fontSize: 10.0, fontWeight: FontWeight.bold, color: AppTokens.textSecondary),
+                ),
+                const SizedBox(height: 2.0),
+                Text(
+                  captured.sha256Hash,
+                  style: AppTokens.fontMonospace(fontSize: 10.0, color: const Color(0xFF00E676), fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4.0),
+                Text(
+                  'TIMESTAMP: ${captured.capturedAt.toLocal()} • SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
+                  style: const TextStyle(fontSize: 10.5, color: AppTokens.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20.0),
+          SharpButton(
+            label: 'RETAKE THIS SHOT',
+            icon: Icons.refresh,
+            variant: SharpButtonVariant.secondary,
+            onPressed: () => controller.retakeShot(active),
+            width: 220.0,
+            height: 48.0,
+          ),
         ],
       ),
     );
@@ -581,12 +545,12 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
               width: 24.0,
               height: 24.0,
               color: isCaptured
-                  ? AppTokens.green
+                  ? const Color(0xFF00E676)
                   : (shot.isMandatory ? AppTokens.redOrange : AppTokens.inverse),
               alignment: Alignment.center,
               child: Icon(
-                isCaptured ? Icons.check : (shot.isMandatory ? Icons.priority_high : Icons.camera),
-                color: Colors.white,
+                isCaptured ? Icons.check : (shot.isMandatory ? Icons.priority_high : Icons.camera_alt),
+                color: isCaptured ? Colors.black : Colors.white,
                 size: 14.0,
               ),
             ),
@@ -608,7 +572,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                     isCaptured ? 'VERIFIED (SHA-256)' : (shot.isMandatory ? 'REQUIRED' : 'OPTIONAL'),
                     style: TextStyle(
                       fontSize: 9.5,
-                      color: isCaptured ? AppTokens.green : (shot.isMandatory ? AppTokens.redOrange : AppTokens.textSecondary),
+                      color: isCaptured ? const Color(0xFF00E676) : (shot.isMandatory ? AppTokens.redOrange : AppTokens.textSecondary),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -654,10 +618,13 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Bay Check-in complete. Advancing to 360° Condition Map.'),
-                            backgroundColor: AppTokens.green,
+                            backgroundColor: Color(0xFF00E676),
                           ),
                         );
-                        context.go('/condition-map');
+                        final router = GoRouter.maybeOf(context);
+                        if (router != null) {
+                          router.go('/condition-map');
+                        }
                       }
                     }
                   : null,

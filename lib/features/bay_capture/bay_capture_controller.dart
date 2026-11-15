@@ -93,8 +93,12 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
   }
 
   void retakeShot(CheckInShotType shotType) {
+    final updatedMap = Map<CheckInShotType, CapturedCheckInPhoto>.from(state.capturedPhotos);
+    updatedMap.remove(shotType);
+    repository.removePhoto(jobCardId: state.jobCardId, shotType: shotType);
     state = state.copyWith(
       activeShotType: shotType,
+      capturedPhotos: updatedMap,
       clearError: true,
     );
   }

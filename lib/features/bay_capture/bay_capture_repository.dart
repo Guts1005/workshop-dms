@@ -11,6 +11,11 @@ abstract class BayCaptureRepository {
 
   Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(String jobCardId);
 
+  Future<void> removePhoto({
+    required String jobCardId,
+    required CheckInShotType shotType,
+  });
+
   Future<void> recordManagerOverride({
     required String jobCardId,
     required ManagerOverrideRecord override,
@@ -65,6 +70,14 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
   @override
   Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(String jobCardId) async {
     return Map.unmodifiable(_photosByJobCard[jobCardId] ?? {});
+  }
+
+  @override
+  Future<void> removePhoto({
+    required String jobCardId,
+    required CheckInShotType shotType,
+  }) async {
+    _photosByJobCard[jobCardId]?.remove(shotType);
   }
 
   @override
