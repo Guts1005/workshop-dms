@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_button.dart';
@@ -907,10 +908,11 @@ class IntakeDesktopView extends StatelessWidget {
       onPressed: () async {
         final messenger = ScaffoldMessenger.of(context);
         final ok = await controller.submitIntake();
-        if (ok) {
+        if (ok && context.mounted) {
           messenger.showSnackBar(
             const SnackBar(content: Text('Vehicle Intake recorded. Proceeding to Bay Capture.')),
           );
+          GoRouter.maybeOf(context)?.go('/bay-capture');
         }
       },
     );

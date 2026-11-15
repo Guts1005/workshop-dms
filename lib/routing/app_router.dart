@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../ui_kit/tokens/app_tokens.dart';
 import '../features/intake/presentation/intake_screen.dart';
+import '../features/bay_capture/bay_capture_screen.dart';
 import 'placeholder_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -130,11 +131,13 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/bay-capture',
-            builder: (context, state) => const PhasePlaceholderScreen(
-              pageNumber: 2,
-              title: 'Bay Check-in Capture (6 Mandatory Shots)',
-              description: '4-corner 45° perspective shots + plate close-up + odometer cluster. Camera overlay, manager override, SHA-256 integrity hash.',
-            ),
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>?;
+              return BayCaptureScreen(
+                jobCardId: extra?['jobCardId'] as String?,
+                registrationNumber: extra?['registrationNumber'] as String?,
+              );
+            },
           ),
         ]),
         // Branch 3: Page 3 - 360° Condition Map
