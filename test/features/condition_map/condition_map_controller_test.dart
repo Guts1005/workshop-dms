@@ -1,0 +1,232 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:workshop_dms/data/sync/outbox_sync_service.dart';
+import 'package:workshop_dms/features/condition_map/condition_map_controller.dart';
+import 'package:workshop_dms/features/condition_map/condition_map_models.dart';
+import 'package:workshop_dms/features/condition_map/condition_map_repository.dart';
+
+class MockRemoteSyncClient implements RemoteSyncClient {
+  final List<OutboxItem> receivedItems = [];
+
+  @override
+  Future<bool> pushMutation(OutboxItem item) async {
+    receivedItems.add(item);
+    return true;
+  }
+}
+
+void main() {
+  group('ConditionMapController & Repository Unit Tests', () {
+    late MockRemoteSyncClient mockRemoteClient;
+    late OutboxSyncService outboxService;
+    late LocalConditionMapRepository repository;
+    late ConditionMapController controller;
+
+    setUp(() {
+      mockRemoteClient = MockRemoteSyncClient();
+      outboxService = OutboxSyncService(remoteClient: mockRemoteClient);
+      repository = LocalConditionMapRepository(outboxSyncService: outboxService);
+      controller = ConditionMapController(
+        repository: repository,
+        initialJobCardId: 'JC-MAP-001',
+        initialRegistration: 'DL01AB9988',
+      );
+    });
+
+    test('Initial State: empty pins, unlocked, sideLeft active', () {
+      final state = controller.state;
+      expect(state.jobCardId, 'JC-MAP-001');
+      expect(state.registrationNumber, 'DL01AB9988');
+      expect(state.pins, isEmpty);
+      expect(state.totalPinCount, 0);
+      expect(state.isLocked, isFalse);
+      expect(state.activeView, ConditionViewDirection.sideLeft);
+      expect(state.selectedPin, isNull);
+    });
+
+    test('Switching views updates activeView and deselects active pin', () async {
+      controller.switchView(ConditionViewDirection.front);
+      expect(controller.state.activeView, ConditionViewDirection.front);
+      expect(controller.state.selectedPin, isNull);
+
+      controller.switchView(ConditionViewDirection.rear);
+      expect(controller.state.activeView, ConditionViewDirection.rear);
+    });
+
+    test('Adding a pin saves to repository, queues outbox mutation, and clamps coordinates', () async {
+      final pin = await controller.addPin(
+        view: ConditionViewDirection.sideLeft,
+        nx: 1.25, // should clamp to 1.0
+        ny: -0.15, // should clamp to 0.0
+        type: DefectType.dent,
+        severity: DefectSeverity.severe,
+        note: 'Deep dent on door panel',
+      );
+
+      expect(pin.id, 1);
+      expect(pin.normalizedX, 1.0);
+      expect(pin.normalizedY, 0.0);
+      expect(pin.type, DefectType.dent);
+      expect(pin.severity, DefectSeverity.severe);
+
+      final state = controller.state;
+      expect(state.totalPinCount, 1);
+      expect(state.severeCount, 1);
+      expect(state.moderateCount, 0);
+      expect(state.minorCount, 0);
+      expect(state.selectedPin, pin);
+
+      // Verify Outbox Mutation
+      expect(outboxService.allItems.length, 1);
+      final item = outboxService.allItems.first;
+      expect(item.targetTable, 'condition_pins');
+      expect(item.operation, 'INSERT');
+      expect(item.payload['type'], 'dent');
+      expect(item.payload['severity'], 'severe');
+    });
+
+    test('Adding multiple pins increments sequential ID and filters by active view', () async {
+      await controller.addPin(
+        view: ConditionViewDirection.sideLeft,
+        nx: 0.35,
+        ny: 0.50,
+        type: DefectType.deepScratch,
+        severity: DefectSeverity.moderate,
+      );
+
+      await controller.addPin(
+        view: ConditionViewDirection.front,
+        nx: 0.50,
+        ny: 0.40,
+        type: DefectType.glassCrack,
+        severity: DefectSeverity.severe,
+      );
+
+      final state = controller.state;
+      expect(state.totalPinCount, 2);
+      expect(state.pins[0].id, 1);
+      expect(state.pins[1].id, 2);
+
+      // In sideLeft view, only 1 pin is active
+      expect(state.activeViewPins.length, 1);
+      expect(state.activeViewPins.first.id, 1);
+
+      // Switch to front view, 1 pin active
+      controller.switchView(ConditionViewDirection.front);
+      expect(controller.state.activeViewPins.length, 1);
+      expect(controller.state.activeViewPins.first.id, 2);
+    });
+
+    test('Deleting a pin removes it from state, queues outbox delete, and unselects', () async {
+      final pin = await controller.addPin(
+        view: ConditionViewDirection.sideLeft,
+        nx: 0.4,
+        ny: 0.4,
+        type: DefectType.paintChip,
+        severity: DefectSeverity.minor,
+      );
+
+      expect(controller.state.totalPinCount, 1);
+      expect(controller.state.selectedPin?.id, pin.id);
+
+      await controller.deletePin(pin.id);
+
+      expect(controller.state.totalPinCount, 0);
+      expect(controller.state.selectedPin, isNull);
+
+      final deleteMutation = outboxService.allItems.firstWhere((i) => i.operation == 'DELETE');
+      expect(deleteMutation.targetTable, 'condition_pins');
+      expect(deleteMutation.payload['pinId'], pin.id);
+    });
+
+    test('Sign-off input validation rejects invalid inputs', () {
+      // Too short customer name
+      expect(
+        controller.validateSignOffInput(customerName: 'A', customerPhone: '9876543210', advisorName: 'Kunal'),
+        contains('Customer name must be at least 2 characters'),
+      );
+
+      // Invalid phone number
+      expect(
+        controller.validateSignOffInput(customerName: 'Aarav', customerPhone: '12345', advisorName: 'Kunal'),
+        contains('10-digit customer mobile number'),
+      );
+
+      // Too short advisor name
+      expect(
+        controller.validateSignOffInput(customerName: 'Aarav', customerPhone: '9876543210', advisorName: 'K'),
+        contains('Service advisor name must be at least 2 characters'),
+      );
+    });
+
+    test('Confirming pre-work sign-off generates SHA-256 checksum, locks map, and updates JobCard', () async {
+      // Add 2 defects
+      await controller.addPin(
+        view: ConditionViewDirection.front,
+        nx: 0.25,
+        ny: 0.45,
+        type: DefectType.dent,
+        severity: DefectSeverity.moderate,
+      );
+      await controller.addPin(
+        view: ConditionViewDirection.rear,
+        nx: 0.65,
+        ny: 0.55,
+        type: DefectType.surfaceScuff,
+        severity: DefectSeverity.minor,
+      );
+
+      expect(controller.state.isLocked, isFalse);
+
+      final success = await controller.confirmPreWorkSignOff(
+        customerName: 'Rohan Sharma',
+        customerPhone: '9876543210',
+        advisorName: 'Manish Verma (Lead Advisor)',
+      );
+
+      expect(success, isTrue);
+      final state = controller.state;
+      expect(state.isLocked, isTrue);
+      expect(state.signOff, isNotNull);
+      expect(state.signOff!.customerName, 'Rohan Sharma');
+      expect(state.signOff!.customerPhone, '9876543210');
+      expect(state.signOff!.advisorName, 'Manish Verma (Lead Advisor)');
+      expect(state.signOff!.sha256Checksum.length, 64); // SHA-256 hex string
+
+      // Verify JobCard status in repository advanced to INSPECTION_PENDING
+      expect(repository.getJobCardStatus('JC-MAP-001'), 'INSPECTION_PENDING');
+
+      // Verify signoff and jobcard update in outbox
+      final signoffMutation = outboxService.allItems.firstWhere((i) => i.targetTable == 'condition_signoffs');
+      expect(signoffMutation.payload['customerName'], 'Rohan Sharma');
+
+      final jobCardMutation = outboxService.allItems.firstWhere((i) => i.targetTable == 'job_cards');
+      expect(jobCardMutation.payload['status'], 'INSPECTION_PENDING');
+      expect(jobCardMutation.payload['conditionPinsCount'], 2);
+    });
+
+    test('Modifications are blocked once map is signed off and locked', () async {
+      await controller.confirmPreWorkSignOff(
+        customerName: 'Rohan Sharma',
+        customerPhone: '9876543210',
+        advisorName: 'Manish Verma',
+      );
+
+      expect(controller.state.isLocked, isTrue);
+
+      // Attempt to add pin throws StateError
+      expect(
+        () => controller.addPin(
+          view: ConditionViewDirection.front,
+          nx: 0.5,
+          ny: 0.5,
+          type: DefectType.dent,
+          severity: DefectSeverity.minor,
+        ),
+        throwsStateError,
+      );
+
+      // Attempt to delete throws StateError
+      expect(() => controller.deletePin(1), throwsStateError);
+    });
+  });
+}

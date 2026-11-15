@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../ui_kit/tokens/app_tokens.dart';
 import '../features/intake/presentation/intake_screen.dart';
 import '../features/bay_capture/bay_capture_screen.dart';
+import '../features/condition_map/condition_map_screen.dart';
 import 'placeholder_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -144,11 +145,13 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/condition-map',
-            builder: (context, state) => const PhasePlaceholderScreen(
-              pageNumber: 3,
-              title: '360° Condition Map & Pre-Work Sign-off',
-              description: '4-view orthographic CustomPainter, numbered pin drops, photo per pin, customer pre-work sign-off swipe.',
-            ),
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>?;
+              return ConditionMapScreen(
+                jobCardId: extra?['jobCardId'] as String?,
+                registrationNumber: extra?['registrationNumber'] as String?,
+              );
+            },
           ),
         ]),
         // Branch 4: Page 4 - Mechanical Inspection

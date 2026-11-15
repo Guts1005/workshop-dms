@@ -16,8 +16,8 @@
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Phase 0** | **Foundation & UI Kit** | [x] | [x] | [x] | Riverpod state, go_router shell, tokens, primitive widgets + tests, Drift outbox, camera capture module |
 | **Page 1** | **Vehicle & Customer Intake** | [x] | [x] | [x] | Plate/VIN entry, customer lookup/create, odometer rollback check, fuel gauge, belongings checklist, WhatsApp opt-in, MG history preview |
-| **Page 2** | **Bay Check-in Capture** | [x] | [ ] | [x] | Stage A complete: 4-corner 45° + plate + odometer, manager override, SHA-256 hashes, Job Card lock. 11/11 tests green. |
-| **Page 3** | **360° Condition Map** | [ ] | [ ] | [ ] | 4-view CustomPainter, numbered pin drops, photo per pin, swipe-to-confirm sign-off |
+| **Page 2** | **Bay Check-in Capture** | [x] | [x] | [x] | Complete: 6 mandatory + 2 optional slots, SHA-256 hashes, manager override, animated car guides, auto-framing lock, 0 horizontal scroll. Verified on real hardware & web. |
+| **Page 3** | **360° Condition Map** | [x] | [x] | [x] | Complete: 5 orthographic CAD views, coordinate-normalized pin drops, severity ledger, customer pre-work sign-off with SwipeToConfirmSlider & SHA-256 integrity hash. 11/11 tests green. |
 | **Page 4** | **Mechanical Inspection** | [ ] | [ ] | [ ] | Traffic-light checklist, real measurements, passport wear estimates |
 | **Page 5** | **Job Card & Estimate** | [ ] | [ ] | [ ] | Labour SAC 998714, effective-dated GST table, voice notes, per-line approval structure |
 | **Page 6** | **WhatsApp Dispatch** | [ ] | [ ] | [ ] | Per-line approval, decline persistence, expiration timer, wa.me utility links |
