@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/tokens.dart';
+import '../../ui_kit/tokens/app_tokens.dart';
 
 class MakeWordmarkChip extends StatelessWidget {
   final String make;

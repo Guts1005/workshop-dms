@@ -74,7 +74,7 @@ void main() {
       // Verify that recognized badge and previous records appear
       expect(find.text('RECOGNISED IN SYSTEM'), findsOneWidget);
       expect(find.text('PREVIOUS SERVICE RECORDS (3)'), findsOneWidget);
-      expect(find.text('Order: N330302623'), findsOneWidget);
+      expect(find.text('ORDER #N330302623'), findsOneWidget);
       expect(find.text('LAST RECORDED: 27227 KM'), findsOneWidget);
     });
 

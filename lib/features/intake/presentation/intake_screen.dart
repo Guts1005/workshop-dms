@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_button.dart';
 import '../../../ui_kit/widgets/status_chip.dart';
+import '../../vehicle/make_wordmark_chip.dart';
+import '../../vehicle/vehicle_silhouettes.dart';
 import '../models/intake_form_state.dart';
 import 'intake_controller.dart';
 
@@ -245,6 +247,35 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           ),
           const SizedBox(height: 12.0),
 
+          // Make Wordmarks Quick Bar
+          const Text('POPULAR MAKES:', style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6.0),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                'MARUTI SUZUKI',
+                'HYUNDAI',
+                'TATA',
+                'MAHINDRA',
+                'MG MOTOR',
+                'TOYOTA',
+                'KIA',
+                'HONDA',
+              ].map((makeName) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: MakeWordmarkChip(
+                    make: makeName,
+                    isSelected: state.make == makeName,
+                    onTap: () => controller.onMakeChanged(makeName),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12.0),
+
           // Make & Model Row
           Row(
             children: [
@@ -312,18 +343,37 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 key: Key('body_type_${type.name}'),
                 onTap: () => controller.onBodyTypeChanged(type),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  width: 110.0,
+                  height: 72.0,
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 6.0),
                   decoration: BoxDecoration(
                     color: isSelected ? AppTokens.inverse : AppTokens.raised,
                     border: Border.all(color: AppTokens.borderSolid, width: 1.0),
                   ),
-                  child: Text(
-                    type.label,
-                    style: TextStyle(
-                      color: isSelected ? AppTokens.textOnDark : AppTokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.0,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 54.0,
+                        height: 24.0,
+                        child: CustomPaint(
+                          painter: VehicleSilhouettePainter(
+                            bodyType: type,
+                            strokeColor: isSelected ? AppTokens.raised : AppTokens.borderSolid,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        type.label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isSelected ? AppTokens.textOnDark : AppTokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10.0,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -363,7 +413,8 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             final amountRupees = (item.totalAmountPaise / 100).toStringAsFixed(2);
             return Container(
               margin: const EdgeInsets.only(bottom: 8.0),
-              padding: const EdgeInsets.all(12.0),
+              constraints: const BoxConstraints(minHeight: 56.0),
+              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
               decoration: BoxDecoration(
                 color: AppTokens.surface,
                 border: Border.all(color: AppTokens.borderSolid, width: 1.0),
@@ -371,20 +422,40 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               child: Row(
                 children: [
                   Expanded(
+                    flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Order: ${item.orderId}', style: AppTokens.fontMonospace(fontWeight: FontWeight.bold)),
-                        Text('Date: $dateStr', style: const TextStyle(fontSize: 12.0, color: AppTokens.textSecondary)),
+                        Row(
+                          children: [
+                            const Icon(Icons.circle, size: 8.0, color: AppTokens.green),
+                            const SizedBox(width: 6.0),
+                            Text('ORDER #${item.orderId}', style: AppTokens.fontMonospace(fontWeight: FontWeight.w800, fontSize: 13.0)),
+                          ],
+                        ),
+                        const SizedBox(height: 2.0),
+                        Text('Date: $dateStr • ${item.feedback}', style: const TextStyle(fontSize: 12.0, color: AppTokens.textSecondary)),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('${item.odometerKm} KM', style: AppTokens.fontMonospace(fontWeight: FontWeight.bold)),
-                      Text('₹$amountRupees', style: AppTokens.fontMonospace(color: AppTokens.green, fontWeight: FontWeight.bold)),
-                    ],
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('${item.odometerKm} KM', style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 13.0)),
+                        Text('₹$amountRupees', style: AppTokens.fontMonospace(color: AppTokens.green, fontWeight: FontWeight.bold, fontSize: 13.0)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                  Container(
+                    padding: const EdgeInsets.all(4.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+                      color: AppTokens.raised,
+                    ),
+                    child: const Icon(Icons.picture_as_pdf, size: 18.0, color: AppTokens.redOrange),
                   ),
                 ],
               ),

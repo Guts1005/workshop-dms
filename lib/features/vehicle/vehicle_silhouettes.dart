@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/tokens.dart';
+import '../../ui_kit/tokens/app_tokens.dart';
 
 enum VehicleBodyType {
-  hatchback,
-  sedan,
-  sub4mSuv,
-  midFullSuv,
-  mpv,
-  pickupVan,
-  generic,
+  hatchback('HATCHBACK'),
+  sedan('SEDAN'),
+  sub4mSuv('SUB-4M SUV'),
+  midFullSuv('MID/FULL SUV'),
+  mpv('MPV'),
+  pickupVan('PICKUP / VAN'),
+  generic('OTHER');
+
+  final String label;
+  const VehicleBodyType(this.label);
 }
 
 class VehicleSilhouettePainter extends CustomPainter {

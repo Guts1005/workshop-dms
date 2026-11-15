@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../../vehicle/vehicle_silhouettes.dart';
+export '../../vehicle/vehicle_silhouettes.dart' show VehicleBodyType;
 
 enum IntakeStatus {
   idle,
@@ -6,18 +8,6 @@ enum IntakeStatus {
   saving,
   success,
   error,
-}
-
-enum VehicleBodyType {
-  hatchback('HATCHBACK'),
-  sedan('SEDAN'),
-  sub4mSuv('SUB-4M SUV'),
-  midFullSuv('MID/FULL SUV'),
-  mpv('MPV'),
-  pickupVan('PICKUP / VAN');
-
-  final String label;
-  const VehicleBodyType(this.label);
 }
 
 @immutable
