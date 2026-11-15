@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_button.dart';
 import '../../../ui_kit/widgets/status_chip.dart';
+import '../../vehicle/indian_number_plate.dart';
 import '../../vehicle/make_wordmark_chip.dart';
 import '../../vehicle/vehicle_silhouettes.dart';
 import '../models/intake_form_state.dart';
@@ -70,7 +71,6 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     final state = ref.watch(intakeControllerProvider);
     final controller = ref.read(intakeControllerProvider.notifier);
 
-    // Sync controllers when state updates from background lookups
     ref.listen<IntakeFormState>(intakeControllerProvider, (prev, next) {
       _syncControllersWithState(next);
     });
@@ -79,139 +79,272 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       return _buildSuccessView(state);
     }
 
-    return Scaffold(
-      backgroundColor: AppTokens.base,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Page Header
-            _buildSectionHeader('PAGE 1: VEHICLE & CUSTOMER INTAKE', 'STAGE A: FUNCTIONAL INTAKE PIPELINE'),
-            const SizedBox(height: 16.0),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 960.0;
 
-            if (state.errorMessage != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12.0),
-                color: AppTokens.redOrange,
-                child: Text(
-                  state.errorMessage!,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        return Scaffold(
+          backgroundColor: AppTokens.base,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1440.0),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWide ? 32.0 : 16.0,
+                  vertical: 24.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Top Clean Stage Bar
+                    _buildSubtleHeader(state),
+                    const SizedBox(height: 20.0),
+
+                    if (state.errorMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14.0),
+                        decoration: BoxDecoration(
+                          color: AppTokens.redOrange,
+                          border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+                        ),
+                        child: Text(
+                          state.errorMessage!,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 20.0),
+                    ],
+
+                    // Adaptive 2-Column or 1-Column Layout
+                    if (isWide)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left Rail: Vehicle Telemetry & Passport Hero (42% width)
+                          Expanded(
+                            flex: 5,
+                            child: Column(
+                              children: [
+                                _buildVehicleHeroCard(state, controller),
+                                if (state.isExistingVehicle && state.previousHistory.isNotEmpty) ...[
+                                  const SizedBox(height: 20.0),
+                                  _buildPreviousHistoryCard(state),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 24.0),
+                          // Right Pane: Intake Workflow (58% width)
+                          Expanded(
+                            flex: 7,
+                            child: Column(
+                              children: [
+                                _buildCustomerDetailsCard(state, controller),
+                                const SizedBox(height: 20.0),
+                                _buildOdometerAndFuelCard(state, controller),
+                                const SizedBox(height: 20.0),
+                                _buildRequestedWorkCard(state, controller),
+                                const SizedBox(height: 20.0),
+                                _buildBelongingsCard(state, controller),
+                                const SizedBox(height: 24.0),
+                                _buildSubmitAction(state, controller),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      // Mobile View: Clean single-column layout
+                      Column(
+                        children: [
+                          _buildVehicleHeroCard(state, controller),
+                          const SizedBox(height: 16.0),
+                          if (state.isExistingVehicle && state.previousHistory.isNotEmpty) ...[
+                            _buildPreviousHistoryCard(state),
+                            const SizedBox(height: 16.0),
+                          ],
+                          _buildCustomerDetailsCard(state, controller),
+                          const SizedBox(height: 16.0),
+                          _buildOdometerAndFuelCard(state, controller),
+                          const SizedBox(height: 16.0),
+                          _buildRequestedWorkCard(state, controller),
+                          const SizedBox(height: 16.0),
+                          _buildBelongingsCard(state, controller),
+                          const SizedBox(height: 24.0),
+                          _buildSubmitAction(state, controller),
+                        ],
+                      ),
+                    const SizedBox(height: 48.0),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16.0),
-            ],
-
-            // Section 1: Vehicle Identity
-            _buildVehicleIdentityCard(state, controller),
-            const SizedBox(height: 16.0),
-
-            // Section 1.5: Previous Service History (MG Screenshot pattern)
-            if (state.isExistingVehicle && state.previousHistory.isNotEmpty) ...[
-              _buildPreviousHistoryCard(state),
-              const SizedBox(height: 16.0),
-            ],
-
-            // Section 2: Customer Details & WhatsApp Opt-In
-            _buildCustomerDetailsCard(state, controller),
-            const SizedBox(height: 16.0),
-
-            // Section 3: Odometer & Fuel Level
-            _buildOdometerAndFuelCard(state, controller),
-            const SizedBox(height: 16.0),
-
-            // Section 4: Requested Work & Delivery Schedule
-            _buildRequestedWorkCard(state, controller),
-            const SizedBox(height: 16.0),
-
-            // Section 5: Belongings Inventory
-            _buildBelongingsCard(state, controller),
-            const SizedBox(height: 24.0),
-
-            // Submit Action
-            if (state.status == IntakeStatus.saving)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(color: AppTokens.inverse),
-                ),
-              )
-            else
-              SharpButton(
-                label: 'GENERATE INTAKE & PROCEED TO BAY CHECK-IN',
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final ok = await controller.submitIntake();
-                  if (ok) {
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Vehicle Intake recorded. Proceeding to Bay Capture.')),
-                    );
-                  }
-                },
-              ),
-            const SizedBox(height: 48.0),
-          ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildSectionHeader(String title, String subtitle) {
+  Widget _buildSubtleHeader(IntakeFormState state) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      color: AppTokens.inverse,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 14.0),
+      decoration: BoxDecoration(
+        color: AppTokens.surface,
+        border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+            color: AppTokens.inverse,
             child: Text(
-              title,
+              'STAGE 01',
               style: AppTokens.fontMonospace(
                 color: AppTokens.textOnDark,
-                fontSize: 14.0,
+                fontSize: 12.0,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1.0,
+                letterSpacing: 1.2,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8.0),
-          StatusChip(
-            label: subtitle,
-            icon: Icons.check_circle_outline,
-            type: StatusType.ok,
+          const SizedBox(width: 14.0),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PAGE 1: VEHICLE & CUSTOMER INTAKE',
+                  style: AppTokens.fontMonospace(
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2.0),
+                const Text(
+                  'Record vehicle identity, verify odometer reading & customer requirements',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    color: AppTokens.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
+          if (state.isExistingVehicle)
+            const StatusChip(
+              label: 'RECOGNISED IN SYSTEM',
+              icon: Icons.verified,
+              type: StatusType.ok,
+            )
+          else
+            const StatusChip(
+              label: 'NEW INTAKE',
+              icon: Icons.add_circle_outline,
+              type: StatusType.neutral,
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildVehicleIdentityCard(IntakeFormState state, IntakeController controller) {
+  Widget _buildVehicleHeroCard(IntakeFormState state, IntakeController controller) {
     return Container(
       decoration: BoxDecoration(
         color: AppTokens.surface,
         border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '1. VEHICLE REGISTRATION & IDENTITY',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.0),
+              Expanded(
+                child: Text(
+                  '1. VEHICLE REGISTRATION & IDENTITY',
+                  style: AppTokens.fontMonospace(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8.0),
               if (state.isExistingVehicle)
                 const StatusChip(
-                  label: 'RECOGNISED IN SYSTEM',
-                  icon: Icons.verified,
+                  label: 'PASSPORT LINKED',
+                  icon: Icons.history_edu,
                   type: StatusType.ok,
                 ),
             ],
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 16.0),
+
+          // Authentic Indian HSRP Number Plate Display
+          Center(
+            child: IndianNumberPlate(
+              registrationNumber: state.registrationNumber,
+              height: 52.0,
+            ),
+          ),
+          const SizedBox(height: 16.0),
+
+          // Large Interactive Vehicle Silhouette Display
+          Container(
+            height: 140.0,
+            decoration: BoxDecoration(
+              color: AppTokens.raised,
+              border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+            ),
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              children: [
+                Expanded(
+                  child: CustomPaint(
+                    size: const Size(double.infinity, 80.0),
+                    painter: VehicleSilhouettePainter(
+                      bodyType: state.bodyType,
+                      strokeColor: AppTokens.inverse,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        state.make,
+                        style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6.0),
+                    Flexible(
+                      child: Text(
+                        state.model.isNotEmpty ? state.model.toUpperCase() : 'SELECT MODEL',
+                        style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6.0),
+                    Flexible(
+                      child: Text(
+                        state.bodyType.label,
+                        style: AppTokens.fontMonospace(fontSize: 11.0, color: AppTokens.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16.0),
 
           // Registration Number Input
           TextField(
@@ -223,9 +356,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               errorText: state.errors['registration'],
               filled: true,
               fillColor: AppTokens.raised,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             ),
-            style: AppTokens.fontMonospace(fontWeight: FontWeight.bold),
+            style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 15.0),
             onChanged: controller.onRegistrationChanged,
           ),
           const SizedBox(height: 12.0),
@@ -240,16 +375,18 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               errorText: state.errors['vin'],
               filled: true,
               fillColor: AppTokens.raised,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             ),
-            style: AppTokens.fontMonospace(),
+            style: AppTokens.fontMonospace(fontSize: 14.0),
             onChanged: controller.onVinChanged,
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 16.0),
 
-          // Make Wordmarks Quick Bar
-          const Text('POPULAR MAKES:', style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6.0),
+          // Popular Makes Quick Wordmarks
+          const Text('POPULAR MANUFACTURERS:', style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8.0),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -264,7 +401,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 'HONDA',
               ].map((makeName) {
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
+                  padding: const EdgeInsets.only(right: 6.0),
                   child: MakeWordmarkChip(
                     make: makeName,
                     isSelected: state.make == makeName,
@@ -276,20 +413,21 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
           ),
           const SizedBox(height: 12.0),
 
-          // Make & Model Row
+          // Make Dropdown & Model Input
           Row(
             children: [
-              // Make Dropdown
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<String>(
                   key: const Key('dropdown_make'),
+                  isExpanded: true,
                   initialValue: state.make,
                   decoration: const InputDecoration(
                     labelText: 'MAKE',
                     filled: true,
                     fillColor: AppTokens.raised,
                     border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
                   ),
                   items: const [
                     DropdownMenuItem(value: 'MARUTI SUZUKI', child: Text('MARUTI SUZUKI')),
@@ -309,8 +447,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 12.0),
-              // Model Input
+              const SizedBox(width: 10.0),
               Expanded(
                 flex: 3,
                 child: TextField(
@@ -323,16 +460,17 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                     filled: true,
                     fillColor: AppTokens.raised,
                     border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
                   ),
                   onChanged: controller.onModelChanged,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 16.0),
 
-          // Body Type Selection
-          const Text('BODY PROFILE SILHOUETTE:', style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
+          // Silhouette Profiles Selector
+          const Text('BODY PROFILE SILHOUETTE:', style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8.0),
           Wrap(
             spacing: 8.0,
@@ -343,9 +481,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 key: Key('body_type_${type.name}'),
                 onTap: () => controller.onBodyTypeChanged(type),
                 child: Container(
-                  width: 110.0,
-                  height: 72.0,
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 6.0),
+                  width: 102.0,
+                  height: 68.0,
+                  padding: const EdgeInsets.all(6.0),
                   decoration: BoxDecoration(
                     color: isSelected ? AppTokens.inverse : AppTokens.raised,
                     border: Border.all(color: AppTokens.borderSolid, width: 1.0),
@@ -354,8 +492,8 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 54.0,
-                        height: 24.0,
+                        width: 52.0,
+                        height: 22.0,
                         child: CustomPaint(
                           painter: VehicleSilhouettePainter(
                             bodyType: type,
@@ -370,7 +508,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                         style: TextStyle(
                           color: isSelected ? AppTokens.textOnDark : AppTokens.textPrimary,
                           fontWeight: FontWeight.bold,
-                          fontSize: 10.0,
+                          fontSize: 9.5,
                         ),
                       ),
                     ],
@@ -390,24 +528,32 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         color: AppTokens.raised,
         border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(18.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'PREVIOUS SERVICE RECORDS (${state.previousHistory.length})',
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.0),
+              Expanded(
+                child: Text(
+                  'PREVIOUS SERVICE RECORDS (${state.previousHistory.length})',
+                  style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Text(
-                'LAST RECORDED: ${state.lastRecordedKm} KM',
-                style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 12.0),
+              const SizedBox(width: 8.0),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                color: AppTokens.surface,
+                child: Text(
+                  'LAST RECORDED: ${state.lastRecordedKm} KM',
+                  style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 11.0),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 14.0),
           ...state.previousHistory.map((item) {
             final dateStr = DateFormat('dd MMM yyyy').format(item.serviceDate);
             final amountRupees = (item.totalAmountPaise / 100).toStringAsFixed(2);
@@ -430,7 +576,13 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                           children: [
                             const Icon(Icons.circle, size: 8.0, color: AppTokens.green),
                             const SizedBox(width: 6.0),
-                            Text('ORDER #${item.orderId}', style: AppTokens.fontMonospace(fontWeight: FontWeight.w800, fontSize: 13.0)),
+                            Expanded(
+                              child: Text(
+                                'ORDER #${item.orderId}',
+                                style: AppTokens.fontMonospace(fontWeight: FontWeight.w800, fontSize: 13.0),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 2.0),
@@ -448,14 +600,14 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8.0),
+                  const SizedBox(width: 10.0),
                   Container(
-                    padding: const EdgeInsets.all(4.0),
+                    padding: const EdgeInsets.all(6.0),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppTokens.borderSolid, width: 1.0),
                       color: AppTokens.raised,
                     ),
-                    child: const Icon(Icons.picture_as_pdf, size: 18.0, color: AppTokens.redOrange),
+                    child: const Icon(Icons.picture_as_pdf, size: 16.0, color: AppTokens.redOrange),
                   ),
                 ],
               ),
@@ -472,16 +624,16 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         color: AppTokens.surface,
         border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '2. CUSTOMER CONTACT & CONSENT',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.0),
+              Text(
+                '2. CUSTOMER CONTACT & DIGITAL DISPATCH',
+                style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
               ),
               if (state.isExistingCustomer)
                 const StatusChip(
@@ -491,7 +643,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 14.0),
 
           // Mobile Phone
           TextField(
@@ -505,8 +657,9 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               filled: true,
               fillColor: AppTokens.raised,
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             ),
-            style: AppTokens.fontMonospace(),
+            style: AppTokens.fontMonospace(fontWeight: FontWeight.bold),
             onChanged: controller.onPhoneChanged,
           ),
           const SizedBox(height: 12.0),
@@ -522,15 +675,16 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               filled: true,
               fillColor: AppTokens.raised,
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             ),
             onChanged: controller.onNameChanged,
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 14.0),
 
           // WhatsApp Consent Checkbox
           _buildCheckboxRow(
             key: const Key('checkbox_whatsapp'),
-            label: 'Customer consents to receive Estimates, Digital Passport & Invoices on WhatsApp & SMS',
+            label: 'Customer consents to receive Estimates, Digital Health Passport & GST Invoices on WhatsApp & SMS',
             value: state.whatsappConsent,
             onChanged: controller.onWhatsappConsentChanged,
           ),
@@ -545,15 +699,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         color: AppTokens.surface,
         border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '3. ODOMETER & FUEL LEVEL AT INTAKE',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.0),
+          Text(
+            '3. ODOMETER & FUEL TELEMETRY AT INTAKE',
+            style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 14.0),
 
           // Odometer Reading
           TextField(
@@ -568,20 +722,25 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               fillColor: AppTokens.raised,
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
               suffixText: 'KM',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             ),
-            style: AppTokens.fontMonospace(fontWeight: FontWeight.bold),
+            style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 16.0),
             onChanged: controller.onOdometerChanged,
           ),
           const SizedBox(height: 16.0),
 
-          // Fuel Level Selector
+          // Segmented Fuel Gauge Bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('FUEL GAUGE READING:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0)),
-              Text(
-                '${state.fuelLevelPercent}%',
-                style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 14.0),
+              const Text('FUEL GAUGE READING:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                color: AppTokens.raised,
+                child: Text(
+                  '${state.fuelLevelPercent}%',
+                  style: AppTokens.fontMonospace(fontWeight: FontWeight.bold, fontSize: 13.0),
+                ),
               ),
             ],
           ),
@@ -631,15 +790,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         color: AppTokens.surface,
         border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '4. REQUESTED WORK & EXPECTED DELIVERY',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.0),
+          Text(
+            '4. REQUESTED WORK & DELIVERY PROMISE',
+            style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 14.0),
 
           // Requested Work / Complaints
           TextField(
@@ -653,10 +812,11 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               filled: true,
               fillColor: AppTokens.raised,
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+              contentPadding: const EdgeInsets.all(14.0),
             ),
             onChanged: controller.onRequestedWorkChanged,
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 14.0),
 
           // Expected Delivery Date Picker
           InkWell(
@@ -685,7 +845,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               }
             },
             child: Container(
-              padding: const EdgeInsets.all(14.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
               decoration: BoxDecoration(
                 color: AppTokens.raised,
                 border: Border.all(
@@ -695,7 +855,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 20.0),
+                  const Icon(Icons.schedule, size: 20.0),
                   const SizedBox(width: 12.0),
                   Expanded(
                     child: Text(
@@ -729,15 +889,15 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         color: AppTokens.surface,
         border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '5. CUSTOMER BELONGINGS & INVENTORY CHECKLIST',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.0),
+          Text(
+            '5. IN-VEHICLE BELONGINGS INVENTORY',
+            style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
           ),
-          const SizedBox(height: 8.0),
+          const SizedBox(height: 10.0),
           _buildCheckboxRow(
             key: const Key('belonging_jack'),
             label: 'Jack & Tool Kit Present',
@@ -810,13 +970,37 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
     );
   }
 
+  Widget _buildSubmitAction(IntakeFormState state, IntakeController controller) {
+    if (state.status == IntakeStatus.saving) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(color: AppTokens.inverse),
+        ),
+      );
+    }
+
+    return SharpButton(
+      label: 'GENERATE INTAKE & PROCEED TO BAY CHECK-IN',
+      onPressed: () async {
+        final messenger = ScaffoldMessenger.of(context);
+        final ok = await controller.submitIntake();
+        if (ok) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Vehicle Intake recorded. Proceeding to Bay Capture.')),
+          );
+        }
+      },
+    );
+  }
+
   Widget _buildSuccessView(IntakeFormState state) {
     return Scaffold(
       backgroundColor: AppTokens.base,
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 550.0),
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(28.0),
           decoration: BoxDecoration(
             color: AppTokens.surface,
             border: Border.all(color: AppTokens.borderSolid, width: 1.0),
@@ -830,11 +1014,18 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 icon: Icons.check_circle,
                 type: StatusType.ok,
               ),
+              const SizedBox(height: 20.0),
+              Center(
+                child: IndianNumberPlate(
+                  registrationNumber: state.registrationNumber,
+                  height: 48.0,
+                ),
+              ),
               const SizedBox(height: 16.0),
               Text(
                 'JOB CARD CREATED',
                 textAlign: TextAlign.center,
-                style: AppTokens.fontMonospace(fontSize: 16.0, fontWeight: FontWeight.bold),
+                style: AppTokens.fontMonospace(fontSize: 15.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8.0),
               Container(
@@ -848,7 +1039,7 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'Vehicle: ${state.make} ${state.model} (${state.registrationNumber})\nCustomer: ${state.customerName} (${state.customerPhone})\nStatus: RECEIVED (Awaiting Mandatory 6-Shot Bay Capture)',
+                'Vehicle: ${state.make} ${state.model}\nCustomer: ${state.customerName} (${state.customerPhone})\nStatus: RECEIVED (Awaiting Mandatory 6-Shot Bay Capture)',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13.0, height: 1.5),
               ),

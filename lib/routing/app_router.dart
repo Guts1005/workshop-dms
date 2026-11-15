@@ -20,56 +20,84 @@ final GoRouter appRouter = GoRouter(
             elevation: 0,
             title: Row(
               children: [
-                const Icon(Icons.build_circle_sharp, color: AppTokens.textOnDark, size: 22.0),
-                const SizedBox(width: 8.0),
+                Container(
+                  padding: const EdgeInsets.all(5.0),
+                  color: AppTokens.redOrange,
+                  child: const Icon(Icons.build_circle, color: Colors.white, size: 16.0),
+                ),
+                const SizedBox(width: 10.0),
                 Text(
                   'WORKSHOP DMS',
                   style: AppTokens.fontMonospace(
                     color: AppTokens.textOnDark,
-                    fontSize: 15.0,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 16.0),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
-                  color: AppTokens.surface,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF444444), width: 1.0),
+                  ),
                   child: Text(
-                    'GOVERNED PIPELINE: ACTIVE',
+                    'BAY 04 • WORKSHOP FLOOR',
                     style: AppTokens.fontMonospace(
-                      color: AppTokens.textPrimary,
+                      color: AppTokens.surface,
                       fontSize: 10.0,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    Container(
+                      width: 8.0,
+                      height: 8.0,
+                      decoration: const BoxDecoration(
+                        color: AppTokens.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6.0),
+                    Text(
+                      'ONLINE',
+                      style: AppTokens.fontMonospace(
+                        color: AppTokens.green,
+                        fontSize: 11.0,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           body: navigationShell,
           bottomNavigationBar: Container(
-            height: 52.0,
+            height: 54.0,
             decoration: const BoxDecoration(
-              color: AppTokens.surface,
-              border: Border(top: BorderSide(color: AppTokens.borderSolid, width: 1.0)),
+              color: AppTokens.inverse,
+              border: Border(top: BorderSide(color: Color(0xFF333333), width: 1.0)),
             ),
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildNavItem(0, '1. INTAKE', navigationShell),
-                _buildNavItem(1, '2. CAPTURE', navigationShell),
-                _buildNavItem(2, '3. 360° MAP', navigationShell),
-                _buildNavItem(3, '4. INSPECT', navigationShell),
-                _buildNavItem(4, '5. JOB CARD', navigationShell),
-                _buildNavItem(5, '6. WHATSAPP', navigationShell),
-                _buildNavItem(6, '7. WIP BOARD', navigationShell),
-                _buildNavItem(7, '8. QC GATE', navigationShell),
-                _buildNavItem(8, '9. GST BILL', navigationShell),
-                _buildNavItem(9, '10. PAYMENT', navigationShell),
-                _buildNavItem(10, '11. PASSPORT', navigationShell),
-                _buildNavItem(11, '12. REMIND', navigationShell),
-                _buildNavItem(12, '13. SHOP', navigationShell),
+                _buildNavItem(0, '1. INTAKE', Icons.login, navigationShell),
+                _buildNavItem(1, '2. CAPTURE', Icons.camera_alt_outlined, navigationShell),
+                _buildNavItem(2, '3. 360° MAP', Icons.crop_rotate, navigationShell),
+                _buildNavItem(3, '4. INSPECT', Icons.fact_check_outlined, navigationShell),
+                _buildNavItem(4, '5. JOB CARD', Icons.assignment_outlined, navigationShell),
+                _buildNavItem(5, '6. WHATSAPP', Icons.send_outlined, navigationShell),
+                _buildNavItem(6, '7. WIP BOARD', Icons.engineering_outlined, navigationShell),
+                _buildNavItem(7, '8. QC GATE', Icons.verified_outlined, navigationShell),
+                _buildNavItem(8, '9. GST BILL', Icons.receipt_long_outlined, navigationShell),
+                _buildNavItem(9, '10. PAYMENT', Icons.payments_outlined, navigationShell),
+                _buildNavItem(10, '11. PASSPORT', Icons.badge_outlined, navigationShell),
+                _buildNavItem(11, '12. REMIND', Icons.notifications_active_outlined, navigationShell),
+                _buildNavItem(12, '13. SHOP', Icons.dashboard_outlined, navigationShell),
               ],
             ),
           ),
@@ -220,32 +248,42 @@ final GoRouter appRouter = GoRouter(
   ],
 );
 
-Widget _buildNavItem(int index, String label, StatefulNavigationShell shell) {
+Widget _buildNavItem(int index, String label, IconData icon, StatefulNavigationShell shell) {
   final isSelected = shell.currentIndex == index;
-  return GestureDetector(
+  return InkWell(
     onTap: () => shell.goBranch(index),
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
-        color: isSelected ? AppTokens.raised : Colors.transparent,
+        color: isSelected ? const Color(0xFF2E2E2E) : Colors.transparent,
         border: Border(
-          right: const BorderSide(color: AppTokens.borderSolid, width: 1.0),
-          bottom: BorderSide(
+          top: BorderSide(
             color: isSelected ? AppTokens.redOrange : Colors.transparent,
             width: 3.0,
           ),
+          right: const BorderSide(color: Color(0xFF333333), width: 1.0),
         ),
       ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? AppTokens.redOrange : AppTokens.textPrimary,
-          fontSize: 11.0,
-          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-          fontFamily: 'monospace',
-          letterSpacing: 0.5,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15.0,
+            color: isSelected ? AppTokens.textOnDark : const Color(0xFF888888),
+          ),
+          const SizedBox(width: 8.0),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppTokens.textOnDark : const Color(0xFF888888),
+              fontSize: 11.0,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              fontFamily: 'monospace',
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     ),
   );
