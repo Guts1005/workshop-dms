@@ -1,20 +1,47 @@
 import 'package:flutter/material.dart';
-import 'camera_spike_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'ui_kit/tokens/app_tokens.dart';
+import 'routing/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const CameraSpikeApp());
+  runApp(
+    const ProviderScope(
+      child: WorkshopDmsApp(),
+    ),
+  );
 }
 
-class CameraSpikeApp extends StatelessWidget {
-  const CameraSpikeApp({super.key});
+class WorkshopDmsApp extends StatelessWidget {
+  const WorkshopDmsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Camera Capture Spike',
+    return MaterialApp.router(
+      title: 'Workshop DMS',
       debugShowCheckedModeBanner: false,
-      home: CameraSpikeScreen(),
+      routerConfig: appRouter,
+      theme: ThemeData(
+        scaffoldBackgroundColor: AppTokens.base,
+        colorScheme: const ColorScheme.light(
+          primary: AppTokens.inverse,
+          surface: AppTokens.surface,
+          error: AppTokens.redOrange,
+        ),
+        // Strict invariant: sharp corners across all components
+        cardTheme: const CardThemeData(
+          shape: RoundedRectangleBorder(borderRadius: AppTokens.zeroRadius),
+          elevation: 0,
+        ),
+        dialogTheme: const DialogThemeData(
+          shape: RoundedRectangleBorder(borderRadius: AppTokens.zeroRadius),
+          elevation: 0,
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          shape: RoundedRectangleBorder(borderRadius: AppTokens.zeroRadius),
+          elevation: 0,
+        ),
+      ),
     );
   }
 }
