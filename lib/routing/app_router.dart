@@ -77,27 +77,42 @@ final GoRouter appRouter = GoRouter(
           ),
           body: navigationShell,
           bottomNavigationBar: Container(
-            height: 54.0,
+            height: 56.0,
             decoration: const BoxDecoration(
               color: AppTokens.inverse,
               border: Border(top: BorderSide(color: Color(0xFF333333), width: 1.0)),
             ),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
+            child: Row(
               children: [
-                _buildNavItem(0, '1. INTAKE', Icons.login, navigationShell),
-                _buildNavItem(1, '2. CAPTURE', Icons.camera_alt_outlined, navigationShell),
-                _buildNavItem(2, '3. 360° MAP', Icons.crop_rotate, navigationShell),
-                _buildNavItem(3, '4. INSPECT', Icons.fact_check_outlined, navigationShell),
-                _buildNavItem(4, '5. JOB CARD', Icons.assignment_outlined, navigationShell),
-                _buildNavItem(5, '6. WHATSAPP', Icons.send_outlined, navigationShell),
-                _buildNavItem(6, '7. WIP BOARD', Icons.engineering_outlined, navigationShell),
-                _buildNavItem(7, '8. QC GATE', Icons.verified_outlined, navigationShell),
-                _buildNavItem(8, '9. GST BILL', Icons.receipt_long_outlined, navigationShell),
-                _buildNavItem(9, '10. PAYMENT', Icons.payments_outlined, navigationShell),
-                _buildNavItem(10, '11. PASSPORT', Icons.badge_outlined, navigationShell),
-                _buildNavItem(11, '12. REMIND', Icons.notifications_active_outlined, navigationShell),
-                _buildNavItem(12, '13. SHOP', Icons.dashboard_outlined, navigationShell),
+                Expanded(child: _buildNavItem(0, '1. INTAKE', Icons.login, navigationShell)),
+                Expanded(child: _buildNavItem(1, '2. CAPTURE', Icons.camera_alt_outlined, navigationShell)),
+                Expanded(child: _buildNavItem(2, '3. 360° MAP', Icons.crop_rotate, navigationShell)),
+                Expanded(child: _buildNavItem(4, '5. JOB CARD', Icons.assignment_outlined, navigationShell)),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showAllStagesSheet(context, navigationShell),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.grid_view_sharp, color: Colors.white, size: 16.0),
+                          const SizedBox(height: 3.0),
+                          Text(
+                            'ALL STAGES',
+                            style: AppTokens.fontMonospace(
+                              color: Colors.white,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -253,7 +268,6 @@ Widget _buildNavItem(int index, String label, IconData icon, StatefulNavigationS
   return InkWell(
     onTap: () => shell.goBranch(index),
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color: isSelected ? const Color(0xFF2E2E2E) : Colors.transparent,
         border: Border(
@@ -264,27 +278,110 @@ Widget _buildNavItem(int index, String label, IconData icon, StatefulNavigationS
           right: const BorderSide(color: Color(0xFF333333), width: 1.0),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            size: 15.0,
+            size: 16.0,
             color: isSelected ? AppTokens.textOnDark : const Color(0xFF888888),
           ),
-          const SizedBox(width: 8.0),
+          const SizedBox(height: 3.0),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: isSelected ? AppTokens.textOnDark : const Color(0xFF888888),
-              fontSize: 11.0,
+              fontSize: 10.0,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
               fontFamily: 'monospace',
-              letterSpacing: 0.5,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     ),
+  );
+}
+
+void _showAllStagesSheet(BuildContext context, StatefulNavigationShell shell) {
+  final stages = [
+    '1. INTAKE (Active Registration & Customer)',
+    '2. BAY CAPTURE (6 Mandatory Shots)',
+    '3. 360° CONDITION MAP (Damage Zones)',
+    '4. MECHANICAL INSPECTION (Brakes, Tyres, Battery)',
+    '5. JOB CARD & ESTIMATE (SAC 998714 / Parts)',
+    '6. WHATSAPP DISPATCH (Approvals & Declines)',
+    '7. WORK IN PROGRESS BOARD (Bay Clock & Stock)',
+    '8. QC & ROAD TEST GATE (Safety Sign-off)',
+    '9. GST INVOICING (CGST/SGST/IGST Engine)',
+    '10. PAYMENT & RELEASE GATE (Zero Balance Gate)',
+    '11. DIGITAL HEALTH PASSPORT (QR & Public Web)',
+    '12. SERVICE REMINDERS (KM & Time Triggers)',
+    '13. HOME DASHBOARD (Shop Metrics & Active Bays)',
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppTokens.surface,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    builder: (ctx) {
+      return Container(
+        height: 480.0,
+        padding: const EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          color: AppTokens.surface,
+          border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'WORKSHOP PIPELINE: 13 STAGES',
+                  style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10.0),
+            Expanded(
+              child: ListView.separated(
+                itemCount: stages.length,
+                separatorBuilder: (ctx, idx) => const Divider(height: 1.0, color: AppTokens.dividerPassive),
+                itemBuilder: (ctx, idx) {
+                  final isCurrent = shell.currentIndex == idx;
+                  return ListTile(
+                    dense: true,
+                    selected: isCurrent,
+                    selectedTileColor: AppTokens.inverse,
+                    title: Text(
+                      stages[idx],
+                      style: AppTokens.fontMonospace(
+                        color: isCurrent ? AppTokens.textOnDark : AppTokens.textPrimary,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                    trailing: isCurrent
+                        ? const Icon(Icons.check_circle, color: AppTokens.redOrange, size: 18.0)
+                        : const Icon(Icons.chevron_right, size: 16.0),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      shell.goBranch(idx);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
   );
 }
