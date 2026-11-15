@@ -13,6 +13,6 @@ void main() {
 
     expect(find.text('WORKSHOP DMS'), findsOneWidget);
     expect(find.text('1. INTAKE'), findsOneWidget);
-    expect(find.text('STAGE GATED: PAGE 1'), findsOneWidget);
+    expect(find.text('PAGE 1: VEHICLE & CUSTOMER INTAKE'), findsOneWidget);
   });
 }

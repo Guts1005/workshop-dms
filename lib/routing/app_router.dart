@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../ui_kit/tokens/app_tokens.dart';
+import '../features/intake/presentation/intake_screen.dart';
 import 'placeholder_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -79,11 +80,7 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/intake',
-            builder: (context, state) => const PhasePlaceholderScreen(
-              pageNumber: 1,
-              title: 'Vehicle & Customer Intake',
-              description: 'Plate & VIN entry, customer lookup or create, odometer, fuel level, belongings inventory, consent and WhatsApp opt-in.',
-            ),
+            builder: (context, state) => const IntakeScreen(),
           ),
         ]),
         // Branch 2: Page 2 - Bay Check-in Capture
