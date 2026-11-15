@@ -12,6 +12,7 @@ class SharpButton extends StatefulWidget {
   final IconData? icon;
   final VoidCallback? onPressed;
   final SharpButtonVariant variant;
+  final bool onDark;
   final double? width;
   final double height;
 
@@ -21,6 +22,7 @@ class SharpButton extends StatefulWidget {
     this.icon,
     this.onPressed,
     this.variant = SharpButtonVariant.primary,
+    this.onDark = false,
     this.width,
     this.height = AppTokens.minTouchTarget,
   });
@@ -42,9 +44,15 @@ class _SharpButtonState extends State<SharpButton> {
     Border? border;
 
     if (!isEnabled) {
-      backgroundColor = AppTokens.surface;
-      textColor = AppTokens.textSecondary;
-      border = Border.all(color: AppTokens.dividerPassive, width: 1.0);
+      if (widget.onDark) {
+        backgroundColor = const Color(0xFF2A2A2A);
+        textColor = const Color(0xFF777777);
+        border = Border.all(color: const Color(0xFF444444), width: 1.0);
+      } else {
+        backgroundColor = AppTokens.surface;
+        textColor = AppTokens.textSecondary;
+        border = Border.all(color: AppTokens.dividerPassive, width: 1.0);
+      }
     } else if (_isPressed) {
       // Pressed specification: #FFFFFF fill, #DB4A2B text
       backgroundColor = AppTokens.raised;
@@ -53,14 +61,17 @@ class _SharpButtonState extends State<SharpButton> {
     } else {
       switch (widget.variant) {
         case SharpButtonVariant.primary:
-          backgroundColor = AppTokens.inverse;
-          textColor = AppTokens.textOnDark;
-          border = null;
+          backgroundColor = widget.onDark ? AppTokens.raised : AppTokens.inverse;
+          textColor = widget.onDark ? AppTokens.textPrimary : AppTokens.textOnDark;
+          border = widget.onDark ? Border.all(color: AppTokens.borderSolid, width: 1.0) : null;
           break;
         case SharpButtonVariant.secondary:
           backgroundColor = Colors.transparent;
-          textColor = AppTokens.textPrimary;
-          border = Border.all(color: AppTokens.borderSolid, width: 1.0);
+          textColor = widget.onDark ? AppTokens.textOnDark : AppTokens.textPrimary;
+          border = Border.all(
+            color: widget.onDark ? AppTokens.textOnDark : AppTokens.borderSolid,
+            width: 1.0,
+          );
           break;
         case SharpButtonVariant.destructive:
           backgroundColor = AppTokens.redOrange;

@@ -622,6 +622,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
             label: state.isOverrideActive ? 'VIEW OVERRIDE' : 'MANAGER OVERRIDE',
             icon: Icons.admin_panel_settings_outlined,
             variant: SharpButtonVariant.secondary,
+            onDark: true,
             onPressed: _showManagerOverrideDialog,
           ),
           const SizedBox(width: 12.0),
@@ -632,6 +633,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   ? 'FINALIZE CHECK-IN & OPEN 360° CONDITION MAP'
                   : 'LOCKED: ${state.mandatoryCompletedCount}/6 SHOTS REQUIRED TO OPEN JOB CARD',
               icon: state.canFinalizeCheckIn ? Icons.arrow_forward : Icons.lock_outline,
+              onDark: true,
               onPressed: state.canFinalizeCheckIn
                   ? () async {
                       final ok = await controller.finalizeCheckIn();
