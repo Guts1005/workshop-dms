@@ -15,11 +15,13 @@ import 'bay_capture_models.dart';
 class BayCaptureScreen extends ConsumerStatefulWidget {
   final String? jobCardId;
   final String? registrationNumber;
+  final bool initialSimulationMode;
 
   const BayCaptureScreen({
     super.key,
     this.jobCardId,
     this.registrationNumber,
+    this.initialSimulationMode = false,
   });
 
   @override
@@ -27,9 +29,12 @@ class BayCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
+  late bool _useSimulationMode;
+
   @override
   void initState() {
     super.initState();
+    _useSimulationMode = widget.initialSimulationMode;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.jobCardId != null || widget.registrationNumber != null) {
         ref.read(bayCaptureControllerProvider.notifier).initSession(
@@ -465,28 +470,12 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 ),
               ],
             )
-          else if (!kIsWeb && (Platform.isAndroid || Platform.isIOS))
-            // Native Mobile Camera Module
-            CameraCaptureModule(
-              title: active.title,
-              instruction: active.instruction,
-              wireframeGuide: BayCameraGuidePainter(shotType: active),
-              onPhotoConfirmed: (file, hash) async {
-                final len = await file.length();
-                await controller.recordCapturedPhoto(
-                  shotType: active,
-                  filePath: file.path,
-                  sha256Hash: hash,
-                  fileSizeBytes: len,
-                );
-              },
-            )
-          else
+          else if (_useSimulationMode)
             // Desktop / Web / Testing Fallback Simulator
             Center(
               child: Container(
                 padding: const EdgeInsets.all(24.0),
-                constraints: const BoxConstraints(maxWidth: 420.0),
+                constraints: const BoxConstraints(maxWidth: 440.0),
                 decoration: BoxDecoration(
                   color: AppTokens.surface,
                   border: Border.all(color: AppTokens.borderSolid, width: 1.0),
@@ -497,7 +486,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                     const Icon(Icons.videocam_outlined, size: 48.0, color: AppTokens.textPrimary),
                     const SizedBox(height: 12.0),
                     Text(
-                      'BAY CAMERA: ${active.title}',
+                      'SIMULATED BAY CAMERA: ${active.title}',
                       textAlign: TextAlign.center,
                       style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
                     ),
@@ -513,9 +502,33 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                       icon: Icons.camera,
                       onPressed: () => _simulateDesktopCapture(active),
                     ),
+                    const SizedBox(height: 10.0),
+                    SharpButton(
+                      label: 'SWITCH TO LIVE HARDWARE CAMERA',
+                      variant: SharpButtonVariant.secondary,
+                      onPressed: () => setState(() => _useSimulationMode = false),
+                    ),
                   ],
                 ),
               ),
+            )
+          else
+            // Full Cross-Platform Live Camera Module (Web, Windows, Android, iOS)
+            CameraCaptureModule(
+              title: active.title,
+              instruction: active.instruction,
+              wireframeGuide: BayCameraGuidePainter(shotType: active),
+              onPhotoConfirmed: (photoPath, hash, sizeBytes) async {
+                await controller.recordCapturedPhoto(
+                  shotType: active,
+                  filePath: photoPath,
+                  sha256Hash: hash,
+                  fileSizeBytes: sizeBytes,
+                );
+              },
+              onFallbackToSimulation: () {
+                setState(() => _useSimulationMode = true);
+              },
             ),
         ],
       ),

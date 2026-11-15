@@ -47,6 +47,7 @@ void main() {
             home: BayCaptureScreen(
               jobCardId: 'JC-1002',
               registrationNumber: 'RJ27CA1024',
+              initialSimulationMode: true,
             ),
           ),
         ),

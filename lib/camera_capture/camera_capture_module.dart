@@ -1,21 +1,20 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:crypto/crypto.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import '../ui_kit/tokens/app_tokens.dart';
 import '../ui_kit/widgets/sharp_button.dart';
 
-typedef QualityCheckCallback = Future<bool> Function(File photo);
+typedef QualityCheckCallback = Future<bool> Function(Uint8List bytes);
 
 class CameraCaptureModule extends StatefulWidget {
   final String title;
   final String instruction;
   final CustomPainter? wireframeGuide;
-  final Function(File photo, String sha256Hash) onPhotoConfirmed;
+  final Function(String photoPath, String sha256Hash, int fileSizeBytes) onPhotoConfirmed;
   final QualityCheckCallback? onQualityCheck;
+  final VoidCallback? onFallbackToSimulation;
 
   const CameraCaptureModule({
     super.key,
@@ -24,6 +23,7 @@ class CameraCaptureModule extends StatefulWidget {
     this.wireframeGuide,
     required this.onPhotoConfirmed,
     this.onQualityCheck,
+    this.onFallbackToSimulation,
   });
 
   @override
@@ -40,7 +40,8 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
   String? _errorMessage;
 
   // Staged capture for review & quality check
-  File? _stagedPhoto;
+  Uint8List? _stagedBytes;
+  String? _stagedPath;
   String? _stagedHash;
   bool _isProcessing = false;
   String? _qualityWarning;
@@ -65,7 +66,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       _disposeController();
     } else if (state == AppLifecycleState.resumed) {
-      if (_permissionState == _ModulePermissionState.granted && _stagedPhoto == null) {
+      if (_permissionState == _ModulePermissionState.granted && _stagedBytes == null) {
         _initCamera();
       }
     }
@@ -86,15 +87,22 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
 
   Future<void> _requestPermission() async {
     setState(() => _permissionState = _ModulePermissionState.checking);
-    if (Platform.isAndroid || Platform.isIOS) {
-      final status = await Permission.camera.request();
-      if (status.isGranted) {
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        final status = await Permission.camera.request();
+        if (status.isGranted) {
+          setState(() => _permissionState = _ModulePermissionState.granted);
+          await _initCamera();
+        } else {
+          setState(() => _permissionState = _ModulePermissionState.denied);
+        }
+      } catch (_) {
         setState(() => _permissionState = _ModulePermissionState.granted);
         await _initCamera();
-      } else {
-        setState(() => _permissionState = _ModulePermissionState.denied);
       }
     } else {
+      // Web, Windows, macOS, Linux: permission is requested by browser/system on initialize()
       setState(() => _permissionState = _ModulePermissionState.granted);
       await _initCamera();
     }
@@ -109,7 +117,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
-        throw CameraException('NoCamerasFound', 'No camera hardware detected on this device.');
+        throw CameraException('NoCamerasFound', 'No camera hardware detected or available.');
       }
 
       final camera = _cameras.firstWhere(
@@ -152,29 +160,18 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
       // 1. Compute SHA-256 on raw device bytes
       final hash = sha256.convert(bytes).toString();
 
-      // 2. Write to App Sandbox directory only
-      final Directory appDocDir = await getApplicationDocumentsDirectory();
-      final String bayDir = p.join(appDocDir.path, 'bay_captures');
-      final Directory targetDir = Directory(bayDir);
-      if (!await targetDir.exists()) {
-        await targetDir.create(recursive: true);
-      }
-
-      final String fileName = 'shot_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final String destinationPath = p.join(targetDir.path, fileName);
-      final File permanentFile = await File(rawShot.path).copy(destinationPath);
-
-      // 3. Optional Quality Check Hook
+      // 2. Optional Quality Check Hook
       String? warning;
       if (widget.onQualityCheck != null) {
-        final passed = await widget.onQualityCheck!(permanentFile);
+        final passed = await widget.onQualityCheck!(bytes);
         if (!passed) {
           warning = 'Photo may be blurry or poorly lit. Verify before confirming.';
         }
       }
 
       setState(() {
-        _stagedPhoto = permanentFile;
+        _stagedBytes = bytes;
+        _stagedPath = rawShot.path;
         _stagedHash = hash;
         _qualityWarning = warning;
       });
@@ -191,7 +188,8 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
 
   void _retake() {
     setState(() {
-      _stagedPhoto = null;
+      _stagedBytes = null;
+      _stagedPath = null;
       _stagedHash = null;
       _qualityWarning = null;
     });
@@ -199,8 +197,8 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
   }
 
   void _confirm() {
-    if (_stagedPhoto != null && _stagedHash != null) {
-      widget.onPhotoConfirmed(_stagedPhoto!, _stagedHash!);
+    if (_stagedPath != null && _stagedHash != null && _stagedBytes != null) {
+      widget.onPhotoConfirmed(_stagedPath!, _stagedHash!, _stagedBytes!.length);
     }
   }
 
@@ -214,7 +212,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
       case _ModulePermissionState.denied:
         return _buildDenied();
       case _ModulePermissionState.granted:
-        return _stagedPhoto != null ? _buildReviewScreen() : _buildLiveView();
+        return _stagedBytes != null ? _buildReviewScreen() : _buildLiveView();
     }
   }
 
@@ -222,35 +220,45 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
     return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 480.0),
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
           color: AppTokens.raised,
           borderRadius: AppTokens.zeroRadius,
           border: Border.all(color: AppTokens.borderSolid, width: 1.0),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.camera_alt_outlined, size: 48.0, color: AppTokens.textPrimary),
-            const SizedBox(height: 16.0),
-            Text(
-              widget.title.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 12.0),
-            const Text(
-              'Workshop Check-in requires camera access to capture vehicle condition photos and odometer readings.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14.0, color: AppTokens.textSecondary, height: 1.4),
-            ),
-            const SizedBox(height: 24.0),
-            SharpButton(
-              label: 'CONTINUE & ALLOW CAMERA',
-              onPressed: _requestPermission,
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.camera_alt_outlined, size: 40.0, color: AppTokens.textPrimary),
+              const SizedBox(height: 12.0),
+              Text(
+                widget.title.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10.0),
+              const Text(
+                'Workshop Check-in requires camera access to capture vehicle condition photos and odometer readings.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13.0, color: AppTokens.textSecondary, height: 1.35),
+              ),
+              const SizedBox(height: 18.0),
+              SharpButton(
+                label: 'CONTINUE & ALLOW CAMERA',
+                onPressed: _requestPermission,
+              ),
+              if (widget.onFallbackToSimulation != null) ...[
+                const SizedBox(height: 10.0),
+                SharpButton(
+                  label: 'USE SIMULATED CAPTURE (NO WEBCAM)',
+                  variant: SharpButtonVariant.secondary,
+                  onPressed: widget.onFallbackToSimulation,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -260,41 +268,52 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
     return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 480.0),
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
           color: AppTokens.raised,
           borderRadius: AppTokens.zeroRadius,
           border: Border.all(color: AppTokens.redOrange, width: 2.0),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.no_photography_outlined, size: 48.0, color: AppTokens.redOrange),
-            const SizedBox(height: 16.0),
-            const Text(
-              'CAMERA PERMISSION DENIED',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w800, color: AppTokens.redOrange),
-            ),
-            const SizedBox(height: 12.0),
-            const Text(
-              'Camera access was denied. Please enable camera access in your device settings to proceed.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14.0, height: 1.4),
-            ),
-            const SizedBox(height: 24.0),
-            SharpButton(
-              label: 'OPEN SETTINGS',
-              onPressed: () => openAppSettings(),
-            ),
-            const SizedBox(height: 8.0),
-            SharpButton(
-              label: 'RETRY PERMISSION',
-              variant: SharpButtonVariant.secondary,
-              onPressed: _requestPermission,
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.no_photography_outlined, size: 40.0, color: AppTokens.redOrange),
+              const SizedBox(height: 12.0),
+              const Text(
+                'CAMERA PERMISSION DENIED',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w800, color: AppTokens.redOrange),
+              ),
+              const SizedBox(height: 10.0),
+              const Text(
+                'Camera access was denied. Please allow camera access in your browser or device settings to proceed.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13.0, height: 1.35),
+              ),
+              const SizedBox(height: 18.0),
+              if (!kIsWeb)
+                SharpButton(
+                  label: 'OPEN SETTINGS',
+                  onPressed: () => openAppSettings(),
+                ),
+              const SizedBox(height: 8.0),
+              SharpButton(
+                label: 'RETRY PERMISSION',
+                variant: SharpButtonVariant.secondary,
+                onPressed: _requestPermission,
+              ),
+              if (widget.onFallbackToSimulation != null) ...[
+                const SizedBox(height: 8.0),
+                SharpButton(
+                  label: 'USE SIMULATED CAPTURE (DEV MODE)',
+                  variant: SharpButtonVariant.secondary,
+                  onPressed: widget.onFallbackToSimulation,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -307,6 +326,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
       return Center(
         child: Container(
           padding: const EdgeInsets.all(24.0),
+          constraints: const BoxConstraints(maxWidth: 460.0),
           decoration: BoxDecoration(
             color: AppTokens.raised,
             border: Border.all(color: AppTokens.redOrange, width: 1.5),
@@ -320,7 +340,15 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
               const SizedBox(height: 8.0),
               Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.0)),
               const SizedBox(height: 16.0),
-              SharpButton(label: 'RECONNECT CAMERA', onPressed: _initCamera),
+              SharpButton(label: 'RETRY CAMERA', onPressed: _initCamera),
+              if (widget.onFallbackToSimulation != null) ...[
+                const SizedBox(height: 8.0),
+                SharpButton(
+                  label: 'SWITCH TO SIMULATED CAPTURE',
+                  variant: SharpButtonVariant.secondary,
+                  onPressed: widget.onFallbackToSimulation,
+                ),
+              ],
             ],
           ),
         ),
@@ -344,7 +372,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
             ),
           ),
         ),
-        // Optional Custom Wireframe Overlay
+        // Custom Wireframe Guide Overlay
         if (widget.wireframeGuide != null)
           Positioned.fill(
             child: CustomPaint(painter: widget.wireframeGuide!),
@@ -378,12 +406,27 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
           left: 0,
           right: 0,
           child: Center(
-            child: SharpButton(
-              label: _isProcessing ? 'CAPTURING...' : 'CAPTURE SHOT',
-              icon: Icons.camera,
-              onPressed: _isProcessing ? null : _takeShutter,
-              width: 220.0,
-              height: 52.0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SharpButton(
+                  label: _isProcessing ? 'CAPTURING...' : 'CAPTURE SHOT',
+                  icon: Icons.camera,
+                  onPressed: _isProcessing ? null : _takeShutter,
+                  width: 220.0,
+                  height: 52.0,
+                ),
+                if (widget.onFallbackToSimulation != null) ...[
+                  const SizedBox(width: 12.0),
+                  SharpButton(
+                    label: 'SIMULATE',
+                    variant: SharpButtonVariant.secondary,
+                    onDark: true,
+                    onPressed: widget.onFallbackToSimulation,
+                    height: 52.0,
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -422,7 +465,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
                 color: Colors.black,
                 border: Border.all(color: AppTokens.borderSolid, width: 1.0),
               ),
-              child: Image.file(_stagedPhoto!, fit: BoxFit.contain),
+              child: Image.memory(_stagedBytes!, fit: BoxFit.contain),
             ),
           ),
           const SizedBox(height: 8.0),
@@ -432,7 +475,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule> with WidgetsB
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('FILE: ${_stagedPhoto!.path}', style: const TextStyle(fontSize: 10.0, fontFamily: 'monospace')),
+                Text('FILE: $_stagedPath', style: const TextStyle(fontSize: 10.0, fontFamily: 'monospace')),
                 const SizedBox(height: 4.0),
                 Text('SHA-256: $_stagedHash', style: const TextStyle(fontSize: 10.0, fontFamily: 'monospace', fontWeight: FontWeight.w700)),
                 if (_qualityWarning != null) ...[
