@@ -15,7 +15,7 @@
 | Phase / Page | Name | Functionality (Stage A) | Design (Stage B) | Tests & Quality (Stage C) | Notes / Blockers |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Phase 0** | **Foundation & UI Kit** | [x] | [x] | [x] | Riverpod state, go_router shell, tokens, primitive widgets + tests, Drift outbox, camera capture module |
-| **Page 1** | **Vehicle & Customer Intake** | [ ] | [ ] | [ ] | Plate/VIN entry, customer lookup/create, odometer, fuel, consent & WhatsApp opt-in |
+| **Page 1** | **Vehicle & Customer Intake** | [x] | [x] | [x] | Plate/VIN entry, customer lookup/create, odometer rollback check, fuel gauge, belongings checklist, WhatsApp opt-in, MG history preview |
 | **Page 2** | **Bay Check-in Capture** | [ ] | [ ] | [ ] | 4-corner 45° + plate + odometer, manager override, SHA-256 hashes, Job Card lock |
 | **Page 3** | **360° Condition Map** | [ ] | [ ] | [ ] | 4-view CustomPainter, numbered pin drops, photo per pin, swipe-to-confirm sign-off |
 | **Page 4** | **Mechanical Inspection** | [ ] | [ ] | [ ] | Traffic-light checklist, real measurements, passport wear estimates |
