@@ -115,14 +115,17 @@ class _SharpButtonState extends State<SharpButton> {
             const SizedBox(width: AppTokens.minTouchGap),
           ],
           Flexible(
-            child: Text(
-              widget.label.toUpperCase(),
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13.0,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                widget.label.toUpperCase(),
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
               ),
             ),
           ),

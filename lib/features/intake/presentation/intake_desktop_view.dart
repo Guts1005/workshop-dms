@@ -13,8 +13,9 @@ import '../models/intake_form_state.dart';
 import 'intake_controller.dart';
 
 /// Dedicated Tablet / Desktop View for Vehicle & Customer Intake (Page 1)
-/// Rivian 2-column split architecture, photorealistic vehicle hero stage,
-/// authentic MG service history recreation, and ZERO horizontal scroll.
+/// Rivian-inspired Bento Grid Architecture: Modular telemetry pods,
+/// 2-column split layout, photorealistic vehicle stage, authentic MG service history,
+/// and ZERO horizontal scroll.
 class IntakeDesktopView extends StatefulWidget {
   final IntakeFormState state;
   final IntakeController controller;
@@ -47,6 +48,16 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
   int _activeMgTab = 1; // 0: INFO, 1: SERVICES (default for test assertions), 2: KNOW YOUR CAR
   bool _pickupRequired = true;
 
+  void _addServicePreset(String preset) {
+    final current = widget.workController.text.trim();
+    if (current.isEmpty) {
+      widget.workController.text = preset;
+    } else if (!current.contains(preset)) {
+      widget.workController.text = '$current, $preset';
+    }
+    widget.controller.onRequestedWorkChanged(widget.workController.text);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
@@ -59,7 +70,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Top Sleek Breadcrumb Bar
+              // Top Sleek Breadcrumb & Bento Stage Indicator
               _buildDesktopHeader(),
               const SizedBox(height: 16.0),
 
@@ -87,16 +98,16 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                 const SizedBox(height: 16.0),
               ],
 
-              // 2-Column Split: Left Rail (Vehicle & History) + Right Workspace (Form & Belongings)
+              // 2-Column Bento Split: Left Rail (Vehicle & History) + Right Workspace (Bento Modules)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left Rail (Flex 5, ~42% width): Vehicle Identity & Telemetry Hero
+                  // Left Rail (Flex 5, ~42% width): Vehicle Identity & Telemetry Hero Cockpit
                   Expanded(
                     flex: 5,
                     child: Column(
                       children: [
-                        // Photorealistic Vehicle Hero Stage
+                        // Bento Pod 1: Photorealistic Vehicle Hero Stage
                         VehicleHeroStage(
                           registrationNumber: state.registrationNumber,
                           make: state.make,
@@ -110,9 +121,10 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         ),
                         const SizedBox(height: 16.0),
 
-                        // Vehicle Identity Inputs
+                        // Bento Pod 2: Vehicle Identity Inputs & Body Selector
                         _buildVehicleIdentityCard(),
 
+                        // Bento Pod 3: MG i-SMART Service Passport & Specs (if recognized)
                         if (state.isExistingVehicle && state.previousHistory.isNotEmpty) ...[
                           const SizedBox(height: 16.0),
                           _buildPreviousHistoryCard(),
@@ -122,19 +134,28 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                   ),
                   const SizedBox(width: 20.0),
 
-                  // Right Pane (Flex 7, ~58% width): Intake Workspace
+                  // Right Pane (Flex 7, ~58% width): Modular Bento Workspace
                   Expanded(
                     flex: 7,
                     child: Column(
                       children: [
+                        // Bento Module A: Customer Contact & Concierge
                         _buildCustomerDetailsCard(),
                         const SizedBox(height: 16.0),
+
+                        // Bento Module B: 2-Column Diagnostic Telemetry (Odometer + Fuel Gauge)
                         _buildOdometerAndFuelCard(),
                         const SizedBox(height: 16.0),
+
+                        // Bento Module C: Service Scope & Expected Delivery
                         _buildRequestedWorkCard(context),
                         const SizedBox(height: 16.0),
+
+                        // Bento Module D: In-Vehicle Inventory & Belongings Checklist
                         _buildBelongingsCard(),
                         const SizedBox(height: 20.0),
+
+                        // Bento Primary Action CTA
                         _buildSubmitAction(context),
                       ],
                     ),
@@ -153,60 +174,69 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
   Widget _buildDesktopHeader() {
     final state = widget.state;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14.0),
+        borderRadius: BorderRadius.circular(16.0),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
-            blurRadius: 10.0,
-            offset: Offset(0, 2),
+            blurRadius: 12.0,
+            offset: Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                decoration: BoxDecoration(
-                  color: AppTokens.brandRed,
-                  borderRadius: BorderRadius.circular(6.0),
-                ),
-                child: Text(
-                  '01',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w900,
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9.0, vertical: 4.0),
+                  decoration: BoxDecoration(
+                    color: AppTokens.brandRed,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Text(
+                    '01',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10.0),
-              Text(
-                'PAGE 1: VEHICLE & CUSTOMER INTAKE',
-                style: GoogleFonts.inter(
-                  color: AppTokens.textPrimary,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
+                const SizedBox(width: 10.0),
+                Flexible(
+                  child: Text(
+                    'PAGE 1: VEHICLE & CUSTOMER INTAKE',
+                    style: GoogleFonts.inter(
+                      color: AppTokens.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12.0),
-              Text(
-                '• RIVIAN TELEMETRY HUB',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF64748B),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(width: 14.0),
+                // Modern Stepped Stage Flow Indicators
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildStageStepPill('1. IDENTITY', isActive: true),
+                    _buildStageStepDivider(),
+                    _buildStageStepPill('2. TELEMETRY', isActive: state.odometer.isNotEmpty),
+                    _buildStageStepDivider(),
+                    _buildStageStepPill('3. SCOPE', isActive: state.requestedWork.isNotEmpty),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8.0),
           if (state.isExistingVehicle)
             const StatusChip(
               label: 'RECOGNISED IN SYSTEM',
@@ -221,6 +251,36 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStageStepPill(String label, {required bool isActive}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10.0),
+        border: Border.all(
+          color: isActive ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 9.5,
+          fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+          color: isActive ? const Color(0xFF1D4ED8) : const Color(0xFF94A3B8),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStageStepDivider() {
+    return Container(
+      width: 12.0,
+      height: 1.0,
+      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+      color: const Color(0xFFCBD5E1),
     );
   }
 
@@ -426,7 +486,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           ),
           const SizedBox(height: 14.0),
 
-          // Body Profile Silhouettes (Clean Rounded Grid)
+          // Body Profile Silhouettes (Clean Rounded Bento Grid)
           _buildMicroLabel('BODY PROFILE SILHOUETTE:'),
           const SizedBox(height: 6.0),
           _buildBodySilhouetteGrid(),
@@ -782,13 +842,13 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     );
   }
 
-  /// Right Rail: Customer Details Card
+  /// Right Rail: Bento Module A - Customer Details & Concierge
   Widget _buildCustomerDetailsCard() {
     final state = widget.state;
     final controller = widget.controller;
 
     return SharpCard(
-      title: '2. CUSTOMER CONTACT & CONSENT',
+      title: '2. CUSTOMER CONTACT & CONCIERGE',
       titleTrailing: state.isExistingCustomer
           ? const StatusChip(label: 'RETURNING', icon: Icons.person, type: StatusType.ok)
           : null,
@@ -882,120 +942,181 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           ),
           const SizedBox(height: 14.0),
 
-          // Pickup My Vehicle Toggle
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10.0),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.directions_car, color: AppTokens.brandRed, size: 18.0),
-                    SizedBox(width: 8.0),
-                    Text('Pickup My Vehicle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
-                  ],
+          // 2-Column Bento Sub-tiles: [Pickup Concierge] & [Digital Consent]
+          Row(
+            children: [
+              // Sub-tile 1: Pickup My Vehicle Toggle
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12.0),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.directions_car_filled, color: AppTokens.brandRed, size: 20.0),
+                            SizedBox(width: 8.0),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Pickup My Vehicle',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'Doorstep concierge valet',
+                                    style: TextStyle(fontSize: 10.0, color: Color(0xFF64748B)),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6.0),
+                      Switch.adaptive(
+                        value: _pickupRequired,
+                        activeColor: AppTokens.brandRed,
+                        onChanged: (v) => setState(() => _pickupRequired = v),
+                      ),
+                    ],
+                  ),
                 ),
-                Switch.adaptive(
-                  value: _pickupRequired,
-                  activeColor: AppTokens.brandRed,
-                  onChanged: (v) => setState(() => _pickupRequired = v),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10.0),
+              ),
+              const SizedBox(width: 12.0),
 
-          // WhatsApp & SMS Digital Passport Consent Switch (Key checkbox_whatsapp)
-          _buildDesktopCheckbox(
-            key: const Key('checkbox_whatsapp'),
-            label: 'Customer consents to receive Estimates, Digital Passport & Invoices on WhatsApp & SMS',
-            value: state.whatsappConsent,
-            onChanged: controller.onWhatsappConsentChanged,
+              // Sub-tile 2: WhatsApp & SMS Consent
+              Expanded(
+                child: _buildDesktopCheckbox(
+                  key: const Key('checkbox_whatsapp'),
+                  label: 'WhatsApp & SMS Estimates, Digital Passport & Invoices',
+                  value: state.whatsappConsent,
+                  onChanged: controller.onWhatsappConsentChanged,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  /// Right Rail: Odometer & Fuel Telemetry
+  /// Right Rail: Bento Module B - 2-Column Diagnostic Telemetry
   Widget _buildOdometerAndFuelCard() {
     final state = widget.state;
     final controller = widget.controller;
 
     return SharpCard(
-      title: '3. ODOMETER & FUEL LEVEL AT INTAKE',
+      title: '3. ODOMETER & FUEL TELEMETRY HUB',
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 5,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildMicroLabel('CURRENT ODOMETER READING (KM)', isRequired: true),
-                    const SizedBox(height: 5.0),
-                    TextField(
-                      key: const Key('input_odometer'),
-                      controller: widget.odometerController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'e.g. 28450',
-                        errorText: state.errors['odometer'],
-                        filled: true,
-                        fillColor: Colors.white,
-                        prefixIcon: const Icon(Icons.speed, size: 18.0, color: Color(0xFF64748B)),
-                        suffixText: 'KM',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 13.0),
+          // Left Bento Cell: Odometer Input
+          Expanded(
+            flex: 5,
+            child: Container(
+              padding: const EdgeInsets.all(14.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: _buildMicroLabel('CURRENT ODOMETER (KM)', isRequired: true),
                       ),
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 15.0, color: AppTokens.textPrimary),
-                      onChanged: controller.onOdometerChanged,
+                      const SizedBox(width: 6.0),
+                      const Icon(Icons.speed, size: 16.0, color: AppTokens.brandRed),
+                    ],
+                  ),
+                  const SizedBox(height: 6.0),
+                  TextField(
+                    key: const Key('input_odometer'),
+                    controller: widget.odometerController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 28450',
+                      errorText: state.errors['odometer'],
+                      filled: true,
+                      fillColor: Colors.white,
+                      prefixIcon: const Icon(Icons.av_timer, size: 18.0, color: Color(0xFF64748B)),
+                      suffixText: 'KM',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                     ),
-                  ],
-                ),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 15.0, color: AppTokens.textPrimary),
+                    onChanged: controller.onOdometerChanged,
+                  ),
+                ],
               ),
-              const SizedBox(width: 16.0),
-              Expanded(
-                flex: 7,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildMicroLabel('FUEL TANK LEVEL:'),
-                        Text(
-                          '${state.fuelLevelPercent}%',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 13.0, color: AppTokens.brandRed),
+            ),
+          ),
+          const SizedBox(width: 14.0),
+
+          // Right Bento Cell: Precision Fuel Gauge Bar
+          Expanded(
+            flex: 7,
+            child: Container(
+              padding: const EdgeInsets.all(14.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: _buildMicroLabel('FUEL TANK LEVEL:'),
+                      ),
+                      const SizedBox(width: 6.0),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8.0),
-                    _buildDesktopFuelMeter(),
-                  ],
-                ),
+                        child: Text(
+                          '${state.fuelLevelPercent}%',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12.0, color: AppTokens.brandRed),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10.0),
+                  _buildDesktopFuelMeter(),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1021,11 +1142,11 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               child: GestureDetector(
                 onTap: () => controller.onFuelLevelChanged(((i + 1) * 12.5).clamp(0, 100).toInt()),
                 child: Container(
-                  height: 16.0,
+                  height: 18.0,
                   margin: EdgeInsets.only(right: i < 7 ? 4.0 : 0.0),
                   decoration: BoxDecoration(
                     color: blockColor,
-                    borderRadius: BorderRadius.circular(3.0),
+                    borderRadius: BorderRadius.circular(4.0),
                   ),
                 ),
               ),
@@ -1047,7 +1168,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     );
   }
 
-  /// Right Rail: Requested Work & Target Delivery
+  /// Right Rail: Bento Module C - Service Scope & Target Delivery
   Widget _buildRequestedWorkCard(BuildContext context) {
     final state = widget.state;
     final controller = widget.controller;
@@ -1061,8 +1182,27 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildMicroLabel('CUSTOMER REPORTED CONCERNS / SERVICE SCOPE:'),
-          const SizedBox(height: 5.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildMicroLabel('CUSTOMER CONCERNS & SERVICE SCOPE:'),
+              const Text('TAP PRESETS TO ADD', style: TextStyle(fontSize: 10.0, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 6.0),
+          // One-tap quick concern presets
+          Wrap(
+            spacing: 6.0,
+            runSpacing: 6.0,
+            children: [
+              _buildPresetChip('+ PERIODIC SERVICE', () => _addServicePreset('Periodic maintenance')),
+              _buildPresetChip('+ BRAKE VIBRATION', () => _addServicePreset('Brake pad vibration')),
+              _buildPresetChip('+ AC COOLING', () => _addServicePreset('AC cooling check')),
+              _buildPresetChip('+ WHEEL ALIGNMENT', () => _addServicePreset('Wheel alignment & balancing')),
+              _buildPresetChip('+ SUSPENSION NOISE', () => _addServicePreset('Suspension noise')),
+            ],
+          ),
+          const SizedBox(height: 8.0),
           TextField(
             key: const Key('input_requested_work'),
             controller: widget.workController,
@@ -1144,7 +1284,25 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     );
   }
 
-  /// Right Rail: Belongings Card
+  Widget _buildPresetChip(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+        ),
+      ),
+    );
+  }
+
+  /// Right Rail: Bento Module D - Belongings Checklist
   Widget _buildBelongingsCard() {
     final state = widget.state;
     final controller = widget.controller;

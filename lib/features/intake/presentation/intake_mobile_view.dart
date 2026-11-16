@@ -47,6 +47,34 @@ class IntakeMobileView extends StatefulWidget {
 class _IntakeMobileViewState extends State<IntakeMobileView> {
   int _activeMgTab = 1; // 0: INFO, 1: SERVICES (default to satisfy test assertions), 2: KNOW YOUR CAR
   bool _pickupRequired = true;
+  int _activeStage = 0;
+
+  final GlobalKey _vehicleSectionKey = GlobalKey();
+  final GlobalKey _customerSectionKey = GlobalKey();
+  final GlobalKey _telemetrySectionKey = GlobalKey();
+  final GlobalKey _scopeSectionKey = GlobalKey();
+
+  void _scrollToSection(GlobalKey key, int index) {
+    setState(() => _activeStage = index);
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  void _addServicePreset(String preset) {
+    final current = widget.workController.text.trim();
+    if (current.isEmpty) {
+      widget.workController.text = preset;
+    } else if (!current.contains(preset)) {
+      widget.workController.text = '$current, $preset';
+    }
+    widget.controller.onRequestedWorkChanged(widget.workController.text);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +97,10 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
                   children: [
                     // Sleek Breadcrumb Stage Bar
                     _buildStageBreadcrumb(),
+                    const SizedBox(height: 10.0),
+
+                    // Modern Stepped Stage Selector Bar (Rivian / MG Stage Jumper)
+                    _buildSteppedStageSelector(),
                     const SizedBox(height: 14.0),
 
                     // Error Banner (if any)
@@ -101,16 +133,19 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
                     ],
 
                     // Card 1: Photorealistic Vehicle Hero Stage (Rivian + MG)
-                    VehicleHeroStage(
-                      registrationNumber: state.registrationNumber,
-                      make: state.make,
-                      model: state.model,
-                      bodyType: state.bodyType,
-                      odometerKm: state.odometer,
-                      isExistingVehicle: state.isExistingVehicle,
-                      onBayCaptureTap: () => GoRouter.maybeOf(context)?.go('/bay-capture'),
-                      onConditionMapTap: () => GoRouter.maybeOf(context)?.go('/condition-map'),
-                      onJobCardTap: () => GoRouter.maybeOf(context)?.go('/job-card'),
+                    Container(
+                      key: _vehicleSectionKey,
+                      child: VehicleHeroStage(
+                        registrationNumber: state.registrationNumber,
+                        make: state.make,
+                        model: state.model,
+                        bodyType: state.bodyType,
+                        odometerKm: state.odometer,
+                        isExistingVehicle: state.isExistingVehicle,
+                        onBayCaptureTap: () => GoRouter.maybeOf(context)?.go('/bay-capture'),
+                        onConditionMapTap: () => GoRouter.maybeOf(context)?.go('/condition-map'),
+                        onJobCardTap: () => GoRouter.maybeOf(context)?.go('/job-card'),
+                      ),
                     ),
                     const SizedBox(height: 14.0),
 
@@ -125,15 +160,24 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
                     ],
 
                     // Card 2: Customer Contact & Digital Consent
-                    _buildCustomerCard(),
+                    Container(
+                      key: _customerSectionKey,
+                      child: _buildCustomerCard(),
+                    ),
                     const SizedBox(height: 14.0),
 
-                    // Card 3: Odometer & Fuel Telemetry
-                    _buildTelemetryCard(),
+                    // Card 3: Odometer & Fuel Telemetry Hub
+                    Container(
+                      key: _telemetrySectionKey,
+                      child: _buildTelemetryCard(),
+                    ),
                     const SizedBox(height: 14.0),
 
                     // Card 4: Requested Work & Target Delivery
-                    _buildRequestedWorkCard(context, deliveryText),
+                    Container(
+                      key: _scopeSectionKey,
+                      child: _buildRequestedWorkCard(context, deliveryText),
+                    ),
                     const SizedBox(height: 14.0),
 
                     // Card 5: In-Vehicle Inventory Checklist
@@ -147,6 +191,116 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
             // Sticky Bottom Primary CTA Bar
             _buildStickyBottomBar(context),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Modern Stepped Stage Selector (Rivian + MG Mobile Stepper System)
+  Widget _buildSteppedStageSelector() {
+    final state = widget.state;
+    final isVehDone = state.registrationNumber.trim().isNotEmpty && state.model.trim().isNotEmpty;
+    final isCustDone = state.customerPhone.trim().isNotEmpty && state.customerName.trim().isNotEmpty;
+    final isTeleDone = state.odometer.trim().isNotEmpty;
+    final isScopeDone = state.requestedWork.trim().isNotEmpty;
+
+    return Container(
+      height: 40.0,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      padding: const EdgeInsets.all(3.0),
+      child: Row(
+        children: [
+          _buildStageTab(
+            index: 0,
+            label: 'VEHICLE',
+            icon: Icons.directions_car,
+            isCompleted: isVehDone,
+            keyTarget: _vehicleSectionKey,
+          ),
+          _buildStageTab(
+            index: 1,
+            label: 'CLIENT',
+            icon: Icons.person,
+            isCompleted: isCustDone,
+            keyTarget: _customerSectionKey,
+          ),
+          _buildStageTab(
+            index: 2,
+            label: 'TELEMETRY',
+            icon: Icons.speed,
+            isCompleted: isTeleDone,
+            keyTarget: _telemetrySectionKey,
+          ),
+          _buildStageTab(
+            index: 3,
+            label: 'SCOPE',
+            icon: Icons.assignment,
+            isCompleted: isScopeDone,
+            keyTarget: _scopeSectionKey,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageTab({
+    required int index,
+    required String label,
+    required IconData icon,
+    required bool isCompleted,
+    required GlobalKey keyTarget,
+  }) {
+    final isSelected = _activeStage == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _scrollToSection(keyTarget, index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(17.0),
+            boxShadow: isSelected
+                ? const [
+                    BoxShadow(
+                      color: Color(0x0E000000),
+                      blurRadius: 6.0,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isCompleted)
+                const Icon(Icons.check_circle, size: 12.0, color: Color(0xFF16A34A))
+              else
+                Icon(
+                  icon,
+                  size: 12.0,
+                  color: isSelected ? AppTokens.brandRed : const Color(0xFF94A3B8),
+                ),
+              const SizedBox(width: 4.0),
+              Flexible(
+                child: Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 10.0,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? AppTokens.textPrimary : const Color(0xFF64748B),
+                    letterSpacing: 0.3,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -192,15 +346,18 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
                 ),
                 const SizedBox(width: 8.0),
                 Flexible(
-                  child: Text(
-                    'PAGE 1: VEHICLE & CUSTOMER INTAKE',
-                    style: GoogleFonts.inter(
-                      color: AppTokens.textPrimary,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'PAGE 1: VEHICLE & CUSTOMER INTAKE',
+                      style: GoogleFonts.inter(
+                        color: AppTokens.textPrimary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -1053,6 +1210,44 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
             ),
             onChanged: controller.onRequestedWorkChanged,
           ),
+          const SizedBox(height: 8.0),
+
+          // Quick Concern Presets (One-tap insertion)
+          Wrap(
+            spacing: 6.0,
+            runSpacing: 6.0,
+            children: [
+              '+ PERIODIC SERVICE',
+              '+ BRAKE VIBRATION',
+              '+ AC COOLING',
+              '+ WHEEL ALIGNMENT',
+              '+ SUSPENSION NOISE',
+            ].map((preset) {
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14.0),
+                  onTap: () => _addServicePreset(preset.replaceFirst('+ ', '')),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(14.0),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      preset,
+                      style: GoogleFonts.inter(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
           const SizedBox(height: 14.0),
 
           _buildMicroLabel('TARGET DELIVERY DATE & TIME:'),
@@ -1110,46 +1305,139 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
     );
   }
 
-  /// Card 5: In-Vehicle Inventory Checklist
+  /// Card 5: In-Vehicle Inventory Checklist (Bento Grid)
   Widget _buildBelongingsCard() {
     final state = widget.state;
     final controller = widget.controller;
 
     return SharpCard(
       title: '5. IN-VEHICLE INVENTORY & VALUABLES CHECKLIST',
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(14.0),
       child: Column(
         children: [
-          _buildMobileCheckbox(
-            label: 'Jack, Tommy & Tool Kit in boot',
-            value: state.belongings.jackAndToolKit,
-            onChanged: (v) => controller.onBelongingItemToggled('jackAndToolKit', v),
+          Row(
+            children: [
+              Expanded(
+                child: _buildBentoInventoryTile(
+                  icon: Icons.build_circle_outlined,
+                  title: 'Jack & Tool Kit',
+                  subtitle: 'Boot tool kit',
+                  value: state.belongings.jackAndToolKit,
+                  onChanged: (v) => controller.onBelongingItemToggled('jackAndToolKit', v),
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              Expanded(
+                child: _buildBentoInventoryTile(
+                  icon: Icons.tire_repair,
+                  title: 'Spare Tyre',
+                  subtitle: 'Stepney present',
+                  value: state.belongings.spareTyre,
+                  onChanged: (v) => controller.onBelongingItemToggled('spareTyre', v),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8.0),
-          _buildMobileCheckbox(
-            label: 'Spare Tyre / Stepney present',
-            value: state.belongings.spareTyre,
-            onChanged: (v) => controller.onBelongingItemToggled('spareTyre', v),
+          Row(
+            children: [
+              Expanded(
+                child: _buildBentoInventoryTile(
+                  icon: Icons.layers_outlined,
+                  title: 'Boot Mat',
+                  subtitle: 'Liners in place',
+                  value: state.belongings.bootMat,
+                  onChanged: (v) => controller.onBelongingItemToggled('bootMat', v),
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              Expanded(
+                child: _buildBentoInventoryTile(
+                  icon: Icons.lock_outline,
+                  title: 'Valuables',
+                  subtitle: 'Removed by owner',
+                  value: state.belongings.valuablesRemoved,
+                  onChanged: (v) => controller.onBelongingItemToggled('valuablesRemoved', v),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8.0),
-          _buildMobileCheckbox(
-            label: 'Boot Mat & interior liners in place',
-            value: state.belongings.bootMat,
-            onChanged: (v) => controller.onBelongingItemToggled('bootMat', v),
-          ),
-          const SizedBox(height: 8.0),
-          _buildMobileCheckbox(
-            label: 'Personal valuables removed by owner',
-            value: state.belongings.valuablesRemoved,
-            onChanged: (v) => controller.onBelongingItemToggled('valuablesRemoved', v),
-          ),
-          const SizedBox(height: 8.0),
-          _buildMobileCheckbox(
-            label: 'Pendrive, Toll Tags & Media accessories logged',
+          _buildBentoInventoryTile(
+            icon: Icons.usb_outlined,
+            title: 'Pendrive, Toll Tags & Media Accessories',
+            subtitle: 'Dashboard accessories and Fastag accounted for',
             value: state.belongings.pendriveOrAccessories,
             onChanged: (v) => controller.onBelongingItemToggled('pendriveOrAccessories', v),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBentoInventoryTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10.0),
+        onTap: () => onChanged(!value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+          decoration: BoxDecoration(
+            color: value ? const Color(0xFFF0FDF4) : Colors.white,
+            borderRadius: BorderRadius.circular(10.0),
+            border: Border.all(
+              color: value ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+              width: value ? 1.4 : 1.0,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 22.0,
+                height: 22.0,
+                decoration: BoxDecoration(
+                  color: value ? const Color(0xFF16A34A) : const Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  value ? Icons.check : icon,
+                  size: 13.0,
+                  color: value ? Colors.white : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 11.0,
+                        fontWeight: value ? FontWeight.w800 : FontWeight.w600,
+                        color: value ? const Color(0xFF15803D) : AppTokens.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 9.5, color: Color(0xFF64748B)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
