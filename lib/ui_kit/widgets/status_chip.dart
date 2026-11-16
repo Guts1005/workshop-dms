@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../tokens/app_tokens.dart';
 
 enum StatusType {
   critical,
@@ -28,49 +27,48 @@ class StatusChip extends StatelessWidget {
 
     switch (type) {
       case StatusType.critical:
-        backgroundColor = AppTokens.redOrange;
-        textColor = Colors.white;
-        border = null;
+        backgroundColor = const Color(0xFFFEE2E2);
+        textColor = const Color(0xFFDC2626);
+        border = Border.all(color: const Color(0xFFFCA5A5), width: 1.0);
         break;
       case StatusType.dueSoon:
-        // Rule: #F8A348 is never text color, only fill with #1E1E1E text (8:1 ratio)
-        backgroundColor = AppTokens.orange;
-        textColor = AppTokens.textPrimary;
-        border = null;
+        backgroundColor = const Color(0xFFFEF3C7);
+        textColor = const Color(0xFFB45309);
+        border = Border.all(color: const Color(0xFFFDE68A), width: 1.0);
         break;
       case StatusType.ok:
-        backgroundColor = AppTokens.green;
-        textColor = Colors.white;
-        border = null;
+        backgroundColor = const Color(0xFFDCFCE7);
+        textColor = const Color(0xFF15803D);
+        border = Border.all(color: const Color(0xFF86EFAC), width: 1.0);
         break;
       case StatusType.neutral:
-        backgroundColor = Colors.transparent;
-        textColor = AppTokens.textPrimary;
-        border = Border.all(color: AppTokens.borderSolid, width: 1.0);
+        backgroundColor = const Color(0xFFF1F5F9);
+        textColor = const Color(0xFF475569);
+        border = Border.all(color: const Color(0xFFE2E8F0), width: 1.0);
         break;
     }
 
     return Container(
-      height: 32.0,
+      height: 28.0,
       padding: const EdgeInsets.symmetric(horizontal: 10.0),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: AppTokens.zeroRadius,
+        borderRadius: BorderRadius.circular(14.0),
         border: border,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 14.0, color: textColor),
-          const SizedBox(width: 6.0),
+          Icon(icon, size: 13.0, color: textColor),
+          const SizedBox(width: 5.0),
           Text(
             label.toUpperCase(),
             style: TextStyle(
               color: textColor,
-              fontSize: 12.0,
+              fontSize: 11.0,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+              letterSpacing: 0.5,
             ),
           ),
         ],

@@ -15,69 +15,61 @@ class MakeWordmarkChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 36.0,
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTokens.inverse : Colors.white,
-          borderRadius: BorderRadius.zero,
-          border: Border.all(
-            color: isSelected ? AppTokens.redOrange : const Color(0xFFCCCCCC),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSelected) ...[
-              Container(
-                width: 6.0,
-                height: 6.0,
-                color: AppTokens.redOrange,
-              ),
-              const SizedBox(width: 6.0),
-            ],
-            Text(
-              make.toUpperCase(),
-              style: TextStyle(
-                color: isSelected ? Colors.white : AppTokens.textPrimary,
-                fontFamily: 'monospace',
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                fontSize: 11.5,
-                letterSpacing: 0.8,
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20.0),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 34.0,
+          padding: const EdgeInsets.symmetric(horizontal: 14.0),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTokens.inverse : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(20.0),
+            border: Border.all(
+              color: isSelected ? AppTokens.brandRed : const Color(0xFFE2E8F0),
+              width: isSelected ? 1.5 : 1.0,
             ),
-          ],
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppTokens.inverse.withValues(alpha: 0.15),
+                      blurRadius: 6.0,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                Container(
+                  width: 6.0,
+                  height: 6.0,
+                  decoration: const BoxDecoration(
+                    color: AppTokens.brandRed,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6.0),
+              ],
+              Text(
+                make.toUpperCase(),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppTokens.textPrimary,
+                  fontFamily: 'monospace',
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 11.0,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-/// Popular Indian Automobile Manufacturers (Alphabetical)
-const List<String> kIndianVehicleMakes = [
-  'MARUTI SUZUKI',
-  'HYUNDAI',
-  'TATA MOTORS',
-  'MAHINDRA',
-  'TOYOTA',
-  'KIA',
-  'HONDA',
-  'MG MOTOR',
-  'VOLKSWAGEN',
-  'SKODA',
-  'RENAULT',
-  'NISSAN',
-  'JEEP',
-  'FORD',
-  'BMW',
-  'MERCEDES-BENZ',
-  'AUDI',
-  'VOLVO',
-  'BYD',
-  'FORCE MOTORS',
-];

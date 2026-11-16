@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../ui_kit/tokens/app_tokens.dart';
 
 /// Authentic Indian High Security Registration Plate (HSRP) widget
-/// Styled with sharp geometry, authentic blue 'IND' strip, and bold monospace font.
+/// Styled with subtle automotive rounding, authentic blue 'IND' strip, and bold typography.
 class IndianNumberPlate extends StatelessWidget {
   final String registrationNumber;
   final double height;
@@ -19,7 +19,7 @@ class IndianNumberPlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final plateBg = isCommercial ? const Color(0xFFFFD54F) : AppTokens.raised;
+    final plateBg = isCommercial ? const Color(0xFFFFD54F) : Colors.white;
     final plateText = registrationNumber.trim().isEmpty ? 'MH 01 AB 1234' : _formatPlate(registrationNumber);
 
     return Container(
@@ -27,8 +27,17 @@ class IndianNumberPlate extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: plateBg,
-        border: Border.all(color: AppTokens.borderSolid, width: 2.0),
+        borderRadius: BorderRadius.circular(6.0),
+        border: Border.all(color: const Color(0xFF1E293B), width: 1.8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 6.0,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -41,7 +50,7 @@ class IndianNumberPlate extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.circle, size: 8.0, color: Color(0xFFFFCC00)), // Chakra representation
+                const Icon(Icons.circle, size: 7.0, color: Color(0xFFFFCC00)), // Chakra representation
                 const SizedBox(height: 2.0),
                 Text(
                   'IND',
@@ -59,14 +68,14 @@ class IndianNumberPlate extends StatelessWidget {
           Expanded(
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: Text(
                   plateText,
                   style: AppTokens.fontMonospace(
                     color: AppTokens.textPrimary,
                     fontSize: height * 0.44,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 2.5,
+                    letterSpacing: 2.2,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
