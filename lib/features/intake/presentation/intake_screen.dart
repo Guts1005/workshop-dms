@@ -78,13 +78,28 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
       return _buildSuccessView(state);
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Strict boundary: Desktop/Tablet (>= 900px) vs Mobile Phone (< 900px)
-        final isMobile = constraints.maxWidth < 900.0;
+    return Scaffold(
+      backgroundColor: AppTokens.base,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Strict boundary: Desktop/Tablet (>= 900px) vs Mobile Phone (< 900px)
+          final isMobile = constraints.maxWidth < 900.0;
 
-        if (isMobile) {
-          return IntakeMobileView(
+          if (isMobile) {
+            return IntakeMobileView(
+              state: state,
+              controller: controller,
+              regController: _regController,
+              vinController: _vinController,
+              modelController: _modelController,
+              nameController: _nameController,
+              phoneController: _phoneController,
+              odometerController: _odometerController,
+              workController: _workController,
+            );
+          }
+
+          return IntakeDesktopView(
             state: state,
             controller: controller,
             regController: _regController,
@@ -95,23 +110,8 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
             odometerController: _odometerController,
             workController: _workController,
           );
-        }
-
-        return Scaffold(
-          backgroundColor: AppTokens.base,
-          body: IntakeDesktopView(
-            state: state,
-            controller: controller,
-            regController: _regController,
-            vinController: _vinController,
-            modelController: _modelController,
-            nameController: _nameController,
-            phoneController: _phoneController,
-            odometerController: _odometerController,
-            workController: _workController,
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 

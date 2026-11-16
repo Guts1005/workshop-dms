@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/tokens.dart';
-import '../../core/widgets/sharp_card.dart';
-import '../../core/widgets/status_chip.dart';
+import '../../ui_kit/tokens/app_tokens.dart';
+import '../../ui_kit/widgets/sharp_card.dart';
+import '../../ui_kit/widgets/status_chip.dart';
 import '../vehicle/vehicle_silhouettes.dart';
 
 class ServiceHistoryEntry {

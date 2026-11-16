@@ -15,26 +15,43 @@ class MakeWordmarkChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         height: 36.0,
         padding: const EdgeInsets.symmetric(horizontal: 12.0),
         decoration: BoxDecoration(
-          color: isSelected ? AppTokens.inverse : Colors.transparent,
+          color: isSelected ? AppTokens.inverse : Colors.white,
           borderRadius: BorderRadius.zero,
-          border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+          border: Border.all(
+            color: isSelected ? AppTokens.redOrange : const Color(0xFFCCCCCC),
+            width: isSelected ? 1.5 : 1.0,
+          ),
         ),
         alignment: Alignment.center,
-        child: Text(
-          make.toUpperCase(),
-          style: TextStyle(
-            color: isSelected ? AppTokens.textOnDark : AppTokens.textPrimary,
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.w700,
-            fontSize: 13.0,
-            letterSpacing: 1.2,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              Container(
+                width: 6.0,
+                height: 6.0,
+                color: AppTokens.redOrange,
+              ),
+              const SizedBox(width: 6.0),
+            ],
+            Text(
+              make.toUpperCase(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppTokens.textPrimary,
+                fontFamily: 'monospace',
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                fontSize: 11.5,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
         ),
       ),
     );
