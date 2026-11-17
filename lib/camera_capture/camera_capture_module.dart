@@ -317,9 +317,16 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
         constraints: const BoxConstraints(maxWidth: 480.0),
         padding: const EdgeInsets.all(24.0),
         decoration: BoxDecoration(
-          color: AppTokens.surface,
-          borderRadius: AppTokens.zeroRadius,
-          border: Border.all(color: AppTokens.borderSolid, width: 1.5),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.0),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0C000000),
+              blurRadius: 16.0,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -327,12 +334,15 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.all(12.0),
-                color: AppTokens.inverse,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111827),
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.camera_alt, color: Colors.white, size: 28.0),
+                    Icon(Icons.camera_alt, color: Colors.white, size: 24.0),
                     SizedBox(width: 10.0),
                     Text(
                       'BAY CHECK-IN CAMERA ACCESS',
@@ -373,21 +383,28 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
         constraints: const BoxConstraints(maxWidth: 480.0),
         padding: const EdgeInsets.all(24.0),
         decoration: BoxDecoration(
-          color: AppTokens.surface,
-          borderRadius: AppTokens.zeroRadius,
-          border: Border.all(color: AppTokens.redOrange, width: 2.0),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.0),
+          border: Border.all(color: const Color(0xFFFCA5A5), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0C000000),
+              blurRadius: 16.0,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.no_photography_outlined, size: 44.0, color: AppTokens.redOrange),
+              const Icon(Icons.no_photography_outlined, size: 44.0, color: Color(0xFFDC2626)),
               const SizedBox(height: 12.0),
               const Text(
                 'CAMERA PERMISSION BLOCKED',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w900, color: AppTokens.redOrange),
+                style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
               ),
               const SizedBox(height: 10.0),
               const Text(
@@ -494,20 +511,31 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
                 decoration: BoxDecoration(
-                  color: AppTokens.inverse.withOpacity(0.92),
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(14.0),
                   border: Border.all(
-                    color: _isFramingLocked ? const Color(0xFF00E676) : const Color(0xFFF8A348),
+                    color: _isFramingLocked ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
                     width: 1.5,
                   ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x20000000),
+                      blurRadius: 8.0,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6.0),
-                      color: _isFramingLocked ? const Color(0xFF00E676) : const Color(0xFFF8A348),
+                      decoration: BoxDecoration(
+                        color: _isFramingLocked ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: Icon(
                         _isFramingLocked ? Icons.check : Icons.crop_free,
-                        color: Colors.black,
+                        color: Colors.white,
                         size: 18.0,
                       ),
                     ),
@@ -519,7 +547,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                           Text(
                             widget.title.toUpperCase(),
                             style: const TextStyle(
-                              color: AppTokens.textOnDark,
+                              color: Colors.white,
                               fontWeight: FontWeight.w900,
                               fontSize: 12.5,
                             ),
@@ -527,7 +555,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                           const SizedBox(height: 2.0),
                           Text(
                             widget.instruction,
-                            style: const TextStyle(color: Color(0xFFE0E0E0), fontSize: 11.5),
+                            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 11.5),
                           ),
                         ],
                       ),
@@ -535,13 +563,16 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                     const SizedBox(width: 8.0),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                      color: _isFramingLocked
-                          ? const Color(0xFF00E676).withOpacity(0.2)
-                          : const Color(0xFFF8A348).withOpacity(0.2),
+                      decoration: BoxDecoration(
+                        color: _isFramingLocked
+                            ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                            : const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: Text(
                         _isFramingLocked ? 'IN FRAME ✓' : 'ALIGNING...',
                         style: TextStyle(
-                          color: _isFramingLocked ? const Color(0xFF00E676) : const Color(0xFFF8A348),
+                          color: _isFramingLocked ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
                           fontSize: 10.5,
                           fontWeight: FontWeight.w900,
                           fontFamily: 'monospace',
@@ -562,8 +593,15 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   decoration: BoxDecoration(
-                    color: AppTokens.inverse.withOpacity(0.85),
-                    borderRadius: BorderRadius.zero,
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.88),
+                    borderRadius: BorderRadius.circular(28.0),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x28000000),
+                        blurRadius: 10.0,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: SharpButton(
                     label: _isProcessing
@@ -572,7 +610,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                     icon: Icons.camera_alt,
                     onPressed: _isProcessing ? null : _takeShutter,
                     width: 260.0,
-                    height: 52.0,
+                    height: 50.0,
                   ),
                 ),
               ),
@@ -585,27 +623,33 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
 
   Widget _buildReviewScreen() {
     return Container(
-      color: AppTokens.base,
+      color: const Color(0xFFF6F8FA),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-            color: AppTokens.inverse,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111827),
+              borderRadius: BorderRadius.circular(14.0),
+            ),
             child: Row(
               children: [
-                const Icon(Icons.verified_outlined, color: Color(0xFF00E676), size: 18.0),
+                const Icon(Icons.verified_outlined, color: Color(0xFF10B981), size: 18.0),
                 const SizedBox(width: 8.0),
                 Expanded(
                   child: Text(
                     'VERIFY EVIDENCE: ${widget.title.toUpperCase()}',
-                    style: const TextStyle(color: AppTokens.textOnDark, fontWeight: FontWeight.w900, fontSize: 13.0),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13.0),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                  color: const Color(0xFF00E676),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981),
+                    borderRadius: BorderRadius.circular(6.0),
+                  ),
                   child: const Text(
                     'SHA-256 SECURED',
                     style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10.0, fontFamily: 'monospace'),
@@ -614,20 +658,33 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
               ],
             ),
           ),
-          const SizedBox(height: 8.0),
+          const SizedBox(height: 10.0),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.black,
-                border: Border.all(color: AppTokens.borderSolid, width: 1.5),
+                borderRadius: BorderRadius.circular(16.0),
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
               ),
+              clipBehavior: Clip.antiAlias,
               child: Image.memory(_stagedBytes!, fit: BoxFit.contain),
             ),
           ),
-          const SizedBox(height: 8.0),
+          const SizedBox(height: 10.0),
           Container(
-            padding: const EdgeInsets.all(12.0),
-            color: AppTokens.surface,
+            padding: const EdgeInsets.all(14.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14.0),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x04000000),
+                  blurRadius: 8.0,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -641,17 +698,17 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                     ),
                   ],
                 ),
-                const SizedBox(height: 2.0),
+                const SizedBox(height: 4.0),
                 Text(
                   _stagedHash!,
-                  style: AppTokens.fontMonospace(fontSize: 9.5, color: const Color(0xFF00E676), fontWeight: FontWeight.w800),
+                  style: AppTokens.fontMonospace(fontSize: 9.5, color: const Color(0xFF047857), fontWeight: FontWeight.w800),
                 ),
                 if (_qualityWarning != null) ...[
                   const SizedBox(height: 6.0),
-                  Text('⚠️ $_qualityWarning', style: const TextStyle(fontSize: 11.5, color: AppTokens.redOrange, fontWeight: FontWeight.w700)),
+                  Text('⚠️ $_qualityWarning', style: const TextStyle(fontSize: 11.5, color: Color(0xFFDC2626), fontWeight: FontWeight.w700)),
                 ] else ...[
                   const SizedBox(height: 4.0),
-                  const Text('✓ LIGHTING & FOCUS: OPTIMAL', style: TextStyle(fontSize: 11.0, color: Color(0xFF00E676), fontWeight: FontWeight.bold)),
+                  const Text('✓ LIGHTING & FOCUS: OPTIMAL', style: TextStyle(fontSize: 11.0, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
                 ],
               ],
             ),

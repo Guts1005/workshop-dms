@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../ui_kit/tokens/app_tokens.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../ui_kit/widgets/sharp_button.dart';
 import '../../ui_kit/widgets/status_chip.dart';
 import '../../ui_kit/widgets/swipe_to_confirm_slider.dart';
@@ -53,57 +53,91 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
         return StatefulBuilder(
           builder: (dialogCtx, setDialogState) {
             return AlertDialog(
-              backgroundColor: AppTokens.surface,
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
               titlePadding: EdgeInsets.zero,
               title: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-                color: AppTokens.inverse,
+                padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF111827),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.add_location_alt_outlined, color: AppTokens.redOrange, size: 20.0),
-                    const SizedBox(width: 8.0),
-                    Text(
-                      'RECORD DEFECT PIN #${state.totalPinCount + 1}',
-                      style: AppTokens.fontMonospace(
-                        color: AppTokens.textOnDark,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13.0,
+                    Container(
+                      padding: const EdgeInsets.all(6.0),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: const Icon(Icons.add_location_alt_outlined, color: Color(0xFFEF4444), size: 18.0),
+                    ),
+                    const SizedBox(width: 10.0),
+                    Expanded(
+                      child: Text(
+                        'RECORD DEFECT PIN #${state.totalPinCount + 1}',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.0,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
               content: SizedBox(
-                width: 460.0,
+                width: 480.0,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'VIEW: ${view.label} • COORD: (${(normalizedPos.dx * 100).toStringAsFixed(1)}%, ${(normalizedPos.dy * 100).toStringAsFixed(1)}%)',
-                        style: AppTokens.fontMonospace(fontSize: 10.5, color: AppTokens.textSecondary, fontWeight: FontWeight.bold),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Text(
+                          'VIEW: ${view.label} • COORD: (${(normalizedPos.dx * 100).toStringAsFixed(1)}%, ${(normalizedPos.dy * 100).toStringAsFixed(1)}%)',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10.5,
+                            color: const Color(0xFF475569),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 12.0),
-                      Text('DEFECT CLASSIFICATION:', style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6.0),
+                      const SizedBox(height: 14.0),
+                      Text(
+                        'DEFECT CLASSIFICATION:',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.0,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF334155),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8.0),
                       Wrap(
-                        spacing: 6.0,
-                        runSpacing: 6.0,
+                        spacing: 8.0,
+                        runSpacing: 8.0,
                         children: DefectType.values.map((type) {
                           final isSel = selectedType == type;
                           return ChoiceChip(
                             label: Text(type.label),
                             selected: isSel,
-                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                            selectedColor: AppTokens.inverse,
-                            backgroundColor: AppTokens.raised,
-                            labelStyle: TextStyle(
-                              color: isSel ? AppTokens.textOnDark : AppTokens.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 10.5,
-                              fontFamily: 'monospace',
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                            selectedColor: const Color(0xFF111827),
+                            backgroundColor: const Color(0xFFF1F5F9),
+                            side: BorderSide(
+                              color: isSel ? const Color(0xFF111827) : const Color(0xFFE2E8F0),
+                            ),
+                            labelStyle: GoogleFonts.inter(
+                              color: isSel ? Colors.white : const Color(0xFF1E293B),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.0,
                             ),
                             onSelected: (val) {
                               if (val) setDialogState(() => selectedType = type);
@@ -111,34 +145,52 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 14.0),
-                      Text('SEVERITY LEVEL:', style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6.0),
+                      const SizedBox(height: 16.0),
+                      Text(
+                        'SEVERITY LEVEL:',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.0,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF334155),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8.0),
                       Row(
                         children: DefectSeverity.values.map((sev) {
                           final isSel = selectedSeverity == sev;
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 3.0),
                               child: InkWell(
+                                borderRadius: BorderRadius.circular(10.0),
                                 onTap: () => setDialogState(() => selectedSeverity = sev),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
                                   decoration: BoxDecoration(
-                                    color: isSel ? sev.accentColor : AppTokens.raised,
+                                    color: isSel ? sev.accentColor : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10.0),
                                     border: Border.all(
-                                      color: isSel ? AppTokens.borderSolid : const Color(0xFFCCCCCC),
+                                      color: isSel ? sev.accentColor : const Color(0xFFE2E8F0),
                                       width: isSel ? 2.0 : 1.0,
                                     ),
+                                    boxShadow: isSel
+                                        ? [
+                                            BoxShadow(
+                                              color: sev.accentColor.withValues(alpha: 0.3),
+                                              blurRadius: 6.0,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
                                     sev.label.replaceAll('LEVEL ', 'L'),
-                                    style: TextStyle(
-                                      color: isSel ? Colors.white : AppTokens.textPrimary,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 10.0,
-                                      fontFamily: 'monospace',
+                                    style: GoogleFonts.inter(
+                                      color: isSel ? Colors.white : const Color(0xFF334155),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 10.5,
                                     ),
                                   ),
                                 ),
@@ -147,31 +199,61 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 14.0),
-                      Text('INSPECTION NOTES / OBSERVED DAMAGE:', style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 16.0),
+                      Text(
+                        'INSPECTION NOTES / OBSERVED DAMAGE:',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.0,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF334155),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                       const SizedBox(height: 6.0),
                       TextField(
                         controller: noteController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'e.g. 5cm paint gouge down to primer near lower door crease',
+                          hintStyle: GoogleFonts.inter(fontSize: 12.0, color: const Color(0xFF94A3B8)),
                           filled: true,
-                          fillColor: AppTokens.raised,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                          fillColor: const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.5),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('CANCEL', style: TextStyle(color: AppTokens.textSecondary)),
+                  child: Text(
+                    'CANCEL',
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.0,
+                    ),
+                  ),
                 ),
                 SharpButton(
                   label: 'SAVE DEFECT PIN',
                   icon: Icons.check,
+                  height: 42.0,
                   onPressed: () async {
                     await controller.addPin(
                       view: view,
@@ -197,7 +279,6 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
   void _showPreWorkSignOffModal(BuildContext context) {
     final state = ref.read(conditionMapControllerProvider);
     final controller = ref.read(conditionMapControllerProvider.notifier);
-
     final customerNameController = TextEditingController(text: 'Rohan Sharma');
     final customerPhoneController = TextEditingController(text: '9876543210');
     final advisorNameController = TextEditingController(text: 'Vikram Joshi (Advisor)');
@@ -207,18 +288,20 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTokens.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(
-                  left: 16.0,
-                  right: 16.0,
+                  left: 20.0,
+                  right: 20.0,
                   top: 16.0,
-                  bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 16.0,
+                  bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 20.0,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -227,86 +310,151 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                     children: [
                       // Header
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-                        color: AppTokens.inverse,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF111827),
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Icons.verified_outlined, color: Color(0xFF00E676), size: 20.0),
-                            const SizedBox(width: 8.0),
-                            Text(
-                              'CUSTOMER PRE-WORK CONDITION SIGN-OFF',
-                              style: AppTokens.fontMonospace(
-                                color: AppTokens.textOnDark,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13.0,
+                            Container(
+                              padding: const EdgeInsets.all(6.0),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: const Icon(Icons.verified_outlined, color: Color(0xFF10B981), size: 18.0),
+                            ),
+                            const SizedBox(width: 10.0),
+                            Expanded(
+                              child: Text(
+                                'CUSTOMER PRE-WORK CONDITION SIGN-OFF',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12.5,
+                                  letterSpacing: 0.2,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 12.0),
-                      const Text(
+                      Text(
                         'Review recorded exterior defects before commencing repair work. Confirmation locks this condition map and generates an immutable SHA-256 integrity hash.',
-                        style: TextStyle(fontSize: 12.0, color: AppTokens.textSecondary, height: 1.35),
-                      ),
-                      const SizedBox(height: 12.0),
-
-                      // Defect Summary Chips
-                      Container(
-                        padding: const EdgeInsets.all(10.0),
-                        color: AppTokens.base,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Text('TOTAL: ${state.totalPinCount}', style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 11.5)),
-                            Text('SEVERE: ${state.severeCount}', style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 11.5, color: AppTokens.redOrange)),
-                            Text('MODERATE: ${state.moderateCount}', style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 11.5, color: const Color(0xFFF8A348))),
-                            Text('MINOR: ${state.minorCount}', style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 11.5, color: const Color(0xFF2E6B3F))),
-                          ],
-                        ),
+                        style: GoogleFonts.inter(fontSize: 12.0, color: const Color(0xFF64748B), height: 1.4),
                       ),
                       const SizedBox(height: 14.0),
 
+                      // Defect Summary Chips
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12.0),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Text(
+                              'TOTAL: ${state.totalPinCount}',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFF0F172A)),
+                            ),
+                            Text(
+                              'SEVERE: ${state.severeCount}',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFFDC2626)),
+                            ),
+                            Text(
+                              'MODERATE: ${state.moderateCount}',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFFEA580C)),
+                            ),
+                            Text(
+                              'MINOR: ${state.minorCount}',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFF16A34A)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16.0),
+
                       // Customer Details
-                      Text('CUSTOMER FULL NAME *', style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold)),
+                      Text(
+                        'CUSTOMER FULL NAME *',
+                        style: GoogleFonts.inter(fontSize: 11.0, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                      ),
                       const SizedBox(height: 4.0),
                       TextField(
                         controller: customerNameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Customer Name',
+                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                           filled: true,
-                          fillColor: AppTokens.raised,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                          fillColor: const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 10.0),
+                      const SizedBox(height: 12.0),
 
-                      Text('CUSTOMER MOBILE (+91) *', style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold)),
+                      Text(
+                        'CUSTOMER MOBILE (+91) *',
+                        style: GoogleFonts.inter(fontSize: 11.0, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                      ),
                       const SizedBox(height: 4.0),
                       TextField(
                         controller: customerPhoneController,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: '10-digit mobile number',
+                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
                           filled: true,
-                          fillColor: AppTokens.raised,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                        ),
-                      ),
-                      const SizedBox(height: 10.0),
-
-                      Text('SERVICE ADVISOR SIGNING *', style: AppTokens.fontMonospace(fontSize: 11.0, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4.0),
-                      TextField(
-                        controller: advisorNameController,
-                        decoration: const InputDecoration(
-                          hintText: 'Service Advisor Name / ID',
-                          filled: true,
-                          fillColor: AppTokens.raised,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                          fillColor: const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12.0),
+
+                      Text(
+                        'SERVICE ADVISOR SIGNING *',
+                        style: GoogleFonts.inter(fontSize: 11.0, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+                      ),
+                      const SizedBox(height: 4.0),
+                      TextField(
+                        controller: advisorNameController,
+                        decoration: InputDecoration(
+                          hintText: 'Service Advisor Name / ID',
+                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14.0),
 
                       // Customer Consent Checkbox
                       Row(
@@ -314,15 +462,16 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                         children: [
                           Checkbox(
                             value: consentChecked,
-                            activeColor: AppTokens.inverse,
+                            activeColor: const Color(0xFF111827),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
                             onChanged: (val) => setModalState(() => consentChecked = val ?? false),
                           ),
-                          const Expanded(
+                          Expanded(
                             child: Padding(
-                              padding: EdgeInsets.only(top: 8.0),
+                              padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
                                 'Customer acknowledges that all pre-existing damages noted above were present prior to workshop handover.',
-                                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, height: 1.3),
+                                style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.35, color: const Color(0xFF1E293B)),
                               ),
                             ),
                           ),
@@ -330,13 +479,20 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                       ),
 
                       if (localError != null) ...[
-                        const SizedBox(height: 8.0),
-                        Text(
-                          localError!,
-                          style: const TextStyle(color: AppTokens.redOrange, fontSize: 11.5, fontWeight: FontWeight.bold),
+                        const SizedBox(height: 10.0),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: Text(
+                            localError!,
+                            style: GoogleFonts.inter(color: const Color(0xFFDC2626), fontSize: 11.5, fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ],
-                      const SizedBox(height: 16.0),
+                      const SizedBox(height: 18.0),
 
                       // Swipe-to-Confirm Slider (Irreversible Action Gate)
                       SwipeToConfirmSlider(
@@ -367,7 +523,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Pre-work condition map signed off and locked.'),
-                                backgroundColor: Color(0xFF00E676),
+                                backgroundColor: Color(0xFF10B981),
                               ),
                             );
                           }
@@ -391,7 +547,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
     final isNarrow = MediaQuery.of(context).size.width < 960.0;
 
     return Scaffold(
-      backgroundColor: AppTokens.base,
+      backgroundColor: const Color(0xFFF6F8FA),
       body: SafeArea(
         child: Column(
           children: [
@@ -403,7 +559,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                color: AppTokens.redOrange,
+                color: const Color(0xFFDC2626),
                 child: Row(
                   children: [
                     const Icon(Icons.error_outline, color: Colors.white, size: 16.0),
@@ -411,7 +567,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                     Expanded(
                       child: Text(
                         state.errorMessage!,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0),
+                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.0),
                       ),
                     ),
                   ],
@@ -433,52 +589,73 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
 
   Widget _buildHeaderBar(ConditionMapState state) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: const BoxDecoration(
-        color: AppTokens.inverse,
-        border: Border(bottom: BorderSide(color: Color(0xFF333333), width: 1.0)),
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1.0)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 8.0,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                color: AppTokens.redOrange,
-                child: Text(
-                  '03',
-                  style: AppTokens.fontMonospace(
-                    color: Colors.white,
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.bold,
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCC0000),
+                    borderRadius: BorderRadius.circular(6.0),
+                  ),
+                  child: Text(
+                    '03',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 11.0,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10.0),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'PAGE 3: 360° CONDITION MAP & PRE-WORK SIGN-OFF',
-                    style: AppTokens.fontMonospace(
-                      color: AppTokens.textOnDark,
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w800,
-                    ),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'PAGE 3: 360° CONDITION MAP & PRE-WORK SIGN-OFF',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF0F172A),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2.0),
+                      Text(
+                        'JOB: ${state.jobCardId} • VEHICLE: ${state.registrationNumber}',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF64748B),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  Text(
-                    'JOB: ${state.jobCardId} • VEHICLE: ${state.registrationNumber}',
-                    style: AppTokens.fontMonospace(
-                      color: AppTokens.surface,
-                      fontSize: 10.0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8.0),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               if (state.isLocked)
                 const Padding(
@@ -508,7 +685,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildViewTabs(state, controller),
-          const SizedBox(height: 10.0),
+          const SizedBox(height: 12.0),
           _buildInteractiveCanvas(state, controller, height: 340.0),
           const SizedBox(height: 14.0),
           _buildPinInspector(state, controller),
@@ -560,58 +737,157 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
   }
 
   Widget _buildViewTabs(ConditionMapState state, ConditionMapController controller) {
-    return Row(
-      children: ConditionViewDirection.values.map((v) {
-        final isSel = state.activeView == v;
-        final pinCountInView = state.pins.where((p) => p.view == v).length;
+    final isMobile = MediaQuery.of(context).size.width < 700.0;
 
-        return Expanded(
-          child: InkWell(
-            onTap: () => controller.switchView(v),
-            child: Container(
-              height: 44.0,
-              decoration: BoxDecoration(
-                color: isSel ? AppTokens.inverse : AppTokens.surface,
-                border: Border.all(
-                  color: isSel ? AppTokens.borderSolid : const Color(0xFFCCCCCC),
-                  width: isSel ? 2.0 : 1.0,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    v.label,
-                    style: TextStyle(
-                      color: isSel ? AppTokens.textOnDark : AppTokens.textPrimary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11.0,
-                      fontFamily: 'monospace',
+    if (isMobile) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Container(
+          padding: const EdgeInsets.all(4.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(16.0),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: ConditionViewDirection.values.map((v) {
+              final isSel = state.activeView == v;
+              final pinCountInView = state.pins.where((p) => p.view == v).length;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12.0),
+                  onTap: () => controller.switchView(v),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    height: 40.0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                    decoration: BoxDecoration(
+                      color: isSel ? const Color(0xFF111827) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: isSel
+                          ? [
+                              const BoxShadow(
+                                color: Color(0x18000000),
+                                blurRadius: 6.0,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          v.label,
+                          style: GoogleFonts.inter(
+                            color: isSel ? Colors.white : const Color(0xFF475569),
+                            fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                            fontSize: 11.0,
+                          ),
+                        ),
+                        if (pinCountInView > 0) ...[
+                          const SizedBox(width: 6.0),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                            decoration: BoxDecoration(
+                              color: isSel ? const Color(0xFFDC2626) : const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            child: Text(
+                              '$pinCountInView',
+                              style: GoogleFonts.inter(
+                                color: isSel ? Colors.white : const Color(0xFF1E293B),
+                                fontSize: 10.0,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if (pinCountInView > 0) ...[
-                    const SizedBox(width: 6.0),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.0),
-                      color: isSel ? AppTokens.redOrange : AppTokens.inverse,
-                      child: Text(
-                        '$pinCountInView',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10.0,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: ConditionViewDirection.values.map((v) {
+          final isSel = state.activeView == v;
+          final pinCountInView = state.pins.where((p) => p.view == v).length;
+
+          return Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12.0),
+              onTap: () => controller.switchView(v),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                height: 42.0,
+                decoration: BoxDecoration(
+                  color: isSel ? const Color(0xFF111827) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12.0),
+                  boxShadow: isSel
+                      ? [
+                          const BoxShadow(
+                            color: Color(0x18000000),
+                            blurRadius: 6.0,
+                            offset: Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      v.label,
+                      style: GoogleFonts.inter(
+                        color: isSel ? Colors.white : const Color(0xFF475569),
+                        fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 11.0,
                       ),
                     ),
+                    if (pinCountInView > 0) ...[
+                      const SizedBox(width: 6.0),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                        decoration: BoxDecoration(
+                          color: isSel ? const Color(0xFFDC2626) : const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        child: Text(
+                          '$pinCountInView',
+                          style: GoogleFonts.inter(
+                            color: isSel ? Colors.white : const Color(0xFF1E293B),
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -625,9 +901,18 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
     return Container(
       height: height == double.infinity ? null : height,
       decoration: BoxDecoration(
-        color: AppTokens.raised,
-        border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.0),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 10.0,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return GestureDetector(
@@ -663,22 +948,26 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                         height: 28.0,
                         decoration: BoxDecoration(
                           color: pin.severity.accentColor,
+                          shape: BoxShape.circle,
                           border: Border.all(
-                            color: state.selectedPin?.id == pin.id ? Colors.white : AppTokens.inverse,
-                            width: state.selectedPin?.id == pin.id ? 2.5 : 1.2,
+                            color: state.selectedPin?.id == pin.id ? Colors.white : const Color(0xFF0F172A),
+                            width: state.selectedPin?.id == pin.id ? 2.5 : 1.5,
                           ),
-                          boxShadow: state.selectedPin?.id == pin.id
-                              ? [BoxShadow(color: pin.severity.accentColor.withOpacity(0.6), blurRadius: 6.0)]
-                              : null,
+                          boxShadow: [
+                            BoxShadow(
+                              color: pin.severity.accentColor.withValues(alpha: 0.5),
+                              blurRadius: state.selectedPin?.id == pin.id ? 8.0 : 4.0,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         alignment: Alignment.center,
                         child: Text(
                           '${pin.id}',
-                          style: const TextStyle(
+                          style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 12.0,
                             fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
                           ),
                         ),
                       ),
@@ -687,20 +976,30 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
 
                 // 3. Instruction Pill Indicator in corner
                 Positioned(
-                  bottom: 8.0,
-                  left: 8.0,
+                  bottom: 12.0,
+                  left: 12.0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                    color: AppTokens.inverse.withOpacity(0.85),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(20.0),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x20000000),
+                          blurRadius: 6.0,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
                     child: Text(
                       state.isLocked
                           ? 'MAP LOCKED: PRE-WORK SIGN-OFF RECORDED'
                           : 'TAP SCHEMATIC TO DROP DEFECT PIN [${state.activeView.label}]',
-                      style: const TextStyle(
+                      style: GoogleFonts.inter(
                         color: Colors.white,
-                        fontSize: 10.0,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
@@ -717,10 +1016,18 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
     final sel = state.selectedPin;
 
     return Container(
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: AppTokens.surface,
-        border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 8.0,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: sel == null
           ? Column(
@@ -728,12 +1035,17 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
               children: [
                 Text(
                   'DEFECT INSPECTOR',
-                  style: AppTokens.fontMonospace(fontSize: 11.5, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
+                    letterSpacing: 0.3,
+                  ),
                 ),
                 const SizedBox(height: 6.0),
-                const Text(
+                Text(
                   'Tap any numbered pin on the vehicle schematic to inspect or delete.',
-                  style: TextStyle(fontSize: 11.5, color: AppTokens.textSecondary),
+                  style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B), height: 1.35),
                 ),
               ],
             )
@@ -746,19 +1058,22 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                     Row(
                       children: [
                         Container(
-                          width: 24.0,
-                          height: 24.0,
-                          color: sel.severity.accentColor,
+                          width: 26.0,
+                          height: 26.0,
+                          decoration: BoxDecoration(
+                            color: sel.severity.accentColor,
+                            shape: BoxShape.circle,
+                          ),
                           alignment: Alignment.center,
                           child: Text(
                             '${sel.id}',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0),
+                            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12.0),
                           ),
                         ),
-                        const SizedBox(width: 8.0),
+                        const SizedBox(width: 10.0),
                         Text(
                           'PIN #${sel.id}: ${sel.type.label}',
-                          style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 12.5),
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 13.0, color: const Color(0xFF0F172A)),
                         ),
                       ],
                     ),
@@ -772,16 +1087,27 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                   ],
                 ),
                 const SizedBox(height: 8.0),
-                Text('VIEW: ${sel.view.label}', style: const TextStyle(fontSize: 11.0, color: AppTokens.textSecondary)),
+                Text(
+                  'VIEW: ${sel.view.label}',
+                  style: GoogleFonts.inter(fontSize: 11.0, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+                ),
                 if (sel.note != null && sel.note!.isNotEmpty) ...[
-                  const SizedBox(height: 6.0),
+                  const SizedBox(height: 8.0),
                   Container(
-                    padding: const EdgeInsets.all(8.0),
-                    color: AppTokens.base,
-                    child: Text('OBSERVATION: ${sel.note}', style: const TextStyle(fontSize: 11.5)),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10.0),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      'OBSERVATION: ${sel.note}',
+                      style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF334155)),
+                    ),
                   ),
                 ],
-                const SizedBox(height: 12.0),
+                const SizedBox(height: 14.0),
                 if (!state.isLocked)
                   Row(
                     children: [
@@ -812,10 +1138,18 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
 
   Widget _buildPinsSummaryCard(ConditionMapState state, ConditionMapController controller) {
     return Container(
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: AppTokens.surface,
-        border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 8.0,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -825,23 +1159,36 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
             children: [
               Text(
                 'DEFECT LEDGER (${state.totalPinCount})',
-                style: AppTokens.fontMonospace(fontSize: 11.5, fontWeight: FontWeight.bold),
+                style: GoogleFonts.inter(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: 0.3,
+                ),
               ),
               Text(
                 '${state.severeCount} S • ${state.moderateCount} M • ${state.minorCount} L',
-                style: AppTokens.fontMonospace(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTokens.textSecondary),
+                style: GoogleFonts.inter(
+                  fontSize: 11.0,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF64748B),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8.0),
+          const SizedBox(height: 10.0),
           if (state.pins.isEmpty)
             Container(
-              padding: const EdgeInsets.all(12.0),
-              color: AppTokens.base,
+              padding: const EdgeInsets.all(14.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10.0),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
               alignment: Alignment.center,
-              child: const Text(
+              child: Text(
                 'No defects logged. Tap on the vehicle schematic to drop pins.',
-                style: TextStyle(fontSize: 11.5, color: AppTokens.textSecondary),
+                style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B)),
               ),
             )
           else
@@ -849,39 +1196,55 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
               children: state.pins.map((pin) {
                 final isSelected = state.selectedPin?.id == pin.id;
                 return InkWell(
+                  borderRadius: BorderRadius.circular(10.0),
                   onTap: () {
                     controller.switchView(pin.view);
                     controller.selectPin(pin);
                   },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 4.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-                    color: isSelected ? AppTokens.raised : AppTokens.base,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    margin: const EdgeInsets.only(bottom: 6.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10.0),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                    ),
                     child: Row(
                       children: [
                         Container(
-                          width: 20.0,
-                          height: 20.0,
-                          color: pin.severity.accentColor,
+                          width: 22.0,
+                          height: 22.0,
+                          decoration: BoxDecoration(
+                            color: pin.severity.accentColor,
+                            shape: BoxShape.circle,
+                          ),
                           alignment: Alignment.center,
                           child: Text(
                             '${pin.id}',
-                            style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.inter(color: Colors.white, fontSize: 11.0, fontWeight: FontWeight.w800),
                           ),
                         ),
-                        const SizedBox(width: 8.0),
+                        const SizedBox(width: 10.0),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '${pin.type.label} (${pin.view.label})',
-                                style: AppTokens.fontMonospace(fontSize: 10.5, fontWeight: FontWeight.bold),
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
                               ),
                               if (pin.note != null)
                                 Text(
                                   pin.note!,
-                                  style: const TextStyle(fontSize: 10.0, color: AppTokens.textSecondary),
+                                  style: GoogleFonts.inter(fontSize: 10.0, color: const Color(0xFF64748B)),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                             ],
@@ -889,11 +1252,10 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                         ),
                         Text(
                           pin.severity.label.replaceAll('LEVEL ', 'L'),
-                          style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
+                          style: GoogleFonts.inter(
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w800,
                             color: pin.severity.accentColor,
-                            fontFamily: 'monospace',
                           ),
                         ),
                       ],
@@ -909,18 +1271,28 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
 
   Widget _buildBottomActionBar(ConditionMapState state) {
     return Container(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: const BoxDecoration(
-        color: AppTokens.inverse,
-        border: Border(top: BorderSide(color: Color(0xFF333333), width: 1.0)),
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1.0)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 10.0,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           if (state.isLocked) ...[
             Container(
-              padding: const EdgeInsets.all(6.0),
-              color: const Color(0xFF00E676),
-              child: const Icon(Icons.check, color: Colors.black, size: 18.0),
+              padding: const EdgeInsets.all(8.0),
+              decoration: const BoxDecoration(
+                color: Color(0xFFECFDF5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check, color: Color(0xFF10B981), size: 18.0),
             ),
             const SizedBox(width: 10.0),
             Expanded(
@@ -929,11 +1301,19 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                 children: [
                   Text(
                     'SIGNED OFF BY ${state.signOff!.customerName.toUpperCase()}',
-                    style: AppTokens.fontMonospace(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0),
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12.0,
+                    ),
                   ),
                   Text(
                     'HASH: ${state.signOff!.sha256Checksum.substring(0, 20)}...',
-                    style: AppTokens.fontMonospace(color: const Color(0xFF00E676), fontSize: 10.0, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.jetBrainsMono(
+                      color: const Color(0xFF047857),
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -941,7 +1321,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
             SharpButton(
               label: 'ADVANCE TO MECHANICAL INSPECTION',
               icon: Icons.arrow_forward,
-              onDark: true,
+              height: 46.0,
               onPressed: () {
                 final router = GoRouter.maybeOf(context);
                 if (router != null) {
@@ -954,7 +1334,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
               child: SharpButton(
                 label: 'INITIATE CUSTOMER PRE-WORK SIGN-OFF (${state.totalPinCount} DEFECTS LOGGED)',
                 icon: Icons.verified_user_outlined,
-                onDark: true,
+                height: 46.0,
                 onPressed: () => _showPreWorkSignOffModal(context),
               ),
             ),

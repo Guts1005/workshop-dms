@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../ui_kit/tokens/app_tokens.dart';
 import '../features/intake/presentation/intake_screen.dart';
 import '../features/bay_capture/bay_capture_screen.dart';
 import '../features/condition_map/condition_map_screen.dart';
+import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/job_card/presentation/job_card_screen.dart';
+import '../features/passport/presentation/digital_passport_screen.dart';
 import 'placeholder_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -20,134 +24,154 @@ final GoRouter appRouter = GoRouter(
         return Scaffold(
           backgroundColor: AppTokens.base,
           appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(52.0),
-            child: AppBar(
-              backgroundColor: AppTokens.inverse,
-              foregroundColor: AppTokens.textOnDark,
-              elevation: 0,
-              titleSpacing: 14.0,
-              title: Row(
-                children: [
-                  // Workshop Brand Icon
-                  Container(
-                    padding: const EdgeInsets.all(5.0),
-                    color: AppTokens.redOrange,
-                    child: const Icon(Icons.build_circle, color: Colors.white, size: 16.0),
+            preferredSize: const Size.fromHeight(54.0),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 10.0,
+                    offset: Offset(0, 2),
                   ),
-                  const SizedBox(width: 8.0),
-                  Text(
-                    'WORKSHOP DMS',
-                    style: AppTokens.fontMonospace(
-                      color: AppTokens.textOnDark,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(width: 14.0),
-
-                  // Desktop: Horizontal Stage Navigation Stepper in Header
-                  if (isDesktop) ...[
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildDesktopHeaderTab(0, '1. INTAKE', Icons.login, navigationShell),
-                          const SizedBox(width: 4.0),
-                          _buildDesktopHeaderTab(1, '2. CAPTURE', Icons.camera_alt_outlined, navigationShell),
-                          const SizedBox(width: 4.0),
-                          _buildDesktopHeaderTab(2, '3. 360° MAP', Icons.crop_rotate, navigationShell),
-                          const SizedBox(width: 4.0),
-                          _buildDesktopHeaderTab(4, '5. JOB CARD', Icons.assignment_outlined, navigationShell),
-                          const SizedBox(width: 6.0),
-                          InkWell(
-                            onTap: () => _showAllStagesSheet(context, navigationShell),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF282828),
-                                border: Border.all(color: const Color(0xFF444444), width: 1.0),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.grid_view_sharp, color: Colors.white, size: 13.0),
-                                  const SizedBox(width: 5.0),
-                                  Text(
-                                    '13 STAGES ▾',
-                                    style: AppTokens.fontMonospace(
-                                      color: Colors.white,
-                                      fontSize: 10.0,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else ...[
-                    // Mobile: Compact Stage Indicator Badge
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: SafeArea(
+                bottom: false,
+                child: Row(
+                  children: [
+                    // Workshop Brand Icon
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
+                      padding: const EdgeInsets.all(6.0),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF282828),
-                        border: Border.all(color: const Color(0xFF444444), width: 1.0),
+                        color: AppTokens.brandRed,
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
-                      child: Text(
-                        _getStageCode(navigationShell.currentIndex),
-                        style: AppTokens.fontMonospace(
-                          color: AppTokens.orange,
-                          fontSize: 10.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Icon(Icons.build_circle, color: Colors.white, size: 16.0),
                     ),
-                    const Spacer(),
-                  ],
-
-                  // Workshop Floor & Online Status
-                  if (isDesktop) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFF444444), width: 1.0),
-                      ),
-                      child: Text(
-                        'BAY 04 • WORKSHOP FLOOR',
-                        style: AppTokens.fontMonospace(
-                          color: AppTokens.surface,
-                          fontSize: 10.0,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    const SizedBox(width: 8.0),
+                    Text(
+                      'WORKSHOP DMS',
+                      style: GoogleFonts.inter(
+                        color: AppTokens.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(width: 14.0),
-                  ],
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+
+                    // Desktop: Horizontal Stage Navigation Stepper in Header
+                    if (isDesktop) ...[
+                      Expanded(
+                        child: Row(
+                          children: [
+                            _buildDesktopHeaderTab(0, '1. INTAKE', Icons.login, navigationShell),
+                            const SizedBox(width: 4.0),
+                            _buildDesktopHeaderTab(1, '2. CAPTURE', Icons.camera_alt_outlined, navigationShell),
+                            const SizedBox(width: 4.0),
+                            _buildDesktopHeaderTab(2, '3. 360° MAP', Icons.crop_rotate, navigationShell),
+                            const SizedBox(width: 4.0),
+                            _buildDesktopHeaderTab(4, '5. JOB CARD', Icons.assignment_outlined, navigationShell),
+                            const SizedBox(width: 4.0),
+                            _buildDesktopHeaderTab(10, '11. PASSPORT', Icons.verified_user_outlined, navigationShell),
+                            const SizedBox(width: 6.0),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(16.0),
+                              onTap: () => _showAllStagesSheet(context, navigationShell),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.grid_view_rounded, color: AppTokens.brandRed, size: 13.0),
+                                    const SizedBox(width: 5.0),
+                                    Text(
+                                      '13 STAGES ▾',
+                                      style: GoogleFonts.inter(
+                                        color: AppTokens.textPrimary,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      // Mobile: Compact Stage Indicator Badge
                       Container(
-                        width: 7.0,
-                        height: 7.0,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF00E676),
-                          shape: BoxShape.circle,
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        child: Text(
+                          _getStageCode(navigationShell.currentIndex),
+                          style: GoogleFonts.inter(
+                            color: AppTokens.brandRed,
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 5.0),
-                      Text(
-                        'ONLINE',
-                        style: AppTokens.fontMonospace(
-                          color: const Color(0xFF00E676),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                      const Spacer(),
                     ],
-                  ),
-                ],
+
+                    // Workshop Floor & Online Status
+                    if (isDesktop) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          'BAY 04 • WORKSHOP FLOOR',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF475569),
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10.0),
+                    ],
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7.0,
+                          height: 7.0,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF16A34A),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5.0),
+                        Text(
+                          'ONLINE',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF16A34A),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -156,10 +180,17 @@ final GoRouter appRouter = GoRouter(
           bottomNavigationBar: isDesktop
               ? null
               : Container(
-                  height: 56.0,
+                  height: 58.0,
                   decoration: const BoxDecoration(
-                    color: AppTokens.inverse,
-                    border: Border(top: BorderSide(color: Color(0xFF333333), width: 1.0)),
+                    color: Colors.white,
+                    border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 10.0,
+                        offset: Offset(0, -3),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -173,20 +204,19 @@ final GoRouter appRouter = GoRouter(
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 2.0),
                             alignment: Alignment.center,
-                            child: const Column(
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.grid_view_sharp, color: Colors.white, size: 16.0),
-                                SizedBox(height: 3.0),
+                                const Icon(Icons.grid_view_rounded, color: Color(0xFF64748B), size: 18.0),
+                                const SizedBox(height: 3.0),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
                                     'ALL STAGES',
-                                    style: TextStyle(
-                                      color: Colors.white,
+                                    style: GoogleFonts.inter(
+                                      color: const Color(0xFF64748B),
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.bold,
-                                      fontFamily: 'monospace',
                                     ),
                                   ),
                                 ),
@@ -249,11 +279,13 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/job-card',
-            builder: (context, state) => const PhasePlaceholderScreen(
-              pageNumber: 5,
-              title: 'Job Card & Estimate Builder',
-              description: 'Labour under SAC 998714, spare parts with effective-dated GST table, voice notes, per-line approval structure.',
-            ),
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>?;
+              return JobCardScreen(
+                jobCardId: extra?['jobCardId'] as String?,
+                registrationNumber: extra?['registrationNumber'] as String?,
+              );
+            },
           ),
         ]),
         // Branch 5: Page 6 - WhatsApp Dispatch
@@ -315,11 +347,13 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/passport',
-            builder: (context, state) => const PhasePlaceholderScreen(
-              pageNumber: 11,
-              title: 'Digital Health Passport (Customer Facing)',
-              description: 'Hero photo, plate blurred until owner shares, component wear estimates, hash-signed PDF export.',
-            ),
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>?;
+              return DigitalPassportScreen(
+                registrationNumber: extra?['registrationNumber'] as String?,
+                model: extra?['model'] as String?,
+              );
+            },
           ),
         ]),
         // Branch 11: Page 12 - Service Reminders
@@ -337,11 +371,7 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(routes: [
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const PhasePlaceholderScreen(
-              pageNumber: 13,
-              title: 'Home Dashboard & Shop Overview',
-              description: 'Workshop status overview, active bays, revenue metrics, urgent alerts.',
-            ),
+            builder: (context, state) => const DashboardScreen(),
           ),
         ]),
       ],
@@ -369,17 +399,14 @@ String _getStageCode(int index) {
 Widget _buildDesktopHeaderTab(int index, String label, IconData icon, StatefulNavigationShell shell) {
   final isSelected = shell.currentIndex == index;
   return InkWell(
+    borderRadius: BorderRadius.circular(16.0),
     onTap: () => shell.goBranch(index),
-    child: Container(
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF2E2E2E) : Colors.transparent,
-        border: Border(
-          bottom: BorderSide(
-            color: isSelected ? AppTokens.redOrange : Colors.transparent,
-            width: 2.5,
-          ),
-        ),
+        color: isSelected ? const Color(0xFF0F172A) : Colors.transparent,
+        borderRadius: BorderRadius.circular(16.0),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -387,16 +414,15 @@ Widget _buildDesktopHeaderTab(int index, String label, IconData icon, StatefulNa
           Icon(
             icon,
             size: 13.0,
-            color: isSelected ? AppTokens.textOnDark : const Color(0xFF999999),
+            color: isSelected ? Colors.white : const Color(0xFF64748B),
           ),
           const SizedBox(width: 5.0),
           Text(
             label,
-            style: TextStyle(
-              color: isSelected ? AppTokens.textOnDark : const Color(0xFF999999),
+            style: GoogleFonts.inter(
+              color: isSelected ? Colors.white : const Color(0xFF475569),
               fontSize: 11.0,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              fontFamily: 'monospace',
             ),
           ),
         ],
@@ -410,24 +436,14 @@ Widget _buildNavItem(int index, String label, IconData icon, StatefulNavigationS
   return InkWell(
     onTap: () => shell.goBranch(index),
     child: Container(
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF282828) : Colors.transparent,
-        border: Border(
-          top: BorderSide(
-            color: isSelected ? AppTokens.redOrange : Colors.transparent,
-            width: 3.0,
-          ),
-          right: const BorderSide(color: Color(0xFF333333), width: 1.0),
-        ),
-      ),
       padding: const EdgeInsets.symmetric(horizontal: 2.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            size: 16.0,
-            color: isSelected ? AppTokens.textOnDark : const Color(0xFF888888),
+            size: 18.0,
+            color: isSelected ? AppTokens.brandRed : const Color(0xFF94A3B8),
           ),
           const SizedBox(height: 3.0),
           FittedBox(
@@ -435,11 +451,10 @@ Widget _buildNavItem(int index, String label, IconData icon, StatefulNavigationS
             child: Text(
               label,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isSelected ? AppTokens.textOnDark : const Color(0xFF888888),
+              style: GoogleFonts.inter(
+                color: isSelected ? AppTokens.textPrimary : const Color(0xFF94A3B8),
                 fontSize: 9.5,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                fontFamily: 'monospace',
               ),
             ),
           ),
@@ -451,33 +466,31 @@ Widget _buildNavItem(int index, String label, IconData icon, StatefulNavigationS
 
 void _showAllStagesSheet(BuildContext context, StatefulNavigationShell shell) {
   final stages = [
-    '1. INTAKE (Active Registration & Customer)',
-    '2. BAY CAPTURE (6 Mandatory Shots)',
-    '3. 360° CONDITION MAP (Damage Zones)',
-    '4. MECHANICAL INSPECTION (Brakes, Tyres, Battery)',
-    '5. JOB CARD & ESTIMATE (SAC 998714 / Parts)',
-    '6. WHATSAPP DISPATCH (Approvals & Declines)',
-    '7. WORK IN PROGRESS BOARD (Bay Clock & Stock)',
-    '8. QC & ROAD TEST GATE (Safety Sign-off)',
-    '9. GST INVOICING (CGST/SGST/IGST Engine)',
-    '10. PAYMENT & RELEASE GATE (Zero Balance Gate)',
-    '11. DIGITAL HEALTH PASSPORT (QR & Public Web)',
-    '12. SERVICE REMINDERS (KM & Time Triggers)',
-    '13. HOME DASHBOARD (Shop Metrics & Active Bays)',
+    {'title': '1. INTAKE', 'desc': 'Active Registration & Customer Details', 'live': true, 'branch': 0},
+    {'title': '2. BAY CAPTURE', 'desc': '6 Mandatory Check-in Camera Shots', 'live': true, 'branch': 1},
+    {'title': '3. 360° CONDITION MAP', 'desc': 'Interactive Digital Damage Pins', 'live': true, 'branch': 2},
+    {'title': '4. MECHANICAL INSPECTION', 'desc': 'Brakes, Tyres, Battery Telemetry', 'live': false, 'branch': 3},
+    {'title': '5. JOB CARD & ESTIMATE', 'desc': 'SAC 998729 Labour & OEM Spare Parts', 'live': true, 'branch': 4},
+    {'title': '6. WHATSAPP DISPATCH', 'desc': 'Per-Line Customer Approval Consent', 'live': false, 'branch': 5},
+    {'title': '7. WORK IN PROGRESS BOARD', 'desc': 'Live Bay Floor Board & Technician Log', 'live': false, 'branch': 6},
+    {'title': '8. QC & ROAD TEST GATE', 'desc': 'Strict Safety Inspection Sign-off', 'live': false, 'branch': 7},
+    {'title': '9. GST INVOICING', 'desc': 'Automotive Rate Tables & CGST/SGST', 'live': false, 'branch': 8},
+    {'title': '10. PAYMENT & RELEASE GATE', 'desc': 'Zero-Balance Swipe to Release', 'live': false, 'branch': 9},
+    {'title': '11. DIGITAL HEALTH PASSPORT', 'desc': 'Cryptographically Signed Vehicle Record', 'live': true, 'branch': 10},
+    {'title': '12. SERVICE REMINDERS', 'desc': 'Dual-Trigger Predictive Maintenance', 'live': false, 'branch': 11},
+    {'title': '13. SHOP FLOOR DASHBOARD', 'desc': 'Live Workshop Metrics & Bay Status', 'live': true, 'branch': 12},
   ];
 
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppTokens.surface,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+    ),
     builder: (ctx) {
       return Container(
-        height: 500.0,
+        height: 540.0,
         padding: const EdgeInsets.all(20.0),
-        decoration: BoxDecoration(
-          color: AppTokens.surface,
-          border: Border.all(color: AppTokens.borderSolid, width: 1.0),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -487,48 +500,76 @@ void _showAllStagesSheet(BuildContext context, StatefulNavigationShell shell) {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(4.0),
-                      color: AppTokens.redOrange,
-                      child: const Icon(Icons.grid_view_sharp, color: Colors.white, size: 14.0),
+                      padding: const EdgeInsets.all(6.0),
+                      decoration: BoxDecoration(
+                        color: AppTokens.brandRed,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: const Icon(Icons.grid_view_rounded, color: Colors.white, size: 16.0),
                     ),
-                    const SizedBox(width: 8.0),
+                    const SizedBox(width: 10.0),
                     Text(
                       'WORKSHOP PIPELINE: 13 STAGES',
-                      style: AppTokens.fontMonospace(fontWeight: FontWeight.w900, fontSize: 13.0),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 13.5, color: AppTokens.textPrimary),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, color: Color(0xFF64748B)),
                   onPressed: () => Navigator.of(ctx).pop(),
                 ),
               ],
             ),
-            const SizedBox(height: 10.0),
+            const SizedBox(height: 12.0),
             Expanded(
               child: ListView.separated(
                 itemCount: stages.length,
-                separatorBuilder: (ctx, idx) => const Divider(height: 1.0, color: AppTokens.dividerPassive),
+                separatorBuilder: (ctx, idx) => const Divider(height: 1.0, color: Color(0xFFE2E8F0)),
                 itemBuilder: (ctx, idx) {
-                  final isCurrent = shell.currentIndex == idx;
+                  final s = stages[idx];
+                  final branchIdx = s['branch'] as int;
+                  final isCurrent = shell.currentIndex == branchIdx;
+                  final isLive = s['live'] as bool;
                   return ListTile(
-                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                     selected: isCurrent,
-                    selectedTileColor: AppTokens.inverse,
-                    title: Text(
-                      stages[idx],
-                      style: AppTokens.fontMonospace(
-                        color: isCurrent ? AppTokens.textOnDark : AppTokens.textPrimary,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
-                        fontSize: 11.5,
-                      ),
+                    selectedTileColor: const Color(0xFFF1F5F9),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                    title: Row(
+                      children: [
+                        Text(
+                          s['title'] as String,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12.0,
+                            color: isCurrent ? AppTokens.brandRed : AppTokens.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                        if (isLive)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: const Text(
+                              '● LIVE',
+                              style: TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold, fontSize: 9.0),
+                            ),
+                          ),
+                      ],
+                    ),
+                    subtitle: Text(
+                      s['desc'] as String,
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                     ),
                     trailing: isCurrent
-                        ? const Icon(Icons.check_circle, color: AppTokens.redOrange, size: 18.0)
-                        : const Icon(Icons.chevron_right, size: 16.0),
+                        ? const Icon(Icons.check_circle, color: AppTokens.brandRed, size: 18.0)
+                        : const Icon(Icons.arrow_forward_ios, size: 12.0, color: Color(0xFFCBD5E1)),
                     onTap: () {
                       Navigator.of(ctx).pop();
-                      shell.goBranch(idx);
+                      shell.goBranch(branchIdx);
                     },
                   );
                 },
