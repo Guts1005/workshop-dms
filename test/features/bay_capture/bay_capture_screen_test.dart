@@ -49,6 +49,35 @@ void main() {
       },
     );
 
+    testWidgets('Check-in layout fits a phone viewport without overflow', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            bayCaptureRepositoryProvider.overrideWithValue(
+              LocalBayCaptureRepository(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: BayCaptureScreen(
+              jobCardId: 'JC-MOBILE-LAYOUT',
+              registrationNumber: 'RJ27CA1024',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('0/6 MANDATORY'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       'Recording a shot capture updates progress counter and slot status',
       (WidgetTester tester) async {
