@@ -94,6 +94,8 @@ void main() {
         registrationNumber: 'KA 01 AB 1234',
         lastServiceDate: lastService,
         lastServiceOdometerKm: -1,
+        intervalKm: 10000,
+        intervalDays: 180,
       ),
       throwsArgumentError,
     );

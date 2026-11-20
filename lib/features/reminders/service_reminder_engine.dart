@@ -96,8 +96,8 @@ class ServiceReminderEngine {
     required int lastServiceOdometerKm,
     DateTime? previousServiceDate,
     int? previousServiceOdometerKm,
-    int intervalKm = 10000,
-    int intervalDays = 180,
+    required int intervalKm,
+    required int intervalDays,
     DateTime? now,
   }) {
     if (intervalKm <= 0 || intervalDays <= 0) {
