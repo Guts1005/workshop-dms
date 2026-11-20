@@ -11,15 +11,16 @@
 - Application list and dashboard reads from workshop records.
 - Bay check-in photo capture, private Storage uploads, and manager override records.
 - Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket.
+- Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with line-item creation and estimate-related UI; validate its complete data and approval path before relying on it.
 - Vehicle history/passport view and GST/reminder calculation helpers exist, but the linked routes and persistence are not complete.
-- Four SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, and check-in photo-gate behavior. The new check-in gate migration is local and has not been applied to Supabase.
+- Five SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, and mechanical inspection records. Migrations `202611200001` and `202611200002` are local and have not been applied to Supabase.
 
 ## Remaining work, in priority order
 
 ### P0: Apply and verify the real application path against the target Supabase project
 
-- Apply all four migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The latest migration adds the mandatory photo gate and restricts manager overrides to workshop owners.
+- Apply all five migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The two latest migrations add the mandatory photo gate, restrict manager overrides to workshop owners, and create the mechanical inspection table.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
 - Exercise signup/sign-in, workshop creation, customer/vehicle creation, application creation, six mandatory check-in photos, optional photo selection, finding save/reload, report sign-off, and application progress from a clean account.
 - Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account.
@@ -27,7 +28,6 @@
 
 ### P1: Finish the core service workflow
 
-- Implement the `/mechanical-inspection` route and persist measured inspection results.
 - Finish job-card and estimate lifecycle, including editing/removing line items, robust loading/error states, customer approval/decline persistence, and transitions to work in progress.
 - Implement `/whatsapp-dispatch` with customer consent, per-line decisions, and durable approval state. A URL launcher alone is not delivery tracking.
 - Implement `/qc-gate`, inspection evidence, road-test sign-off, and workflow gating before invoicing.
@@ -62,7 +62,6 @@
 
 `lib/routing/app_router.dart` currently routes these pages to `PhasePlaceholderScreen`:
 
-- `/mechanical-inspection`
 - `/whatsapp-dispatch`
 - `/qc-gate`
 - `/gst-invoicing`
@@ -81,16 +80,16 @@ Inventory, technician work-in-progress, and debtors are not complete modules. Th
 
 ## Verification already completed
 
-- On 20 November 2026, the full Flutter test suite passed: 74 tests, including intake validation, photo-gate behavior, application next-action routing, and condition-map photo controls.
+- On 20 November 2026, the full Flutter test suite passed: 83 tests, including intake validation, photo-gate behavior, application next-action routing, mechanical inspection validation and controller save/reload behavior, and condition-map photo controls.
 - Full-project `flutter analyze` completed with no issues.
 - `flutter build web --release` succeeded.
 - `git diff --check` completed cleanly.
-- Live Supabase migration state, live Storage policies, and physical-device camera flow were not verified. Apply the fourth migration before exercising the gated check-in flow against the live project.
+- Live Supabase migration state, live Storage policies, mechanical-inspection migration, and physical-device camera flow were not verified. Apply the fourth and fifth migrations before exercising the gated check-in and inspection flow against the live project.
 
 ## First recommended developer session
 
-1. Read `README.md`, this handoff, `supabase/migrations/`, and the three core intake/capture/condition repositories.
+1. Read `README.md`, this handoff, `supabase/migrations/`, and the intake, capture, condition, and mechanical-inspection repositories.
 2. Set up Flutter and the target Supabase project using `README.md`; verify migrations before running the app.
 3. Run the full suite and `flutter analyze`; record baseline failures before changing implementation.
 4. Walk the P0 real-account flow and fix the first persistence, RLS, or media issue found.
-5. Build mechanical inspection and its database persistence, then continue through estimate approval, QC, invoice, and payment gates.
+5. Complete estimate approval, then continue through QC, invoice, and payment gates.

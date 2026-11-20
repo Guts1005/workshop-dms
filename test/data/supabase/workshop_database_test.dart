@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workshop_dms/data/supabase/workshop_database.dart';
+import 'package:workshop_dms/features/mechanical_inspection/mechanical_inspection_models.dart';
 
 void main() {
   group('nextApplicationAction', () {
@@ -8,6 +9,7 @@ void main() {
         mandatoryPhotoCount: 3,
         hasManagerOverride: false,
         hasConditionReport: false,
+        hasMechanicalInspection: false,
       );
 
       expect(action.route, '/bay-capture');
@@ -19,6 +21,7 @@ void main() {
         mandatoryPhotoCount: 6,
         hasManagerOverride: false,
         hasConditionReport: false,
+        hasMechanicalInspection: false,
       );
 
       expect(action.route, '/condition-map');
@@ -29,20 +32,100 @@ void main() {
         mandatoryPhotoCount: 2,
         hasManagerOverride: true,
         hasConditionReport: false,
+        hasMechanicalInspection: false,
       );
 
       expect(action.route, '/condition-map');
     });
 
-    test('opens job card after signed condition report', () {
+    test('opens inspection after condition report is signed', () {
       final action = nextApplicationAction(
         mandatoryPhotoCount: 6,
         hasManagerOverride: false,
         hasConditionReport: true,
+        hasMechanicalInspection: false,
+      );
+
+      expect(action.route, '/mechanical-inspection');
+      expect(action.label, 'Record mechanical inspection');
+    });
+
+    test('opens estimate after inspection is saved', () {
+      final action = nextApplicationAction(
+        mandatoryPhotoCount: 6,
+        hasManagerOverride: false,
+        hasConditionReport: true,
+        hasMechanicalInspection: true,
       );
 
       expect(action.route, '/job-card');
       expect(action.label, 'Open job card and estimate');
+    });
+  });
+
+  group('validateMechanicalInspection', () {
+    test('requires each item to be measured or marked not applicable', () {
+      final error = validateMechanicalInspection(
+        inspectorName: 'Tech One',
+        odometerKm: 1001,
+        minimumOdometerKm: 1000,
+        measurementTexts: {'front_brake_pad_mm': '5'},
+        notApplicable: const {},
+      );
+
+      expect(error, contains('rear brake pad thickness'));
+    });
+
+    test(
+      'accepts a complete record with measured and not applicable items',
+      () {
+        final texts = {
+          for (final spec in mechanicalMeasurementSpecs) spec.id: '5.5',
+        };
+        final notApplicable = {mechanicalMeasurementSpecs.last.id};
+
+        final error = validateMechanicalInspection(
+          inspectorName: 'Tech One',
+          odometerKm: 1000,
+          minimumOdometerKm: 1000,
+          measurementTexts: texts,
+          notApplicable: notApplicable,
+        );
+
+        expect(error, isNull);
+      },
+    );
+
+    test('rejects an odometer reading below check-in', () {
+      final texts = {
+        for (final spec in mechanicalMeasurementSpecs) spec.id: '5.5',
+      };
+
+      final error = validateMechanicalInspection(
+        inspectorName: 'Tech One',
+        odometerKm: 999,
+        minimumOdometerKm: 1000,
+        measurementTexts: texts,
+        notApplicable: const {},
+      );
+
+      expect(error, contains('at least 1000 km'));
+    });
+
+    test('rejects measurement values outside the field range', () {
+      final texts = {
+        for (final spec in mechanicalMeasurementSpecs) spec.id: '5.5',
+      }..['battery_cca'] = '5001';
+
+      final error = validateMechanicalInspection(
+        inspectorName: 'Tech One',
+        odometerKm: 1000,
+        minimumOdometerKm: 1000,
+        measurementTexts: texts,
+        notApplicable: const {},
+      );
+
+      expect(error, contains('no greater than 5000 A'));
     });
   });
 }

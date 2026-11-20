@@ -681,6 +681,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 
                   // Only expose workspaces that are implemented.
                   if (app['route'] == '/bay-capture' ||
+                      app['route'] == '/mechanical-inspection' ||
                       app['route'] == '/job-card' ||
                       app['route'] == '/condition-map')
                     ElevatedButton(

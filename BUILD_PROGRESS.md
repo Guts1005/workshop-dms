@@ -13,7 +13,7 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | Bay check-in | Implemented; migration/device QA pending | Six-photo gate is enforced in the client and in migration `202611200001`; manager overrides require a workshop owner. Private Storage upload and retake-safe replacement are present. Apply the migration to the target project before live use. |
 | Condition report | Implemented; live QA pending | Findings, optional photos, review areas, and sign-off exist. |
 | Job card / estimate | Partial | Line item creation exists; approval and lifecycle need validation/completion. |
-| Mechanical inspection | Not implemented | Route is a placeholder. |
+| Mechanical inspection | Implemented; migration/live QA pending | Records brake, tyre, and battery readings or explicit not-applicable choices; validates odometer and persists completion. Application cards route to inspection before the estimate. Apply migration `202611200002` before live use. |
 | Customer approvals / WhatsApp | Not implemented | Route is a placeholder. |
 | Work in progress / inventory | Not implemented | No complete persisted workflow. |
 | QC / road test | Not implemented | Route is a placeholder. |
@@ -23,9 +23,8 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 
 ## Next work
 
-1. Apply all four migrations, then verify RLS, auth, photos, and the complete intake-to-condition-report flow against the target Supabase project.
-2. Implement mechanical inspection and connect findings to durable vehicle/job history.
-3. Complete estimate approval and workflow state transitions.
+1. Apply all five migrations, then verify RLS, auth, photos, and the complete intake-to-estimate flow against the target Supabase project.
+2. Complete estimate approval and workflow state transitions.
 4. Add inventory, QC, GST invoice, payment, and delivery persistence and gates.
 5. Complete passport and service reminders, then durable offline sync.
 6. Add CI and finish platform, security, accessibility, and release QA.

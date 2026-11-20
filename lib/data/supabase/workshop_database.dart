@@ -11,6 +11,7 @@ ApplicationNextAction nextApplicationAction({
   required int mandatoryPhotoCount,
   required bool hasManagerOverride,
   required bool hasConditionReport,
+  required bool hasMechanicalInspection,
 }) {
   if (!hasConditionReport && mandatoryPhotoCount < 6 && !hasManagerOverride) {
     return const ApplicationNextAction(
@@ -22,6 +23,12 @@ ApplicationNextAction nextApplicationAction({
     return const ApplicationNextAction(
       route: '/condition-map',
       label: 'Open vehicle condition',
+    );
+  }
+  if (!hasMechanicalInspection) {
+    return const ApplicationNextAction(
+      route: '/mechanical-inspection',
+      label: 'Record mechanical inspection',
     );
   }
   return const ApplicationNextAction(
@@ -121,6 +128,14 @@ class WorkshopDatabase {
     final overrideJobIds = overrideRows
         .map((row) => row['job_card_id'] as String)
         .toSet();
+    final inspectionRows = await client
+        .from('mechanical_inspections')
+        .select('job_card_id')
+        .eq('workshop_id', workshopId)
+        .inFilter('job_card_id', jobIds);
+    final inspectionJobIds = inspectionRows
+        .map((row) => row['job_card_id'] as String)
+        .toSet();
 
     return rows.map((row) {
       final jobId = row['id'] as String;
@@ -134,10 +149,12 @@ class WorkshopDatabase {
           .length;
       final hasReport = reportByJob.containsKey(jobId);
       final hasOverride = overrideJobIds.contains(jobId);
+      final hasMechanicalInspection = inspectionJobIds.contains(jobId);
       final action = nextApplicationAction(
         mandatoryPhotoCount: photoCount,
         hasManagerOverride: hasOverride,
         hasConditionReport: hasReport,
+        hasMechanicalInspection: hasMechanicalInspection,
       );
       final pending = <String>[];
       final missingPhotos = 6 - photoCount;
@@ -150,6 +167,8 @@ class WorkshopDatabase {
       }
       if (!hasReport) {
         pending.add('Vehicle condition report');
+      } else if (!hasMechanicalInspection) {
+        pending.add('Mechanical inspection');
       } else {
         pending.add('Prepare estimate and request customer approval');
       }
@@ -180,11 +199,13 @@ class WorkshopDatabase {
           'Application created',
           if (photoCount > 0) '$photoCount mandatory check-in photos saved',
           if (hasReport) 'Condition report saved',
+          if (hasMechanicalInspection) 'Mechanical inspection saved',
         ],
         'pendingItems': pending,
         'photoCount': photoCount,
         'hasConditionReport': hasReport,
         'hasManagerOverride': hasOverride,
+        'hasMechanicalInspection': hasMechanicalInspection,
         'vehicleId': row['vehicle_id'],
         'customerId': row['customer_id'],
         'odometer': row['intake_odometer_km'] ?? vehicle['odometer_km'] ?? 0,

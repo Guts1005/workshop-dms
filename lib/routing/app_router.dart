@@ -10,6 +10,7 @@ import '../features/passport/presentation/digital_passport_screen.dart';
 import '../features/intake/presentation/intake_screen.dart';
 import '../features/bay_capture/bay_capture_screen.dart';
 import '../features/condition_map/condition_map_screen.dart';
+import '../features/mechanical_inspection/mechanical_inspection_screen.dart';
 import '../features/job_card/presentation/job_card_screen.dart';
 import 'placeholder_screen.dart';
 
@@ -271,11 +272,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/mechanical-inspection',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PhasePlaceholderScreen(
-        pageNumber: 4,
-        title: 'Multi-Point Mechanical Inspection',
-        description: 'Diagnostic checklist with calibrated measurements (brake pad mm, tyre tread depth, battery CCA/volts) feeding vehicle health history.',
-      ),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return MechanicalInspectionScreen(
+          jobCardId: extra?['jobCardId'] as String?,
+          registrationNumber: extra?['registrationNumber'] as String?,
+        );
+      },
     ),
 
     // Job Card & Estimate Builder
