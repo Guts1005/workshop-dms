@@ -1,11 +1,17 @@
-import 'dart:typed_data';
-
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/sync/outbox_sync_service.dart';
 import 'condition_map_models.dart';
+
+@visibleForTesting
+bool shouldDeleteConditionPhotoAfterFailedSave({
+  required String uploadedPath,
+  required String? previousPath,
+  required bool? replacementIsReferenced,
+}) => uploadedPath != previousPath && replacementIsReferenced == false;
 
 abstract class ConditionMapRepository {
   Future<List<ConditionPin>> getPinsForJobCard(String jobCardId);
@@ -254,7 +260,7 @@ class SupabaseConditionMapRepository implements ConditionMapRepository {
         'created_at': savedPin.createdAt.toUtc().toIso8601String(),
       }, onConflict: 'job_card_id,id');
     } catch (_) {
-      var replacementIsReferenced = false;
+      bool? replacementIsReferenced;
       if (uploadedPath != null) {
         try {
           final currentRow = await client
@@ -270,8 +276,11 @@ class SupabaseConditionMapRepository implements ConditionMapRepository {
         }
       }
       if (uploadedPath != null &&
-          uploadedPath != previousPath &&
-          !replacementIsReferenced) {
+          shouldDeleteConditionPhotoAfterFailedSave(
+            uploadedPath: uploadedPath,
+            previousPath: previousPath,
+            replacementIsReferenced: replacementIsReferenced,
+          )) {
         try {
           await client.storage.from(_photoBucket).remove([uploadedPath]);
         } catch (_) {
