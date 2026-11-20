@@ -20,7 +20,7 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | QC / road test | Initial workflow implemented; migration/live QA pending | Requires repair-complete confirmation, four explicit checks, and a road-test result or reason. Failed QC keeps work in progress; audited pass moves to `QC_PASSED`. Apply migration `202611200007` before live use. |
 | GST invoice | Initial workflow implemented; migration/live QA pending | For GST-registered suppliers, uses explicitly entered approved-estimate rates, creates an immutable snapshot and FY serial in a database RPC, computes state-based tax split, and prints a PDF. Bill-of-supply and IRN submission are not implemented; rate and place-of-supply classification need accountant verification. Apply migration `202611200008` before live use. |
 | Payment / delivery | Initial workflow implemented; migration/live QA pending | Payment ledger, balance checks, owner-only audited credit override, and server-enforced handover are implemented. Apply migration `202611200009` before live use. |
-| Vehicle passport / reminders | Partial | Internal history and calculation helpers exist; public QR/passport and reminders are incomplete. |
+| Vehicle passport / reminders | Partial | Internal history exists. Reminder mileage projections require two valid readings and customer messages avoid unsupported repair suggestions; reminders route, persistence, and dispatch remain incomplete. Public QR/passport is also incomplete. |
 | Offline-first sync | Not implemented | Current outbox service is in-memory and is not wired as a durable background worker. |
 
 ## Next work

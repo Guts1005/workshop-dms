@@ -5,9 +5,10 @@ class ServiceReminderResult {
   final String registrationNumber;
   final DateTime lastServiceDate;
   final int lastServiceOdometerKm;
-  final DateTime projectedKmDueDate;
+  final DateTime? projectedKmDueDate;
   final DateTime calendarDueDate;
-  final int projectedCurrentKm;
+  final int? projectedCurrentKm;
+  final bool hasMileageProjection;
   final bool isOverdue;
   final bool isDueSoon;
   final String triggerReason;
@@ -22,12 +23,13 @@ class ServiceReminderResult {
     required this.projectedKmDueDate,
     required this.calendarDueDate,
     required this.projectedCurrentKm,
+    required this.hasMileageProjection,
     required this.isOverdue,
     required this.isDueSoon,
     required this.triggerReason,
   });
 
-  /// Builds the direct WhatsApp click-to-chat URL
+  /// Builds a customer message containing only recorded facts and estimates.
   String buildWhatsAppUrl({
     required String workshopName,
     required String workshopPhone,
@@ -38,32 +40,27 @@ class ServiceReminderResult {
         ? cleanPhone
         : '91$cleanPhone';
 
-    final text = StringBuffer();
-    text.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    text.writeln('🔧 *$workshopName — SERVICE DUE ALERT*');
-    text.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    text.writeln('Namaste *$customerName ji*,\n');
-    text.writeln(
-      'Your *$vehicleModel ($registrationNumber)* is now due for scheduled maintenance.\n',
-    );
-    text.writeln('📊 *Vehicle Snapshot:*');
-    text.writeln(
-      '• Last Serviced: ${_formatDate(lastServiceDate)} (@ $lastServiceOdometerKm KM)',
-    );
-    text.writeln('• Current Est. Odometer: ~$projectedCurrentKm KM');
-    text.writeln('• Trigger: $triggerReason\n');
-    text.writeln('🛠️ *Recommended for this Visit:*');
-    text.writeln('✓ Engine Oil (5W-30 Synthetic) & Filter');
-    text.writeln('✓ Brake Pad Inspection & Fluid Top-up');
-    text.writeln('✓ Complete 360° Safety & Suspension Scan\n');
-    text.writeln('📄 *View Your Car\'s Live Health Passport:*');
-    text.writeln('https://workshop.app/passport/$registrationNumber\n');
-    text.writeln(
-      'To reserve your bay slot or arrange a doorstep pickup, simply reply to this message or call us at $workshopPhone.\n',
-    );
-    text.writeln('*Work Done Right, Priced Fair.*');
-    text.writeln('📍 $workshopAddress');
-    text.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    final text = StringBuffer()
+      ..writeln('Service reminder from $workshopName')
+      ..writeln()
+      ..writeln('Hello $customerName,')
+      ..writeln(
+        'Our records show that your $vehicleModel ($registrationNumber) may be due for service.',
+      )
+      ..writeln('Last recorded service: ${_formatDate(lastServiceDate)}')
+      ..writeln('Odometer at that visit: $lastServiceOdometerKm km')
+      ..writeln('Reminder basis: $triggerReason');
+
+    if (hasMileageProjection && projectedCurrentKm != null) {
+      text.writeln('Estimated current odometer: about $projectedCurrentKm km');
+    }
+
+    text
+      ..writeln()
+      ..writeln(
+        'Please contact us to confirm your vehicle\'s needs or arrange a visit.',
+      )
+      ..writeln('$workshopPhone - $workshopAddress');
 
     final encodedText = Uri.encodeComponent(text.toString());
     return 'https://wa.me/$phoneWithCountry?text=$encodedText';
@@ -89,7 +86,7 @@ class ServiceReminderResult {
 }
 
 class ServiceReminderEngine {
-  /// Evaluates whether a customer is due or overdue based on Dual-Trigger (Time vs Projected Mileage)
+  /// Uses a calendar interval and only forecasts mileage from two valid readings.
   static ServiceReminderResult evaluate({
     required String customerName,
     required String mobileNumber,
@@ -100,52 +97,49 @@ class ServiceReminderEngine {
     DateTime? previousServiceDate,
     int? previousServiceOdometerKm,
     int intervalKm = 10000,
-    int intervalDays = 180, // 6 months
+    int intervalDays = 180,
     DateTime? now,
   }) {
-    final currentNow = now ?? DateTime.now();
+    if (intervalKm <= 0 || intervalDays <= 0) {
+      throw ArgumentError('Service intervals must be greater than zero.');
+    }
+    if (lastServiceOdometerKm < 0) {
+      throw ArgumentError('Odometer readings cannot be negative.');
+    }
 
-    // 1. Calculate Daily Driving Average
-    double dailyAverageKm =
-        40.0; // Sane automotive default in India if no previous visit exists
+    final currentNow = now ?? DateTime.now();
+    double? dailyAverageKm;
     if (previousServiceDate != null && previousServiceOdometerKm != null) {
       final daysBetween = lastServiceDate
           .difference(previousServiceDate)
           .inDays;
       final kmBetween = lastServiceOdometerKm - previousServiceOdometerKm;
-      if (daysBetween > 0 && kmBetween > 0) {
+      if (daysBetween > 0 && kmBetween > 0 && previousServiceOdometerKm >= 0) {
         dailyAverageKm = kmBetween / daysBetween;
       }
     }
 
-    // 2. Project Current KM today
-    final daysSinceLastService = currentNow.difference(lastServiceDate).inDays;
-    final projectedCurrentKm =
-        lastServiceOdometerKm + (dailyAverageKm * daysSinceLastService).round();
-
-    // 3. Target dates
-    final targetKm = lastServiceOdometerKm + intervalKm;
-    final daysToTargetKm = dailyAverageKm > 0
-        ? ((targetKm - lastServiceOdometerKm) / dailyAverageKm).round()
-        : intervalDays;
-    final projectedKmDueDate = lastServiceDate.add(
-      Duration(days: daysToTargetKm),
-    );
+    final daysSinceLastService = currentNow
+        .difference(lastServiceDate)
+        .inDays
+        .clamp(0, 100000);
+    final projectedCurrentKm = dailyAverageKm == null
+        ? null
+        : lastServiceOdometerKm +
+              (dailyAverageKm * daysSinceLastService).round();
+    final projectedKmDueDate = dailyAverageKm == null
+        ? null
+        : lastServiceDate.add(
+            Duration(days: (intervalKm / dailyAverageKm).ceil()),
+          );
     final calendarDueDate = lastServiceDate.add(Duration(days: intervalDays));
-
-    // Whichever trigger happens first
-    final earliestDueDate = projectedKmDueDate.isBefore(calendarDueDate)
-        ? projectedKmDueDate
-        : calendarDueDate;
-    final isKmFirst = projectedKmDueDate.isBefore(calendarDueDate);
-
-    final daysRemaining = earliestDueDate.difference(currentNow).inDays;
-    final isOverdue = daysRemaining < 0;
-    final isDueSoon = daysRemaining >= 0 && daysRemaining <= 14;
-
-    final triggerReason = isKmFirst
-        ? '$intervalKm KM Interval (Projected daily avg: ${dailyAverageKm.toStringAsFixed(1)} KM/day)'
-        : '$intervalDays Days Calendar Interval';
+    final isKmFirst =
+        projectedKmDueDate != null &&
+        projectedKmDueDate.isBefore(calendarDueDate);
+    final earliestDueDate = isKmFirst ? projectedKmDueDate : calendarDueDate;
+    final isOverdue = currentNow.isAfter(earliestDueDate);
+    final isDueSoon =
+        !isOverdue && earliestDueDate.difference(currentNow).inDays <= 14;
 
     return ServiceReminderResult(
       customerName: customerName,
@@ -157,9 +151,12 @@ class ServiceReminderEngine {
       projectedKmDueDate: projectedKmDueDate,
       calendarDueDate: calendarDueDate,
       projectedCurrentKm: projectedCurrentKm,
+      hasMileageProjection: dailyAverageKm != null,
       isOverdue: isOverdue,
       isDueSoon: isDueSoon,
-      triggerReason: triggerReason,
+      triggerReason: isKmFirst
+          ? '$intervalKm km mileage interval (based on recorded readings)'
+          : '$intervalDays day calendar interval',
     );
   }
 }

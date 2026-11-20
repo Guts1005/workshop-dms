@@ -13,7 +13,7 @@
 - Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket.
 - Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with persisted line-item creation, estimate-sent state, and revision editing. WhatsApp launch requires customer consent; the customer response screen captures per-item approval, decline, or revision requests. A server RPC writes audit snapshots and advances only unanimous approval to work in progress. Database grants and row policies prevent direct lifecycle changes or estimate edits after dispatch.
-- Vehicle history/passport view and GST/reminder calculation helpers exist, but the linked routes and persistence are not complete.
+- Vehicle history/passport view and GST helpers exist. Reminder calculations use recorded odometer history only, but the reminders route and reminder persistence/dispatch are not complete.
 - Thirteen SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, work-progress history, quality sign-off, persisted GST invoices, payment ledger, audited delivery, and inventory. Migrations `202611200001` through `202611200010` are local and have not been applied to Supabase.
 - Work-in-progress page shows approved estimate scope and appends technician progress, parts-delay, and customer-update notes through an audited RPC. It does not change job lifecycle status; QC is a separate sign-off gate.
 - QC screen captures completed-work confirmation, four vehicle checks, and road-test result. A failed check remains in service; only an audited pass advances to `QC_PASSED`.
@@ -49,7 +49,7 @@
 
 - Persist mechanical measurements and service events to the vehicle history/passport.
 - Complete customer-facing passport/QR access with plate privacy and explicit public-data rules.
-- Connect reminder calculations to real odometer/service history and implement the reminders route and consent-aware dispatch.
+- Persist odometer/service history for reminders, implement the reminders route, and add consent-aware dispatch. The current calculation helper does not infer mileage without two valid service readings.
 
 ### P1: Replace the demo outbox with reliable offline sync
 
@@ -82,7 +82,7 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 ## Verification already completed
 
-- Local Flutter verification: all 125 tests passed, `flutter analyze` completed with no issues, and the web release build succeeded after vehicle-history updates.
+- Local Flutter verification: all 130 tests passed, `flutter analyze` completed with no issues, and the web release build succeeded after vehicle-history updates and reminder calculation fixes.
 - `git diff --check` completed cleanly after the latest changes.
 - Live Supabase migration state, live Storage policies, workflow RPCs, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply all thirteen migrations before exercising intake, inspections, customer responses, work progress, QC, invoice, payment, delivery, and inventory against the live project.
 
