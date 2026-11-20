@@ -35,7 +35,7 @@
 ### P1: Finish the core service workflow
 
 - Verify the implemented estimate add/edit/remove, loading/error, sent-lock, per-item customer decision, and work-start lifecycle in an authenticated end-to-end run. The UI and audited response RPC are present; live Supabase verification remains.
-- Add declined and revision-request history to vehicle history so prior customer decisions inform future recommendations. WhatsApp launch is consent-gated, but delivery/read receipts are not tracked.
+- Vehicle history now shows audited declined and revision-request decisions alongside prior estimate item descriptions and customer notes. Verify the joined Supabase history in an authenticated run. WhatsApp launch is consent-gated, but delivery/read receipts are not tracked.
 - Verify payment reconciliation, outstanding balances, owner credit override, and server-enforced delivery in a signed-in test account.
 - Add bill-of-supply support for suppliers who should not issue a GST tax invoice, plus GSTN/IRP e-invoice integration where applicable.
 
@@ -48,7 +48,7 @@
 
 ### P2: Complete vehicle history and reminders
 
-- The internal vehicle history now expands saved mechanical readings, not-applicable values, and inspection notes. Verify the joined Supabase history with a real saved inspection; then complete customer-facing passport/QR access with plate privacy and explicit public-data rules.
+- The internal vehicle history now expands saved mechanical readings, customer estimate decisions, not-applicable values, and inspection notes. Verify the joined Supabase history with a real saved inspection; then complete customer-facing passport/QR access with plate privacy and explicit public-data rules.
 - Persist odometer/service history for reminders, implement the reminders route, and add consent-aware dispatch. The current calculation helper does not infer mileage without two valid service readings.
 
 ### P1: Replace the demo outbox with reliable offline sync
@@ -82,7 +82,7 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 ## Verification already completed
 
-- Local Flutter verification after the condition retry, photo cleanup, intake gauge, phone layout, and vehicle history changes: all 148 tests passed, `flutter analyze` reported no issues, and the release web build succeeded. Focused suites cover lost invoice, payment, refresh, delivery, customer-response, condition-finding retries, uncertain photo cleanup, unobserved fuel levels, bay check-in at phone size, and mechanical-history formatting.
+- Local Flutter verification after the condition retry, photo cleanup, intake gauge, phone layout, and vehicle history changes: all 149 tests passed, `flutter analyze` reported no issues, and the release web build succeeded. Focused suites cover lost invoice, payment, refresh, delivery, customer-response, condition-finding retries, uncertain photo cleanup, unobserved fuel levels, bay check-in at phone size, and vehicle-history formatting and decision labels.
 - Bay check-in rendered without a `RenderFlex` overflow at a 390 x 844 phone viewport. The observed 183-pixel overflow was emitted while DevTools reported a 1 x 1-pixel app constraint; it was not reproduced at a usable mobile viewport. Physical-device and camera/gallery checks remain pending.
 - Live Supabase inspection confirmed all seventeen migrations, all workflow tables with RLS enabled, the private photo bucket, and workshop-scoped Storage policies. The trigger-only approval guard cannot be called through RPC; the authenticated signoff RPC remains callable and anon cannot call it. Supabase's remaining security warnings are for intended authenticated, input-validating RPCs; leaked-password protection remains disabled in project Auth settings.
 - Live synthetic owner-flow QA created a labeled test job card, reached photo check-in, recorded a labeled QA manager override, and opened the condition report. Selecting a labeled synthetic image showed its preview and uploaded successfully, but saving the finding failed because the client sent a timestamp-sized ID to a PostgreSQL 32-bit integer column. Supabase Storage logs confirmed the uploaded object was removed after the row failed; no finding/photo remains saved. The ID generator is now constrained to positive 32-bit values, with retry recovery for uncertain writes. A live retry and condition sign-off remain unverified because the browser connection dropped. The synthetic QA job and override remain in the project; they are test data, not real customer/vehicle records.

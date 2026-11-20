@@ -23,6 +23,13 @@ List<String> formatMechanicalInspectionReadings({
   return '${spec.label}: Not recorded';
 }).toList();
 
+String estimateDecisionLabel(String value) => switch (value) {
+  'APPROVED' => 'Approved',
+  'DECLINED' => 'Declined',
+  'REVISION_REQUESTED' => 'Changes requested',
+  _ => 'Unknown decision',
+};
+
 String vehicleRecordStatusLabel(String value) => switch (value) {
   'DELIVERED' => 'Completed',
   'CANCELLED' => 'Cancelled',
@@ -87,10 +94,26 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
       for (final inspection in inspections)
         inspection['job_card_id'] as String: inspection,
     };
+    final approvalEvents = jobIds.isEmpty
+        ? <Map<String, dynamic>>[]
+        : await client
+              .from('job_item_approval_events')
+              .select(
+                'job_card_id, description, decision, customer_name, note, created_at',
+              )
+              .inFilter('job_card_id', jobIds)
+              .order('created_at', ascending: false);
+    final approvalsByJob = <String, List<Map<String, dynamic>>>{};
+    for (final event in approvalEvents) {
+      approvalsByJob
+          .putIfAbsent(event['job_card_id'] as String, () => [])
+          .add(event);
+    }
     return {
       'vehicle': vehicle,
       'history': history,
       'inspectionByJob': inspectionByJob,
+      'approvalsByJob': approvalsByJob,
     };
   }
 
@@ -125,6 +148,8 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
         final vehicle = data['vehicle'] as Map<String, dynamic>;
         final history = data['history'] as List<dynamic>;
         final inspectionByJob = data['inspectionByJob'] as Map<String, dynamic>;
+        final approvalsByJob =
+            data['approvalsByJob'] as Map<String, List<Map<String, dynamic>>>;
         return ListView(
           padding: const EdgeInsets.all(18),
           children: [
@@ -180,13 +205,15 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
                 final inspection =
                     inspectionByJob[row['id'] as String]
                         as Map<String, dynamic>?;
+                final approvals =
+                    approvalsByJob[row['id'] as String] ?? const [];
                 final title =
                     row['requested_work'] as String? ?? 'Service application';
                 final subtitle =
                     '${date == null ? '' : '${date.day}/${date.month}/${date.year} · '}'
                     '${row['intake_odometer_km']} km · '
                     '${_status(row['status'] as String? ?? '')}';
-                if (inspection == null) {
+                if (inspection == null && approvals.isEmpty) {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
@@ -195,16 +222,18 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
                     ),
                   );
                 }
-                final completedAt = DateTime.tryParse(
-                  inspection['completed_at'] as String? ?? '',
-                )?.toLocal();
+                final completedAt = inspection == null
+                    ? null
+                    : DateTime.tryParse(
+                        inspection['completed_at'] as String? ?? '',
+                      )?.toLocal();
                 final completedLabel = completedAt == null
                     ? ''
                     : '${completedAt.day}/${completedAt.month}/${completedAt.year}';
                 final measurements =
-                    inspection['measurements'] as Map<String, dynamic>? ?? {};
+                    inspection?['measurements'] as Map<String, dynamic>? ?? {};
                 final notApplicable =
-                    (inspection['not_applicable'] as List<dynamic>? ?? [])
+                    (inspection?['not_applicable'] as List<dynamic>? ?? [])
                         .cast<String>();
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -214,35 +243,79 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
                     subtitle: Text(subtitle),
                     childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Inspected by ${inspection['inspector_name']} · ${completedLabel.isEmpty ? 'date unavailable' : completedLabel} · ${inspection['odometer_km']} km',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      for (final reading in formatMechanicalInspectionReadings(
-                        measurements: measurements,
-                        notApplicable: notApplicable,
-                      ))
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 3),
-                            child: Text(reading),
-                          ),
-                        ),
-                      if ((inspection['notes'] as String? ?? '')
-                          .trim()
-                          .isNotEmpty) ...[
-                        const SizedBox(height: 8),
+                      if (inspection != null) ...[
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Notes: ${(inspection['notes'] as String).trim()}',
+                            'Inspected by ${inspection['inspector_name']} · ${completedLabel.isEmpty ? 'date unavailable' : completedLabel} · ${inspection['odometer_km']} km',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        for (final reading
+                            in formatMechanicalInspectionReadings(
+                              measurements: measurements,
+                              notApplicable: notApplicable,
+                            ))
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 3),
+                              child: Text(reading),
+                            ),
+                          ),
+                        if ((inspection['notes'] as String? ?? '')
+                            .trim()
+                            .isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Inspection notes: ${(inspection['notes'] as String).trim()}',
+                            ),
+                          ),
+                        ],
+                      ],
+                      if (approvals.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Customer estimate decisions',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        for (final event in approvals) ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '${estimateDecisionLabel(event['decision'] as String? ?? '')} · ${event['description'] as String? ?? 'Estimate item'}',
+                            ),
+                          ),
+                          if ((event['note'] as String? ?? '')
+                              .trim()
+                              .isNotEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Customer note: ${(event['note'] as String).trim()}',
+                                style: const TextStyle(
+                                  color: AppTokens.textSecondary,
+                                ),
+                              ),
+                            ),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Response by ${event['customer_name']} · ${_formatEventDate(event['created_at'])}',
+                              style: const TextStyle(
+                                color: AppTokens.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                        ],
                       ],
                     ],
                   ),
@@ -255,6 +328,12 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
   );
 
   String _status(String value) => vehicleRecordStatusLabel(value);
+
+  String _formatEventDate(dynamic value) {
+    final date = DateTime.tryParse(value as String? ?? '')?.toLocal();
+    if (date == null) return 'date unavailable';
+    return '${date.day}/${date.month}/${date.year}';
+  }
 }
 
 class _EmptyRecord extends StatelessWidget {

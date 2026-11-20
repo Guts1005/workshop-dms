@@ -32,6 +32,13 @@ void main() {
     expect(readings, contains('Battery resting voltage: 12.6 V'));
   });
 
+  test('service history labels customer estimate decisions', () {
+    expect(estimateDecisionLabel('APPROVED'), 'Approved');
+    expect(estimateDecisionLabel('DECLINED'), 'Declined');
+    expect(estimateDecisionLabel('REVISION_REQUESTED'), 'Changes requested');
+    expect(estimateDecisionLabel('unexpected'), 'Unknown decision');
+  });
+
   test('service record labels cover the current job lifecycle', () {
     expect(vehicleRecordStatusLabel('RECEIVED'), 'Check-in');
     expect(vehicleRecordStatusLabel('INSPECTION_PENDING'), 'Inspection');
