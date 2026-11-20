@@ -7,6 +7,17 @@ import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_card.dart';
 import '../../../data/supabase/workshop_database.dart';
 
+List<Map<String, dynamic>> dashboardAttentionApplications(
+  List<Map<String, dynamic>> applications,
+) => applications
+    .where(
+      (app) =>
+          !const {'DELIVERED', 'CANCELLED'}.contains(app['statusCode']) &&
+          (app['pendingItems'] as List? ?? const []).isNotEmpty,
+    )
+    .take(3)
+    .toList();
+
 /// Production-Grade Home Command Hub (Destination 1 of 3)
 /// Stays short, focused, and operational:
 /// - One clear "Start New Application" primary action button
@@ -205,17 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Quick Registration Plate Search Section
   Widget _buildNeedsAttentionSection(BuildContext context, bool isDesktop) {
-    final attentionItems = _applications
-        .where((app) => (app['pendingItems'] as List).isNotEmpty)
-        .take(3)
-        .map(
-          (app) => {
-            ...app,
-            'actionLabel': 'CONTINUE APPLICATION',
-            'route': '/condition-map',
-          },
-        )
-        .toList();
+    final attentionItems = dashboardAttentionApplications(_applications);
 
     return SharpCard(
       title: 'NEEDS ATTENTION (${attentionItems.length})',
@@ -233,7 +234,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final model = item['model'] as String;
                 final status = item['status'] as String;
                 final remainingHint = item['remainingHint'] as String;
-                final actionLabel = item['actionLabel'] as String;
+                final actionLabel =
+                    item['nextActionLabel'] as String? ??
+                    'CONTINUE APPLICATION';
                 final route = item['route'] as String;
                 final plateBadge = Container(
                   padding: const EdgeInsets.symmetric(

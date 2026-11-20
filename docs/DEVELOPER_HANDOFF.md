@@ -81,7 +81,7 @@ Inventory, technician work-in-progress, and debtors are not complete modules. Th
 
 ## Verification already completed
 
-- Local Flutter verification: all 119 tests passed, `flutter analyze` completed with no issues, and the web release build succeeded after payment and delivery changes.
+- Local Flutter verification: all 121 tests passed, `flutter analyze` completed with no issues, and the web release build succeeded after payment and delivery changes.
 - `git diff --check` completed cleanly after the latest changes.
 - Live Supabase migration state, live Storage policies, workflow RPCs, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply all twelve migrations before exercising intake, inspections, customer responses, work progress, QC, invoice, payment, and delivery against the live project.
 
