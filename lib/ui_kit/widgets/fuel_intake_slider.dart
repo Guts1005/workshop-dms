@@ -76,7 +76,7 @@ class FuelIntakeSlider extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  isConfirmed ? '$percent% TANK' : 'NOT CHECKED',
+                  isConfirmed ? '$percent% TANK' : 'SELECT LEVEL',
                   style: AppTokens.fontMonospace(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w900,

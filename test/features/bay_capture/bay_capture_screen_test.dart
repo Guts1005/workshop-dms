@@ -43,8 +43,8 @@ void main() {
         expect(find.text('NUMBER PLATE CLOSE-UP'), findsWidgets);
         expect(find.text('ODOMETER / CLUSTER'), findsWidgets);
 
-        // Verify Gated Locked Bottom Action
-        expect(find.text('CONTINUE TO CONDITION REPORT'), findsOneWidget);
+        // Mandatory evidence keeps the next action visibly gated.
+        expect(find.text('CAPTURE 6 REQUIRED PHOTOS'), findsOneWidget);
         expect(find.text('MANAGER OVERRIDE'), findsOneWidget);
       },
     );
@@ -91,7 +91,7 @@ void main() {
 
         // Progress counter incremented to 1/6
         expect(find.text('1/6 MANDATORY'), findsOneWidget);
-        expect(find.text('CONTINUE TO CONDITION REPORT'), findsOneWidget);
+        expect(find.text('CAPTURE 5 REQUIRED PHOTOS'), findsOneWidget);
       },
     );
 

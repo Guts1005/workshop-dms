@@ -1378,9 +1378,9 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                           borderRadius: BorderRadius.circular(10.0),
                         ),
                         child: Text(
-                          state.fuelLevelConfirmed
+                          state.fuelLevelObserved
                               ? '${state.fuelLevelPercent}%'
-                              : 'NOT CHECKED',
+                              : 'SELECT LEVEL',
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.w800,
                             fontSize: 12.0,
@@ -1392,19 +1392,6 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                   ),
                   const SizedBox(height: 10.0),
                   _buildDesktopFuelMeter(),
-                  Material(
-                    color: Colors.transparent,
-                    child: CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      value: state.fuelLevelConfirmed,
-                      activeColor: AppTokens.inverse,
-                      title: const Text('Fuel level checked at the vehicle'),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (checked) => controller
-                          .onFuelLevelConfirmationChanged(checked ?? false),
-                    ),
-                  ),
                 ],
               ),
             ),

@@ -1,5 +1,35 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class ApplicationNextAction {
+  const ApplicationNextAction({required this.route, required this.label});
+
+  final String route;
+  final String label;
+}
+
+ApplicationNextAction nextApplicationAction({
+  required int mandatoryPhotoCount,
+  required bool hasManagerOverride,
+  required bool hasConditionReport,
+}) {
+  if (!hasConditionReport && mandatoryPhotoCount < 6 && !hasManagerOverride) {
+    return const ApplicationNextAction(
+      route: '/bay-capture',
+      label: 'Open photo check-in',
+    );
+  }
+  if (!hasConditionReport) {
+    return const ApplicationNextAction(
+      route: '/condition-map',
+      label: 'Open vehicle condition',
+    );
+  }
+  return const ApplicationNextAction(
+    route: '/job-card',
+    label: 'Open job card and estimate',
+  );
+}
+
 class WorkshopDatabase {
   WorkshopDatabase(this.client);
 
@@ -65,14 +95,32 @@ class WorkshopDatabase {
     final customerById = {
       for (final row in customers) row['id'] as String: row,
     };
-    final photosByJob = <String, int>{};
+    const mandatoryShotTypes = {
+      'frontLeft45',
+      'frontRight45',
+      'rearLeft45',
+      'rearRight45',
+      'plateCloseup',
+      'odometerReading',
+    };
+    final photosByJob = <String, Set<String>>{};
     for (final photo in photoRows) {
       final jobId = photo['job_card_id'] as String;
-      photosByJob[jobId] = (photosByJob[jobId] ?? 0) + 1;
+      photosByJob
+          .putIfAbsent(jobId, () => {})
+          .add(photo['shot_type'] as String);
     }
     final reportByJob = {
       for (final row in reportRows) row['job_card_id'] as String: row,
     };
+    final overrideRows = await client
+        .from('manager_overrides')
+        .select('job_card_id')
+        .eq('workshop_id', workshopId)
+        .inFilter('job_card_id', jobIds);
+    final overrideJobIds = overrideRows
+        .map((row) => row['job_card_id'] as String)
+        .toSet();
 
     return rows.map((row) {
       final jobId = row['id'] as String;
@@ -81,11 +129,30 @@ class WorkshopDatabase {
       final customer =
           customerById[row['customer_id'] as String] ??
           const <String, dynamic>{};
-      final photoCount = photosByJob[jobId] ?? 0;
+      final photoCount = (photosByJob[jobId] ?? const <String>{})
+          .intersection(mandatoryShotTypes)
+          .length;
       final hasReport = reportByJob.containsKey(jobId);
+      final hasOverride = overrideJobIds.contains(jobId);
+      final action = nextApplicationAction(
+        mandatoryPhotoCount: photoCount,
+        hasManagerOverride: hasOverride,
+        hasConditionReport: hasReport,
+      );
       final pending = <String>[];
-      if (photoCount < 6) pending.add('${6 - photoCount} check-in photos');
-      if (!hasReport) pending.add('Vehicle condition report');
+      final missingPhotos = 6 - photoCount;
+      if (missingPhotos > 0) {
+        pending.add(
+          hasOverride
+              ? '$missingPhotos mandatory photos waived by manager override'
+              : '$missingPhotos mandatory check-in photos',
+        );
+      }
+      if (!hasReport) {
+        pending.add('Vehicle condition report');
+      } else {
+        pending.add('Prepare estimate and request customer approval');
+      }
       final status = row['status'] as String? ?? 'RECEIVED';
       return <String, dynamic>{
         'id': jobId,
@@ -94,11 +161,11 @@ class WorkshopDatabase {
         'customerName': customer['name'] ?? '',
         'customerPhone': customer['phone'] ?? '',
         'serviceType': row['requested_work'] ?? '',
-        'status': _displayStatus(status),
+        'status': _displayStatus(status, hasConditionReport: hasReport),
         'statusCode': status,
         'remainingHint': pending.isEmpty
-            ? 'No check-in items remaining'
-            : pending.join(' · '),
+            ? 'No immediate action required'
+            : pending.join(' / '),
         'elapsed': _relativeTime(
           DateTime.tryParse(row['created_at'] as String? ?? ''),
         ),
@@ -107,15 +174,17 @@ class WorkshopDatabase {
         'estimatedCompletion': _displayDate(
           row['expected_delivery'] as String?,
         ),
-        'route': '/condition-map',
+        'route': action.route,
+        'nextActionLabel': action.label,
         'completedItems': <String>[
           'Application created',
-          if (photoCount > 0) '$photoCount check-in photos saved',
+          if (photoCount > 0) '$photoCount mandatory check-in photos saved',
           if (hasReport) 'Condition report saved',
         ],
         'pendingItems': pending,
         'photoCount': photoCount,
         'hasConditionReport': hasReport,
+        'hasManagerOverride': hasOverride,
         'vehicleId': row['vehicle_id'],
         'customerId': row['customer_id'],
         'odometer': row['intake_odometer_km'] ?? vehicle['odometer_km'] ?? 0,
@@ -185,9 +254,13 @@ class WorkshopDatabase {
     }).toList();
   }
 
-  static String _displayStatus(String status) => switch (status) {
+  static String _displayStatus(
+    String status, {
+    required bool hasConditionReport,
+  }) => switch (status) {
     'RECEIVED' => 'Check-in started',
-    'INSPECTION_PENDING' => 'Condition report saved',
+    'INSPECTION_PENDING' =>
+      hasConditionReport ? 'Condition report saved' : 'Condition check needed',
     'ESTIMATE_SENT' || 'WAITING_APPROVAL' => 'Waiting for approval',
     'WORK_IN_PROGRESS' => 'Being serviced',
     'READY_FOR_PICKUP' => 'Ready for pickup',

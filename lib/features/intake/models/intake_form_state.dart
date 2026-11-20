@@ -85,7 +85,7 @@ class IntakeFormState {
   final String customerPhone;
   final String odometer;
   final int fuelLevelPercent;
-  final bool fuelLevelConfirmed;
+  final bool fuelLevelObserved;
   final String requestedWork;
   final DateTime? expectedDelivery;
   final bool whatsappConsent;
@@ -114,7 +114,7 @@ class IntakeFormState {
     this.customerPhone = '',
     this.odometer = '',
     this.fuelLevelPercent = 50,
-    this.fuelLevelConfirmed = false,
+    this.fuelLevelObserved = false,
     this.requestedWork = '',
     this.expectedDelivery,
     this.whatsappConsent = false,
@@ -140,7 +140,7 @@ class IntakeFormState {
     String? customerPhone,
     String? odometer,
     int? fuelLevelPercent,
-    bool? fuelLevelConfirmed,
+    bool? fuelLevelObserved,
     String? requestedWork,
     DateTime? expectedDelivery,
     bool? whatsappConsent,
@@ -165,7 +165,7 @@ class IntakeFormState {
       customerPhone: customerPhone ?? this.customerPhone,
       odometer: odometer ?? this.odometer,
       fuelLevelPercent: fuelLevelPercent ?? this.fuelLevelPercent,
-      fuelLevelConfirmed: fuelLevelConfirmed ?? this.fuelLevelConfirmed,
+      fuelLevelObserved: fuelLevelObserved ?? this.fuelLevelObserved,
       requestedWork: requestedWork ?? this.requestedWork,
       expectedDelivery: expectedDelivery ?? this.expectedDelivery,
       whatsappConsent: whatsappConsent ?? this.whatsappConsent,

@@ -18,7 +18,7 @@ void main() {
       expect(state.status, IntakeStatus.idle);
       expect(state.make, isEmpty);
       expect(state.fuelLevelPercent, 50);
-      expect(state.fuelLevelConfirmed, isFalse);
+      expect(state.fuelLevelObserved, isFalse);
       expect(state.whatsappConsent, isFalse);
       expect(state.belongings.jackAndToolKit, isFalse);
       expect(state.belongings.spareTyre, isFalse);
@@ -47,14 +47,11 @@ void main() {
       expect(state.customerName, isEmpty);
     });
 
-    test('Fuel value changes do not confirm the physical intake check', () {
+    test('Adjusting the fuel slider records the observed intake level', () {
       controller.onFuelLevelChanged(25);
 
       expect(controller.state.fuelLevelPercent, 25);
-      expect(controller.state.fuelLevelConfirmed, isFalse);
-
-      controller.onFuelLevelConfirmationChanged(true);
-      expect(controller.state.fuelLevelConfirmed, isTrue);
+      expect(controller.state.fuelLevelObserved, isTrue);
     });
 
     test('Validation fails when required fields are missing', () {
@@ -65,6 +62,10 @@ void main() {
       expect(controller.state.errors.containsKey('name'), isTrue);
       expect(controller.state.errors.containsKey('model'), isTrue);
       expect(controller.state.errors.containsKey('odometer'), isTrue);
+      expect(
+        controller.state.errors['fuelLevel'],
+        'Select the observed fuel level',
+      );
     });
 
     test(
@@ -90,7 +91,6 @@ void main() {
       controller.onBodyTypeChanged(VehicleBodyType.sub4mSuv);
       controller.onOdometerChanged('15420');
       controller.onFuelLevelChanged(75);
-      controller.onFuelLevelConfirmationChanged(true);
       controller.onRequestedWorkChanged(
         '1st Periodic Service, Brake pad inspection',
       );

@@ -680,7 +680,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                   ],
 
                   // Only expose workspaces that are implemented.
-                  if (app['route'] == '/job-card' ||
+                  if (app['route'] == '/bay-capture' ||
+                      app['route'] == '/job-card' ||
                       app['route'] == '/condition-map')
                     ElevatedButton(
                       onPressed: () {
@@ -705,7 +706,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        'OPEN ACTIVE WORKSPACE',
+                        (app['nextActionLabel'] as String? ??
+                                'Open application')
+                            .toUpperCase(),
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w800,
                           fontSize: 16.0,

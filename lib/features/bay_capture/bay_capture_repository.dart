@@ -7,7 +7,7 @@ import '../../data/sync/outbox_sync_service.dart';
 import 'bay_capture_models.dart';
 
 abstract class BayCaptureRepository {
-  Future<void> savePhoto({
+  Future<CapturedCheckInPhoto> savePhoto({
     required String jobCardId,
     required CapturedCheckInPhoto photo,
   });
@@ -47,7 +47,7 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
   LocalBayCaptureRepository({this.outboxSyncService});
 
   @override
-  Future<void> savePhoto({
+  Future<CapturedCheckInPhoto> savePhoto({
     required String jobCardId,
     required CapturedCheckInPhoto photo,
   }) async {
@@ -71,6 +71,7 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
         'fileSizeBytes': photo.fileSizeBytes,
       },
     );
+    return photo;
   }
 
   @override
@@ -126,6 +127,14 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
     final photos = _photosByJobCard[jobCardId] ?? {};
     final hasOverride =
         override != null || _overridesByJobCard.containsKey(jobCardId);
+    final missingShots = CheckInShotType.values
+        .where((shot) => shot.isMandatory && !photos.containsKey(shot))
+        .toList();
+    if (missingShots.isNotEmpty && !hasOverride) {
+      throw StateError(
+        'Capture all mandatory photos or record a manager override before continuing.',
+      );
+    }
 
     if (override != null) {
       await recordManagerOverride(jobCardId: jobCardId, override: override);
@@ -143,10 +152,7 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
         'status': 'INSPECTION_PENDING',
         'bayCaptureCompletedAt': DateTime.now().toIso8601String(),
         'photosCount': photos.length,
-        'missingShots': CheckInShotType.values
-            .where((shot) => shot.isMandatory && !photos.containsKey(shot))
-            .map((shot) => shot.name)
-            .toList(),
+        'missingShots': missingShots.map((shot) => shot.name).toList(),
         'hasOverride': hasOverride,
       },
     );
@@ -169,10 +175,18 @@ class SupabaseBayCaptureRepository implements BayCaptureRepository {
           as String;
 
   String _path(String workshopId, String jobId, CheckInShotType shot) =>
-      '$workshopId/$jobId/${shot.name}.jpg';
+      '$workshopId/$jobId/${shot.name}/${const Uuid().v4()}.jpg';
+
+  Future<String?> _signedUrlOrNull(String path) async {
+    try {
+      return await client.storage.from(_bucket).createSignedUrl(path, 3600);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
-  Future<void> savePhoto({
+  Future<CapturedCheckInPhoto> savePhoto({
     required String jobCardId,
     required CapturedCheckInPhoto photo,
   }) async {
@@ -181,6 +195,13 @@ class SupabaseBayCaptureRepository implements BayCaptureRepository {
       throw StateError('Photo data is empty. Retake the photo and try again.');
     }
     final workshopId = await _workshopId();
+    final existing = await client
+        .from('bay_photos')
+        .select('storage_path')
+        .eq('job_card_id', jobCardId)
+        .eq('shot_type', photo.shotType.name)
+        .maybeSingle();
+    final previousPath = existing?['storage_path'] as String?;
     final path = _path(workshopId, jobCardId, photo.shotType);
     await client.storage
         .from(_bucket)
@@ -189,7 +210,7 @@ class SupabaseBayCaptureRepository implements BayCaptureRepository {
           bytes,
           fileOptions: const FileOptions(
             contentType: 'image/jpeg',
-            upsert: true,
+            upsert: false,
           ),
         );
     try {
@@ -205,6 +226,21 @@ class SupabaseBayCaptureRepository implements BayCaptureRepository {
       await client.storage.from(_bucket).remove([path]);
       rethrow;
     }
+    if (previousPath != null && previousPath != path) {
+      try {
+        await client.storage.from(_bucket).remove([previousPath]);
+      } catch (_) {
+        // The database now references the new object; cleanup can be retried later.
+      }
+    }
+    return CapturedCheckInPhoto(
+      shotType: photo.shotType,
+      localFilePath: path,
+      sha256Hash: photo.sha256Hash,
+      capturedAt: photo.capturedAt,
+      fileSizeBytes: photo.fileSizeBytes,
+      remoteUrl: await _signedUrlOrNull(path),
+    );
   }
 
   @override
@@ -215,20 +251,23 @@ class SupabaseBayCaptureRepository implements BayCaptureRepository {
         .from('bay_photos')
         .select('shot_type, storage_path, sha256_hash, captured_at')
         .eq('job_card_id', jobCardId);
-    return {
-      for (final row in rows)
-        CheckInShotType.values.firstWhere(
-          (shot) => shot.name == row['shot_type'],
-        ): CapturedCheckInPhoto(
-          shotType: CheckInShotType.values.firstWhere(
-            (shot) => shot.name == row['shot_type'],
-          ),
-          localFilePath: row['storage_path'] as String,
-          sha256Hash: row['sha256_hash'] as String,
-          capturedAt: DateTime.parse(row['captured_at'] as String),
-          fileSizeBytes: 0,
-        ),
-    };
+    final photos = <CheckInShotType, CapturedCheckInPhoto>{};
+    for (final row in rows) {
+      final shotType = CheckInShotType.values.firstWhere(
+        (shot) => shot.name == row['shot_type'],
+      );
+      final path = row['storage_path'] as String;
+      final remoteUrl = await _signedUrlOrNull(path);
+      photos[shotType] = CapturedCheckInPhoto(
+        shotType: shotType,
+        localFilePath: path,
+        sha256Hash: row['sha256_hash'] as String,
+        capturedAt: DateTime.parse(row['captured_at'] as String),
+        fileSizeBytes: 0,
+        remoteUrl: remoteUrl,
+      );
+    }
+    return photos;
   }
 
   @override
@@ -295,9 +334,9 @@ class SupabaseBayCaptureRepository implements BayCaptureRepository {
     required String jobCardId,
     ManagerOverrideRecord? override,
   }) async {
-    await client
-        .from('job_cards')
-        .update({'status': 'INSPECTION_PENDING'})
-        .eq('id', jobCardId);
+    await client.rpc(
+      'finalize_bay_check_in',
+      params: {'p_job_card_id': jobCardId},
+    );
   }
 }

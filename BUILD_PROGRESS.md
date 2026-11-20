@@ -9,8 +9,8 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | Area | Status | Notes |
 | --- | --- | --- |
 | App shell and authentication | Implemented | Supabase setup, sign-in, and workshop setup screens exist. |
-| Intake and applications | Implemented; live QA pending | Writes and reads are Supabase-backed. Verify against the intended project. |
-| Bay check-in | Implemented; device QA pending | Required photo capture and private Storage upload are present. |
+| Intake and applications | Implemented; live QA pending | Writes and reads are Supabase-backed. Application cards now route to the next incomplete task. Verify against the intended project. |
+| Bay check-in | Implemented; migration/device QA pending | Six-photo gate is enforced in the client and in migration `202611200001`; manager overrides require a workshop owner. Private Storage upload and retake-safe replacement are present. Apply the migration to the target project before live use. |
 | Condition report | Implemented; live QA pending | Findings, optional photos, review areas, and sign-off exist. |
 | Job card / estimate | Partial | Line item creation exists; approval and lifecycle need validation/completion. |
 | Mechanical inspection | Not implemented | Route is a placeholder. |
@@ -23,7 +23,7 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 
 ## Next work
 
-1. Verify migrations, RLS, auth, photos, and the complete intake-to-condition-report flow against the target Supabase project.
+1. Apply all four migrations, then verify RLS, auth, photos, and the complete intake-to-condition-report flow against the target Supabase project.
 2. Implement mechanical inspection and connect findings to durable vehicle/job history.
 3. Complete estimate approval and workflow state transitions.
 4. Add inventory, QC, GST invoice, payment, and delivery persistence and gates.

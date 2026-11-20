@@ -13,13 +13,13 @@
 - Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket.
 - Job card page with line-item creation and estimate-related UI; validate its complete data and approval path before relying on it.
 - Vehicle history/passport view and GST/reminder calculation helpers exist, but the linked routes and persistence are not complete.
-- SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, and condition-report data with RLS policies.
+- Four SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, and check-in photo-gate behavior. The new check-in gate migration is local and has not been applied to Supabase.
 
 ## Remaining work, in priority order
 
-### P0: Verify the real application path against the target Supabase project
+### P0: Apply and verify the real application path against the target Supabase project
 
-- Confirm the target project has all three migrations applied and that Storage bucket `workshop-checkin` is private with the expected policies.
+- Apply all four migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The latest migration adds the mandatory photo gate and restricts manager overrides to workshop owners.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
 - Exercise signup/sign-in, workshop creation, customer/vehicle creation, application creation, six mandatory check-in photos, optional photo selection, finding save/reload, report sign-off, and application progress from a clean account.
 - Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account.
@@ -81,10 +81,11 @@ Inventory, technician work-in-progress, and debtors are not complete modules. Th
 
 ## Verification already completed
 
-- On 20 November 2026, condition-map controller and screen tests passed: 12 tests, including the finding dialog's optional photo control.
-- Dart analysis passed for the condition-map screen, controller, repository, and related screen test.
-- `flutter build web --release` succeeded after the finding-photo changes.
-- The full test suite, full-project analyzer, live Supabase migration state, live Storage policies, and physical-device camera flow were not re-run/verified for this handoff.
+- On 20 November 2026, the full Flutter test suite passed: 74 tests, including intake validation, photo-gate behavior, application next-action routing, and condition-map photo controls.
+- Full-project `flutter analyze` completed with no issues.
+- `flutter build web --release` succeeded.
+- `git diff --check` completed cleanly.
+- Live Supabase migration state, live Storage policies, and physical-device camera flow were not verified. Apply the fourth migration before exercising the gated check-in flow against the live project.
 
 ## First recommended developer session
 

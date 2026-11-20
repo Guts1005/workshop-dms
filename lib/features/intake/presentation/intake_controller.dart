@@ -29,7 +29,7 @@ class IntakeController extends StateNotifier<IntakeFormState> {
       make: resetVehicle ? '' : state.make,
       model: resetVehicle ? '' : state.model,
       bodyTypeConfirmed: resetVehicle ? false : state.bodyTypeConfirmed,
-      fuelLevelConfirmed: false,
+      fuelLevelObserved: false,
       vin: resetVehicle ? '' : state.vin,
       isExistingVehicle: resetVehicle ? false : state.isExistingVehicle,
       previousHistory: resetVehicle ? const [] : state.previousHistory,
@@ -81,9 +81,8 @@ class IntakeController extends StateNotifier<IntakeFormState> {
           vin: vehicle.vin ?? state.vin,
           bodyType: matchingBodyType,
           bodyTypeConfirmed: true,
-          // Saved fuel is only the last recorded value. Confirm the current
-          // intake reading explicitly for every application.
-          fuelLevelConfirmed: false,
+          // Saved fuel is historical; require a fresh slider adjustment.
+          fuelLevelObserved: false,
           lastRecordedKm: lastKm,
           previousHistory: history,
           fuelLevelPercent: vehicle.fuelLevelPercent,
@@ -197,13 +196,7 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   void onFuelLevelChanged(int percent) {
     state = state.copyWith(
       fuelLevelPercent: percent,
-      errors: Map.from(state.errors)..remove('fuelLevel'),
-    );
-  }
-
-  void onFuelLevelConfirmationChanged(bool confirmed) {
-    state = state.copyWith(
-      fuelLevelConfirmed: confirmed,
+      fuelLevelObserved: true,
       errors: Map.from(state.errors)..remove('fuelLevel'),
     );
   }
@@ -277,8 +270,8 @@ class IntakeController extends StateNotifier<IntakeFormState> {
     if (!state.bodyTypeConfirmed) {
       errors['bodyType'] = 'Select the vehicle body type';
     }
-    if (!state.fuelLevelConfirmed) {
-      errors['fuelLevel'] = 'Confirm the observed fuel level';
+    if (!state.fuelLevelObserved) {
+      errors['fuelLevel'] = 'Select the observed fuel level';
     }
 
     final odoErr = IntakeValidators.validateOdometer(
@@ -341,8 +334,8 @@ class IntakeController extends StateNotifier<IntakeFormState> {
       if (odometerError != null) {
         errors['odometer'] = odometerError;
       }
-      if (!state.fuelLevelConfirmed) {
-        errors['fuelLevel'] = 'Confirm the observed fuel level';
+      if (!state.fuelLevelObserved) {
+        errors['fuelLevel'] = 'Select the observed fuel level';
       }
     } else if (step == 3) {
       if (state.requestedWork.trim().isEmpty) {

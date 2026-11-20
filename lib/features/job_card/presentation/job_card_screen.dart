@@ -108,7 +108,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
       setState(() {
         _regNumber = vehicle['registration_number'] as String;
         _vehicleDetails = '${vehicle['make']} ${vehicle['model']}';
-        _customerDetails = '${customer['name']} Â· ${customer['phone']}';
+        _customerDetails = '${customer['name']} - ${customer['phone']}';
         _odometerDetails = '${job['intake_odometer_km']} km';
         final date = DateTime.tryParse(
           job['expected_delivery'] as String? ?? '',

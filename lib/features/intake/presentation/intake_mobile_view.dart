@@ -746,25 +746,10 @@ class _IntakeMobileViewState extends State<IntakeMobileView> {
         // Fuel Slider (Zero Typing)
         FuelIntakeSlider(
           value: state.fuelLevelPercent / 100.0,
-          isConfirmed: state.fuelLevelConfirmed,
+          isConfirmed: state.fuelLevelObserved,
           onChanged: (val) {
             widget.controller.onFuelLevelChanged((val * 100).round());
           },
-        ),
-        Material(
-          color: Colors.transparent,
-          child: CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: state.fuelLevelConfirmed,
-            activeColor: AppTokens.inverse,
-            title: const Text('Fuel level checked at the vehicle'),
-            controlAffinity: ListTileControlAffinity.leading,
-            onChanged: (checked) {
-              widget.controller.onFuelLevelConfirmationChanged(
-                checked ?? false,
-              );
-            },
-          ),
         ),
         if (state.errors.containsKey('fuelLevel'))
           Text(

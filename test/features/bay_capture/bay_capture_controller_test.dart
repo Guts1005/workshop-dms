@@ -32,7 +32,7 @@ void main() {
       );
     });
 
-    test('Initial state: 0/6 mandatory shots, cannot finalize check-in', () {
+    test('Initial state: 0/6 mandatory shots blocks check-in finalization', () {
       final state = controller.state;
       expect(state.jobCardId, 'JC-TEST-001');
       expect(state.registrationNumber, 'RJ27CA1024');
@@ -40,7 +40,7 @@ void main() {
       expect(state.totalMandatoryCount, 6);
       expect(state.isAllMandatoryCaptured, isFalse);
       expect(state.isOverrideActive, isFalse);
-      expect(state.canFinalizeCheckIn, isTrue);
+      expect(state.canFinalizeCheckIn, isFalse);
       expect(state.missingMandatoryShots.length, 6);
       expect(state.activeShotType, CheckInShotType.frontLeft45);
     });
@@ -163,12 +163,16 @@ void main() {
         fileSizeBytes: 10,
       );
 
-      expect(controller.state.canFinalizeCheckIn, isTrue);
+      expect(controller.state.canFinalizeCheckIn, isFalse);
 
       final finalized = await controller.finalizeCheckIn();
-      expect(finalized, isTrue);
-      expect(controller.state.status, BayCaptureStatus.completed);
-      expect(repository.getJobCardStatus('JC-TEST-001'), 'INSPECTION_PENDING');
+      expect(finalized, isFalse);
+      expect(controller.state.status, BayCaptureStatus.idle);
+      expect(
+        controller.state.errorMessage,
+        contains('Capture all mandatory photos'),
+      );
+      expect(repository.getJobCardStatus('JC-TEST-001'), isNull);
     });
 
     test('Manager Override: rejects invalid input (<2 char manager, <5 char reason)', () async {
@@ -191,7 +195,7 @@ void main() {
 
     test('Manager Override: unlocks finalization and records audit log with missing shots', () async {
       // 0 shots captured
-      expect(controller.state.canFinalizeCheckIn, isTrue);
+      expect(controller.state.canFinalizeCheckIn, isFalse);
 
       final ok = await controller.applyManagerOverride(
         authorizedBy: 'Vikram Joshi (Floor Manager)',
@@ -234,7 +238,7 @@ void main() {
 
       controller.removeManagerOverride();
       expect(controller.state.isOverrideActive, isFalse);
-      expect(controller.state.canFinalizeCheckIn, isTrue);
+      expect(controller.state.canFinalizeCheckIn, isFalse);
     });
   });
 }

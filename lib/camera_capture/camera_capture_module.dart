@@ -304,7 +304,8 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
     if (_stagedPath != null && _stagedHash != null && _stagedBytes != null) {
       final path = _stagedPath!;
       final hash = _stagedHash!;
-      final bytesLen = _stagedBytes!.length;
+      final bytes = _stagedBytes!;
+      final bytesLen = bytes.length;
 
       // Reset staged bytes BEFORE notifying parent to prevent holding onto old photo
       setState(() {
@@ -315,7 +316,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
         _isFramingLocked = false;
       });
 
-      widget.onPhotoConfirmed(path, hash, bytesLen, _stagedBytes!);
+      widget.onPhotoConfirmed(path, hash, bytesLen, bytes);
     }
   }
 

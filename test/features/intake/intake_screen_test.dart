@@ -138,9 +138,6 @@ void main() {
         container
             .read(intakeControllerProvider.notifier)
             .onFuelLevelChanged(50);
-        container
-            .read(intakeControllerProvider.notifier)
-            .onFuelLevelConfirmationChanged(true);
 
         // Pick expected delivery via controller
         container
@@ -149,6 +146,8 @@ void main() {
               DateTime.now().add(const Duration(days: 2)),
             );
         await tester.pumpAndSettle();
+
+        expect(find.text('Fuel level checked at the vehicle'), findsNothing);
 
         // Submit
         final submitBtn = find.text(

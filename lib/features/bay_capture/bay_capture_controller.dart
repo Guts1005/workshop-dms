@@ -75,12 +75,15 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
         bytes: bytes,
       );
 
-      await repository.savePhoto(jobCardId: state.jobCardId, photo: photo);
+      final savedPhoto = await repository.savePhoto(
+        jobCardId: state.jobCardId,
+        photo: photo,
+      );
 
       final updatedMap = Map<CheckInShotType, CapturedCheckInPhoto>.from(
         state.capturedPhotos,
       );
-      updatedMap[shotType] = photo;
+      updatedMap[shotType] = savedPhoto;
 
       // Determine next uncaptured mandatory shot (if any)
       CheckInShotType nextShot = shotType;
@@ -186,6 +189,14 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
   }
 
   Future<bool> finalizeCheckIn() async {
+    if (!state.canFinalizeCheckIn) {
+      state = state.copyWith(
+        errorMessage: state.status == BayCaptureStatus.saving
+            ? 'Check-in is already being saved.'
+            : 'Capture all mandatory photos or record a manager override before continuing.',
+      );
+      return false;
+    }
     state = state.copyWith(status: BayCaptureStatus.saving, clearError: true);
 
     try {

@@ -58,6 +58,7 @@ class CapturedCheckInPhoto {
   final DateTime capturedAt;
   final int fileSizeBytes;
   final Uint8List? bytes;
+  final String? remoteUrl;
 
   const CapturedCheckInPhoto({
     required this.shotType,
@@ -66,6 +67,7 @@ class CapturedCheckInPhoto {
     required this.capturedAt,
     required this.fileSizeBytes,
     this.bytes,
+    this.remoteUrl,
   });
 
   static String computeHash(List<int> bytes) {
@@ -163,9 +165,11 @@ class BayCaptureState {
 
   bool get isOverrideActive => managerOverride != null;
 
-  /// Let the advisor continue when a camera or vehicle access is unavailable.
-  /// Any missing shots stay visible as incomplete follow-up work.
-  bool get canFinalizeCheckIn => true;
+  /// Mandatory evidence is required unless a manager records an override.
+  bool get canFinalizeCheckIn =>
+      (isAllMandatoryCaptured || isOverrideActive) &&
+      status != BayCaptureStatus.saving &&
+      status != BayCaptureStatus.completed;
 
   List<CheckInShotType> get missingMandatoryShots {
     return CheckInShotType.values

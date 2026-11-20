@@ -766,84 +766,110 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     return Container(
       color: AppTokens.raised,
       padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: const BoxDecoration(
-              color: AppTokens.surfaceSubtle,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check_circle,
-              color: AppTokens.green,
-              size: 48.0,
-            ),
-          ),
-          const SizedBox(height: 14.0),
-          Text(
-            '${active.title} RECORDED',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: AppTokens.inverse,
-              fontWeight: FontWeight.w900,
-              fontSize: 16.0,
-            ),
-          ),
-          const SizedBox(height: 10.0),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14.0,
-              vertical: 10.0,
-            ),
-            decoration: BoxDecoration(
-              color: AppTokens.surface,
-              borderRadius: AppTokens.cardRadius,
-              border: Border.all(color: AppTokens.borderLight),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'TAMPER-PROOF SHA-256 HASH:',
-                  style: GoogleFonts.inter(
-                    fontSize: 10.0,
-                    fontWeight: FontWeight.w700,
-                    color: AppTokens.textSecondary,
-                    letterSpacing: 0.3,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (captured.bytes != null || captured.remoteUrl != null) ...[
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 360,
+                  maxHeight: 150,
+                ),
+                child: AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: ClipRRect(
+                    borderRadius: AppTokens.cardRadius,
+                    child: captured.bytes != null
+                        ? Image.memory(captured.bytes!, fit: BoxFit.contain)
+                        : Image.network(
+                            captured.remoteUrl!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) => const Center(
+                              child: Text('Saved photo preview unavailable'),
+                            ),
+                          ),
                   ),
                 ),
-                const SizedBox(height: 4.0),
-                Text(
-                  captured.sha256Hash,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 10.0,
-                    color: AppTokens.green,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6.0),
-                Text(
-                  'TIMESTAMP: ${captured.capturedAt.toLocal()} â€¢ SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
-                  style: GoogleFonts.inter(
-                    fontSize: 10.5,
-                    color: AppTokens.textSecondary,
-                  ),
-                ),
-              ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: const BoxDecoration(
+                color: AppTokens.surfaceSubtle,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: AppTokens.green,
+                size: 48.0,
+              ),
             ),
-          ),
-          const SizedBox(height: 20.0),
-          SharpButton(
-            label: 'RETAKE THIS SHOT',
-            icon: Icons.refresh,
-            variant: SharpButtonVariant.secondary,
-            onPressed: () => controller.retakeShot(active),
-            width: 220.0,
-            height: 46.0,
-          ),
-        ],
+            const SizedBox(height: 14.0),
+            Text(
+              '${active.title} RECORDED',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: AppTokens.inverse,
+                fontWeight: FontWeight.w900,
+                fontSize: 16.0,
+              ),
+            ),
+            const SizedBox(height: 10.0),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14.0,
+                vertical: 10.0,
+              ),
+              decoration: BoxDecoration(
+                color: AppTokens.surface,
+                borderRadius: AppTokens.cardRadius,
+                border: Border.all(color: AppTokens.borderLight),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'TAMPER-PROOF SHA-256 HASH:',
+                    style: GoogleFonts.inter(
+                      fontSize: 10.0,
+                      fontWeight: FontWeight.w700,
+                      color: AppTokens.textSecondary,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4.0),
+                  Text(
+                    captured.sha256Hash,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 10.0,
+                      color: AppTokens.green,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6.0),
+                  Text(
+                    'TIMESTAMP: ${captured.capturedAt.toLocal()} â€¢ SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
+                    style: GoogleFonts.inter(
+                      fontSize: 10.5,
+                      color: AppTokens.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            SharpButton(
+              label: 'RETAKE THIS SHOT',
+              icon: Icons.refresh,
+              variant: SharpButtonVariant.secondary,
+              onPressed: () => controller.retakeShot(active),
+              width: 220.0,
+              height: 46.0,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -985,6 +1011,11 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     BayCaptureController controller,
   ) {
     final isNarrow = MediaQuery.of(context).size.width < 600.0;
+    final gateLabel = state.status == BayCaptureStatus.saving
+        ? 'Saving check-in...'
+        : state.canFinalizeCheckIn
+        ? 'Continue to condition report'
+        : 'Capture ${state.missingMandatoryShots.length} required photos';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -1007,9 +1038,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SharpButton(
-                  label: state.canFinalizeCheckIn
-                      ? 'Continue to condition report'
-                      : 'Continue to condition report',
+                  label: gateLabel,
                   icon: Icons.arrow_forward,
                   height: 48.0,
                   onPressed: state.canFinalizeCheckIn
@@ -1069,9 +1098,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 // Finalize Check-in Gate Button
                 Expanded(
                   child: SharpButton(
-                    label: state.canFinalizeCheckIn
-                        ? 'Continue to condition report'
-                        : 'Continue to condition report',
+                    label: gateLabel,
                     icon: Icons.arrow_forward,
                     height: 46.0,
                     onPressed: state.canFinalizeCheckIn
