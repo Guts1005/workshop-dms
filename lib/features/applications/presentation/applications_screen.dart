@@ -77,13 +77,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 
   static StatusType _statusType(String status) => switch (status) {
     'READY_FOR_PICKUP' || 'DELIVERED' => StatusType.ok,
-    'CANCELLED' => StatusType.critical,
+    'CANCELLED' || 'ESTIMATE_REVISION_REQUIRED' => StatusType.critical,
     _ => StatusType.dueSoon,
   };
 
   static Color _statusColor(String status) => switch (status) {
     'READY_FOR_PICKUP' || 'DELIVERED' => AppTokens.green,
-    'CANCELLED' => AppTokens.redOrange,
+    'CANCELLED' || 'ESTIMATE_REVISION_REQUIRED' => AppTokens.redOrange,
     _ => AppTokens.blue,
   };
 
@@ -127,7 +127,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
         return app['status'] == 'Being serviced';
       }
       if (_selectedFilter == 'WAITING_APPROVAL') {
-        return app['status'] == 'Waiting for approval';
+        return app['status'] == 'Waiting for approval' ||
+            app['status'] == 'Estimate changes requested';
       }
       if (_selectedFilter == 'READY_FOR_PICKUP') {
         return app['status'] == 'Ready for pickup';
@@ -682,6 +683,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                   // Only expose workspaces that are implemented.
                   if (app['route'] == '/bay-capture' ||
                       app['route'] == '/mechanical-inspection' ||
+                      app['route'] == '/whatsapp-dispatch' ||
                       app['route'] == '/job-card' ||
                       app['route'] == '/condition-map')
                     ElevatedButton(

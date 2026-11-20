@@ -6,6 +6,7 @@ void main() {
   group('nextApplicationAction', () {
     test('sends incomplete check-in to photo capture', () {
       final action = nextApplicationAction(
+        jobStatus: 'RECEIVED',
         mandatoryPhotoCount: 3,
         hasManagerOverride: false,
         hasConditionReport: false,
@@ -18,6 +19,7 @@ void main() {
 
     test('opens condition report once mandatory photo gate is satisfied', () {
       final action = nextApplicationAction(
+        jobStatus: 'RECEIVED',
         mandatoryPhotoCount: 6,
         hasManagerOverride: false,
         hasConditionReport: false,
@@ -29,6 +31,7 @@ void main() {
 
     test('manager override allows condition report with missing photos', () {
       final action = nextApplicationAction(
+        jobStatus: 'RECEIVED',
         mandatoryPhotoCount: 2,
         hasManagerOverride: true,
         hasConditionReport: false,
@@ -40,6 +43,7 @@ void main() {
 
     test('opens inspection after condition report is signed', () {
       final action = nextApplicationAction(
+        jobStatus: 'INSPECTION_PENDING',
         mandatoryPhotoCount: 6,
         hasManagerOverride: false,
         hasConditionReport: true,
@@ -52,6 +56,7 @@ void main() {
 
     test('opens estimate after inspection is saved', () {
       final action = nextApplicationAction(
+        jobStatus: 'INSPECTION_PENDING',
         mandatoryPhotoCount: 6,
         hasManagerOverride: false,
         hasConditionReport: true,
@@ -60,6 +65,32 @@ void main() {
 
       expect(action.route, '/job-card');
       expect(action.label, 'Open job card and estimate');
+    });
+
+    test('routes sent estimates to customer response entry', () {
+      final action = nextApplicationAction(
+        jobStatus: 'ESTIMATE_SENT',
+        mandatoryPhotoCount: 6,
+        hasManagerOverride: false,
+        hasConditionReport: true,
+        hasMechanicalInspection: true,
+      );
+
+      expect(action.route, '/whatsapp-dispatch');
+      expect(action.label, 'Record customer response');
+    });
+
+    test('routes declined estimates to revision', () {
+      final action = nextApplicationAction(
+        jobStatus: 'ESTIMATE_REVISION_REQUIRED',
+        mandatoryPhotoCount: 6,
+        hasManagerOverride: false,
+        hasConditionReport: true,
+        hasMechanicalInspection: true,
+      );
+
+      expect(action.route, '/job-card');
+      expect(action.label, 'Revise estimate');
     });
   });
 

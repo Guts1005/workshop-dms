@@ -71,7 +71,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
       final job = await client
           .from('job_cards')
           .select(
-            'id, vehicle_id, customer_id, expected_delivery, intake_odometer_km, status, customer_approved_at, estimate_sent_at',
+            'id, vehicle_id, customer_id, expected_delivery, intake_odometer_km, status, customer_approved_at',
           )
           .eq('id', _jobCardId)
           .single();
@@ -122,7 +122,6 @@ class _JobCardScreenState extends State<JobCardScreen> {
         _isApproved = job['customer_approved_at'] != null;
         _jobStatus = job['status'] as String? ?? 'RECEIVED';
         _isSent =
-            job['estimate_sent_at'] != null ||
             _jobStatus == 'ESTIMATE_SENT' ||
             _jobStatus == 'WAITING_APPROVAL' ||
             _isApproved;
@@ -144,24 +143,37 @@ class _JobCardScreenState extends State<JobCardScreen> {
     }
   }
 
-  Future<void> _addLineItem(LineItemType type) async {
+  Future<void> _addLineItem(
+    LineItemType type, {
+    InvoiceLineItem? existing,
+  }) async {
     if (isEstimateLocked(
       jobStatus: _jobStatus,
       customerApproved: _isApproved,
     )) {
       return;
     }
-    final description = TextEditingController();
-    final code = TextEditingController(
-      text: type == LineItemType.labour ? '998714' : '',
+    final description = TextEditingController(
+      text: existing?.description ?? '',
     );
-    final quantity = TextEditingController(text: '1');
-    final rate = TextEditingController();
+    final code = TextEditingController(
+      text: existing?.code ?? (type == LineItemType.labour ? '998714' : ''),
+    );
+    final quantity = TextEditingController(
+      text: existing?.quantity.toString() ?? '1',
+    );
+    final rate = TextEditingController(
+      text: existing == null
+          ? ''
+          : (existing.unitRatePaise / 100).toStringAsFixed(2),
+    );
     final formKey = GlobalKey<FormState>();
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(type == LineItemType.labour ? 'Add labour' : 'Add part'),
+        title: Text(
+          '${existing == null ? 'Add' : 'Edit'} ${type == LineItemType.labour ? 'labour' : 'part'}',
+        ),
         content: Form(
           key: formKey,
           child: Column(
@@ -218,29 +230,90 @@ class _JobCardScreenState extends State<JobCardScreen> {
                 Navigator.pop(dialogContext, true);
               }
             },
-            child: const Text('Add'),
+            child: Text(existing == null ? 'Add' : 'Save changes'),
           ),
         ],
       ),
     );
+    final itemDescription = description.text.trim();
+    final itemCode = code.text.trim();
+    final itemQuantity = int.tryParse(quantity.text.trim());
+    final itemRate = double.tryParse(rate.text.trim());
+    description.dispose();
+    code.dispose();
+    quantity.dispose();
+    rate.dispose();
     if (save != true || !mounted) return;
     try {
-      final rupees = double.parse(rate.text.trim());
-      await Supabase.instance.client.from('job_line_items').insert({
-        'workshop_id': await _workshopId(),
-        'job_card_id': _jobCardId,
-        'item_type': type == LineItemType.labour ? 'labour' : 'part',
-        'description': description.text.trim(),
-        'code': code.text.trim(),
-        'quantity': int.parse(quantity.text),
-        'unit_rate_paise': (rupees * 100).round(),
+      final payload = {
+        'description': itemDescription,
+        'code': itemCode,
+        'quantity': itemQuantity,
+        'unit_rate_paise': (itemRate! * 100).round(),
         'gst_rate_percent': 18,
-      });
+      };
+      if (existing == null) {
+        await Supabase.instance.client.from('job_line_items').insert({
+          'workshop_id': await _workshopId(),
+          'job_card_id': _jobCardId,
+          'item_type': type == LineItemType.labour ? 'labour' : 'part',
+          ...payload,
+        });
+      } else {
+        await Supabase.instance.client
+            .from('job_line_items')
+            .update(payload)
+            .eq('id', existing.id)
+            .eq('job_card_id', _jobCardId);
+      }
       await _loadJobCard();
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not save this estimate item: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteLineItem(InvoiceLineItem item) async {
+    if (isEstimateLocked(
+      jobStatus: _jobStatus,
+      customerApproved: _isApproved,
+    )) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove estimate item?'),
+        content: Text(
+          'Remove “${item.description}” from the revised estimate?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep item'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await Supabase.instance.client
+          .from('job_line_items')
+          .delete()
+          .eq('id', item.id)
+          .eq('job_card_id', _jobCardId);
+      await _loadJobCard();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not remove estimate item: $error')),
         );
       }
     }
@@ -280,22 +353,10 @@ class _JobCardScreenState extends State<JobCardScreen> {
     if (confirmed != true || !mounted) return;
     try {
       final client = Supabase.instance.client;
-      final now = DateTime.now().toUtc().toIso8601String();
-      final updatedRows = await client
-          .from('job_cards')
-          .update({
-            'estimate_sent_at': now,
-            'estimate_sent_by':
-                client.auth.currentUser?.email ?? 'Workshop user',
-            'status': 'ESTIMATE_SENT',
-            'updated_at': now,
-          })
-          .eq('id', _jobCardId)
-          .eq('status', 'INSPECTION_PENDING')
-          .select('id');
-      if (updatedRows.isEmpty) {
-        throw StateError('This estimate can no longer be marked as sent.');
-      }
+      await client.rpc(
+        'mark_estimate_sent',
+        params: {'p_job_card_id': _jobCardId},
+      );
       if (mounted) {
         setState(() {
           _isSent = true;
@@ -617,6 +678,10 @@ class _JobCardScreenState extends State<JobCardScreen> {
           ..._labourItems.map((item) {
             final amt = (item.taxableAmountPaise / 100).toStringAsFixed(2);
             final gstAmt = (item.gstAmountPaise / 100).toStringAsFixed(2);
+            final canEdit = !isEstimateLocked(
+              jobStatus: _jobStatus,
+              customerApproved: _isApproved,
+            );
             return Container(
               margin: const EdgeInsets.only(bottom: 8.0),
               padding: const EdgeInsets.all(12.0),
@@ -664,13 +729,42 @@ class _JobCardScreenState extends State<JobCardScreen> {
                     ),
                   ),
                   const SizedBox(width: 10.0),
-                  Text(
-                    'â‚¹$amt',
-                    style: GoogleFonts.inter(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w800,
-                      color: AppTokens.textPrimary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '₹$amt',
+                            style: GoogleFonts.inter(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w800,
+                              color: AppTokens.textPrimary,
+                            ),
+                          ),
+                          if (canEdit)
+                            IconButton(
+                              tooltip: 'Remove ${item.description}',
+                              onPressed: () => _deleteLineItem(item),
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                            ),
+                        ],
+                      ),
+                      if (canEdit) ...[
+                        IconButton(
+                          tooltip: 'Edit ${item.description}',
+                          onPressed: () =>
+                              _addLineItem(LineItemType.labour, existing: item),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                        ),
+                        IconButton(
+                          tooltip: 'Remove ${item.description}',
+                          onPressed: () => _deleteLineItem(item),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -708,6 +802,10 @@ class _JobCardScreenState extends State<JobCardScreen> {
           ..._partsItems.map((item) {
             final amt = (item.taxableAmountPaise / 100).toStringAsFixed(2);
             final gstAmt = (item.gstAmountPaise / 100).toStringAsFixed(2);
+            final canEdit = !isEstimateLocked(
+              jobStatus: _jobStatus,
+              customerApproved: _isApproved,
+            );
             return Container(
               margin: const EdgeInsets.only(bottom: 8.0),
               padding: const EdgeInsets.all(12.0),
@@ -755,13 +853,42 @@ class _JobCardScreenState extends State<JobCardScreen> {
                     ),
                   ),
                   const SizedBox(width: 10.0),
-                  Text(
-                    'â‚¹$amt',
-                    style: GoogleFonts.inter(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w800,
-                      color: AppTokens.textPrimary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '₹$amt',
+                            style: GoogleFonts.inter(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w800,
+                              color: AppTokens.textPrimary,
+                            ),
+                          ),
+                          if (canEdit)
+                            IconButton(
+                              tooltip: 'Remove ${item.description}',
+                              onPressed: () => _deleteLineItem(item),
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                            ),
+                        ],
+                      ),
+                      if (canEdit) ...[
+                        IconButton(
+                          tooltip: 'Edit ${item.description}',
+                          onPressed: () =>
+                              _addLineItem(LineItemType.part, existing: item),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                        ),
+                        IconButton(
+                          tooltip: 'Remove ${item.description}',
+                          onPressed: () => _deleteLineItem(item),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

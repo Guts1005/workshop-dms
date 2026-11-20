@@ -11,6 +11,7 @@ import '../features/intake/presentation/intake_screen.dart';
 import '../features/bay_capture/bay_capture_screen.dart';
 import '../features/condition_map/condition_map_screen.dart';
 import '../features/mechanical_inspection/mechanical_inspection_screen.dart';
+import '../features/whatsapp_dispatch/whatsapp_dispatch_screen.dart';
 import '../features/job_card/presentation/job_card_screen.dart';
 import 'placeholder_screen.dart';
 
@@ -298,11 +299,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/whatsapp-dispatch',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PhasePlaceholderScreen(
-        pageNumber: 6,
-        title: 'Customer Approval Dispatch',
-        description: 'Approve, decline, or revise line items. Declined items persist to vehicle history for future recommendations.',
-      ),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return WhatsAppDispatchScreen(
+          jobCardId: extra?['jobCardId'] as String?,
+        );
+      },
     ),
 
     // QC & Road-Test Sign-off

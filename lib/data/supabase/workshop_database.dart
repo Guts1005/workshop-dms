@@ -8,6 +8,7 @@ class ApplicationNextAction {
 }
 
 ApplicationNextAction nextApplicationAction({
+  required String jobStatus,
   required int mandatoryPhotoCount,
   required bool hasManagerOverride,
   required bool hasConditionReport,
@@ -29,6 +30,18 @@ ApplicationNextAction nextApplicationAction({
     return const ApplicationNextAction(
       route: '/mechanical-inspection',
       label: 'Record mechanical inspection',
+    );
+  }
+  if (jobStatus == 'ESTIMATE_SENT' || jobStatus == 'WAITING_APPROVAL') {
+    return const ApplicationNextAction(
+      route: '/whatsapp-dispatch',
+      label: 'Record customer response',
+    );
+  }
+  if (jobStatus == 'ESTIMATE_REVISION_REQUIRED') {
+    return const ApplicationNextAction(
+      route: '/job-card',
+      label: 'Revise estimate',
     );
   }
   return const ApplicationNextAction(
@@ -151,6 +164,7 @@ class WorkshopDatabase {
       final hasOverride = overrideJobIds.contains(jobId);
       final hasMechanicalInspection = inspectionJobIds.contains(jobId);
       final action = nextApplicationAction(
+        jobStatus: row['status'] as String? ?? 'RECEIVED',
         mandatoryPhotoCount: photoCount,
         hasManagerOverride: hasOverride,
         hasConditionReport: hasReport,
@@ -165,14 +179,18 @@ class WorkshopDatabase {
               : '$missingPhotos mandatory check-in photos',
         );
       }
-      if (!hasReport) {
+      final status = row['status'] as String? ?? 'RECEIVED';
+      if (status == 'ESTIMATE_SENT' || status == 'WAITING_APPROVAL') {
+        pending.add('Record customer response');
+      } else if (status == 'ESTIMATE_REVISION_REQUIRED') {
+        pending.add('Revise estimate items');
+      } else if (!hasReport) {
         pending.add('Vehicle condition report');
       } else if (!hasMechanicalInspection) {
         pending.add('Mechanical inspection');
       } else {
         pending.add('Prepare estimate and request customer approval');
       }
-      final status = row['status'] as String? ?? 'RECEIVED';
       return <String, dynamic>{
         'id': jobId,
         'plate': vehicle['registration_number'] ?? '',
@@ -283,6 +301,7 @@ class WorkshopDatabase {
     'INSPECTION_PENDING' =>
       hasConditionReport ? 'Condition report saved' : 'Condition check needed',
     'ESTIMATE_SENT' || 'WAITING_APPROVAL' => 'Waiting for approval',
+    'ESTIMATE_REVISION_REQUIRED' => 'Estimate changes requested',
     'WORK_IN_PROGRESS' => 'Being serviced',
     'READY_FOR_PICKUP' => 'Ready for pickup',
     'DELIVERED' => 'Completed',
