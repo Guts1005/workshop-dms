@@ -118,6 +118,19 @@ void main() {
       expect(action.route, '/gst-invoicing');
       expect(action.label, 'Prepare invoice');
     });
+
+    test('routes issued invoices to payment and delivery gate', () {
+      final action = nextApplicationAction(
+        jobStatus: 'READY_FOR_PICKUP',
+        mandatoryPhotoCount: 6,
+        hasManagerOverride: false,
+        hasConditionReport: true,
+        hasMechanicalInspection: true,
+      );
+
+      expect(action.route, '/payment-gate');
+      expect(action.label, 'Record payment and delivery');
+    });
   });
 
   group('validateMechanicalInspection', () {

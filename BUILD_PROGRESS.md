@@ -18,15 +18,16 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | Work in progress | Initial workflow implemented; migration/live QA pending | Shows approved estimate scope and an immutable, audited log for technician notes, parts delays, and customer updates. Migration `202611200006` adds the update table and RPC. QC/road test is still the next workflow gate. |
 | Inventory | Not implemented | No persisted stock or supplier records. |
 | QC / road test | Initial workflow implemented; migration/live QA pending | Requires repair-complete confirmation, four explicit checks, and a road-test result or reason. Failed QC keeps work in progress; audited pass moves to `QC_PASSED`. Apply migration `202611200007` before live use. |
-| GST invoice / payment / delivery | Not implemented | Routes are placeholders; corresponding durable tables and gates are missing. |
+| GST invoice | Initial workflow implemented; migration/live QA pending | For GST-registered suppliers, uses explicitly entered approved-estimate rates, creates an immutable snapshot and FY serial in a database RPC, computes state-based tax split, and prints a PDF. Bill-of-supply and IRN submission are not implemented; rate and place-of-supply classification need accountant verification. Apply migration `202611200008` before live use. |
+| Payment / delivery | Not implemented | Route placeholder; payment records, balance reconciliation, owner credit override, and delivery gate are missing. |
 | Vehicle passport / reminders | Partial | Internal history and calculation helpers exist; public QR/passport and reminders are incomplete. |
 | Offline-first sync | Not implemented | Current outbox service is in-memory and is not wired as a durable background worker. |
 
 ## Next work
 
-1. Apply all ten migrations, then verify RLS, auth, photos, and the complete intake-to-workflow flow against the target Supabase project.
-2. Add customer decision history to vehicle history and persisted GST invoice, payment, and delivery gates.
-3. Add inventory persistence and stock controls.
+1. Apply all eleven migrations, then verify RLS, auth, photos, invoice numbering, tax totals, and the complete intake-to-workflow flow against the target Supabase project.
+2. Implement payment reconciliation, credit override, and server-enforced delivery confirmation.
+3. Add inventory persistence and stock controls; add customer decision history to vehicle history.
 4. Complete passport and service reminders, then durable offline sync.
 5. Add CI and finish platform, security, accessibility, and release QA.
 

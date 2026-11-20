@@ -16,10 +16,10 @@ class InvoiceLineItem {
   final String description;
   final String
   code; // SAC 998714 for motor vehicle repair labour; HSN code for parts
-  final int quantity; // Units (or hours for labour)
+  final num quantity; // Database quantities support up to two decimal places.
   final int unitRatePaise; // 1 INR = 100 paise
   final int discountPaise;
-  final int gstRatePercent; // 18% standard uniform rate (9% CGST + 9% SGST, effective 22 Sept 2025; CA verification required)
+  final num gstRatePercent; // Use the approved rate for this specific supply.
 
   const InvoiceLineItem({
     required this.id,
@@ -29,11 +29,11 @@ class InvoiceLineItem {
     required this.quantity,
     required this.unitRatePaise,
     this.discountPaise = 0,
-    this.gstRatePercent = 18,
+    required this.gstRatePercent,
   });
 
   int get taxableAmountPaise {
-    final subtotal = (unitRatePaise * quantity) - discountPaise;
+    final subtotal = (unitRatePaise * quantity).round() - discountPaise;
     return subtotal > 0 ? subtotal : 0;
   }
 
@@ -85,7 +85,7 @@ class CreditOverride {
 }
 
 class AutomotiveGstEngine {
-  /// Computes GST breakdown adhering strictly to Indian Automotive tax slabs
+  /// Calculates tax from each approved line rate and the selected supply type.
   static InvoiceTaxSummary calculate({
     required List<InvoiceLineItem> items,
     required bool isIntraState,
@@ -93,7 +93,9 @@ class AutomotiveGstEngine {
   }) {
     int taxableLabour = 0;
     int taxableParts = 0;
-    int totalGst = 0;
+    int cgst = 0;
+    int sgst = 0;
+    int igst = 0;
 
     for (final item in items) {
       if (item.type == LineItemType.labour) {
@@ -101,23 +103,20 @@ class AutomotiveGstEngine {
       } else {
         taxableParts += item.taxableAmountPaise;
       }
-      totalGst += item.gstAmountPaise;
+      final itemTax = item.gstAmountPaise;
+      if (isIntraState) {
+        final itemCgst = (itemTax / 2).round();
+        cgst += itemCgst;
+        sgst += itemTax - itemCgst;
+      } else {
+        igst += itemTax;
+      }
     }
 
     final totalTaxable = taxableLabour + taxableParts;
+    final totalGst = cgst + sgst + igst;
     final grandTotal = totalTaxable + totalGst;
     final balanceDue = grandTotal - totalPaidPaise;
-
-    int cgst = 0;
-    int sgst = 0;
-    int igst = 0;
-
-    if (isIntraState) {
-      cgst = (totalGst / 2).round();
-      sgst = totalGst - cgst; // Ensure zero roundoff loss
-    } else {
-      igst = totalGst;
-    }
 
     return InvoiceTaxSummary(
       totalTaxablePaise: totalTaxable,

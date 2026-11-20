@@ -505,7 +505,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                       ),
                       const SizedBox(height: 2.0),
                       Text(
-                        'JOB: ${state.jobCardId} â€¢ VEHICLE: ${state.registrationNumber}',
+                        'JOB: ${state.jobCardId}  |  VEHICLE: ${state.registrationNumber}',
                         style: GoogleFonts.inter(
                           color: AppTokens.textSecondary,
                           fontSize: 10.5,
@@ -850,7 +850,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   ),
                   const SizedBox(height: 6.0),
                   Text(
-                    'TIMESTAMP: ${captured.capturedAt.toLocal()} â€¢ SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
+                    'TIMESTAMP: ${captured.capturedAt.toLocal()}  |  SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
                     style: GoogleFonts.inter(
                       fontSize: 10.5,
                       color: AppTokens.textSecondary,

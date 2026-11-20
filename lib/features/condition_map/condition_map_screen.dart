@@ -335,7 +335,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  'â€¢ ${finding.type.label.toLowerCase()}${finding.note?.isNotEmpty == true ? ' â€” ${finding.note}' : ''}',
+                  '- ${finding.type.label.toLowerCase()}${finding.note?.isNotEmpty == true ? ' - ${finding.note}' : ''}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

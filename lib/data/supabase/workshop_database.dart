@@ -56,6 +56,12 @@ ApplicationNextAction nextApplicationAction({
       label: 'Prepare invoice',
     );
   }
+  if (jobStatus == 'READY_FOR_PICKUP') {
+    return const ApplicationNextAction(
+      route: '/payment-gate',
+      label: 'Record payment and delivery',
+    );
+  }
   return const ApplicationNextAction(
     route: '/job-card',
     label: 'Open job card and estimate',
@@ -200,6 +206,12 @@ class WorkshopDatabase {
         pending.add('Add a technician progress update');
       } else if (status == 'QC_PASSED') {
         pending.add('Prepare invoice');
+      } else if (status == 'READY_FOR_PICKUP') {
+        pending.add('Record payment and delivery confirmation');
+      } else if (status == 'DELIVERED') {
+        pending.add('Application complete');
+      } else if (status == 'CANCELLED') {
+        pending.add('Application cancelled');
       } else if (!hasReport) {
         pending.add('Vehicle condition report');
       } else if (!hasMechanicalInspection) {

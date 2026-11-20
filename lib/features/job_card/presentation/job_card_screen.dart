@@ -33,17 +33,17 @@ class _JobCardScreenState extends State<JobCardScreen> {
   bool _isApproved = false;
   bool _isSent = false;
   String _jobStatus = 'RECEIVED';
-  String _vehicleDetails = 'Loading vehicle detailsâ€¦';
-  String _customerDetails = 'Loading customer detailsâ€¦';
-  String _odometerDetails = 'Loading odometerâ€¦';
+  String _vehicleDetails = 'Loading vehicle details...';
+  String _customerDetails = 'Loading customer details...';
+  String _odometerDetails = 'Loading odometer...';
   String _deliveryDetails = 'Not set';
   bool _loading = true;
   String? _loadError;
 
-  // Pre-loaded realistic automotive labour lines (SAC 998714 - 18% GST)
+  // Estimate line items are loaded from the persisted job card.
   final List<InvoiceLineItem> _labourItems = [];
 
-  // Pre-loaded realistic automotive OEM parts lines (HSN Codes - uniform 18% GST effective Sept 2025)
+  // Parts estimate line items are loaded from the persisted job card.
   final List<InvoiceLineItem> _partsItems = [];
 
   @override
@@ -101,9 +101,9 @@ class _JobCardScreenState extends State<JobCardScreen> {
                   : LineItemType.part,
               description: row['description'] as String,
               code: row['code'] as String,
-              quantity: (row['quantity'] as num).round(),
+              quantity: row['quantity'] as num,
               unitRatePaise: row['unit_rate_paise'] as int,
-              gstRatePercent: (row['gst_rate_percent'] as num).round(),
+              gstRatePercent: row['gst_rate_percent'] as num,
             ),
           )
           .toList();
@@ -156,11 +156,12 @@ class _JobCardScreenState extends State<JobCardScreen> {
     final description = TextEditingController(
       text: existing?.description ?? '',
     );
-    final code = TextEditingController(
-      text: existing?.code ?? (type == LineItemType.labour ? '998714' : ''),
-    );
+    final code = TextEditingController(text: existing?.code ?? '');
     final quantity = TextEditingController(
       text: existing?.quantity.toString() ?? '1',
+    );
+    final gstRate = TextEditingController(
+      text: existing?.gstRatePercent.toString() ?? '',
     );
     final rate = TextEditingController(
       text: existing == null
@@ -198,9 +199,11 @@ class _JobCardScreenState extends State<JobCardScreen> {
               ),
               TextFormField(
                 controller: quantity,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(labelText: 'Quantity'),
-                validator: (v) => (int.tryParse(v ?? '') ?? 0) <= 0
+                validator: (v) => !_isValidDecimal(v, minimum: 0.01)
                     ? 'Enter a positive quantity'
                     : null,
               ),
@@ -210,11 +213,29 @@ class _JobCardScreenState extends State<JobCardScreen> {
                   decimal: true,
                 ),
                 decoration: const InputDecoration(
-                  labelText: 'Unit price (â‚¹)',
+                  labelText: 'Unit price (INR)',
                 ),
-                validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0
+                validator: (v) => !_isValidDecimal(v, minimum: 0.01)
                     ? 'Enter a positive price'
                     : null,
+              ),
+              TextFormField(
+                controller: gstRate,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'GST rate (%)',
+                  helperText: 'Enter the rate applicable to this item',
+                ),
+                validator: (value) {
+                  final parsed = double.tryParse(value?.trim() ?? '');
+                  if (!_isValidDecimal(value, minimum: 0, maximum: 100)) {
+                    return 'Enter a GST rate from 0 to 100';
+                  }
+                  if (parsed == null) return 'Enter a GST rate';
+                  return null;
+                },
               ),
             ],
           ),
@@ -237,12 +258,14 @@ class _JobCardScreenState extends State<JobCardScreen> {
     );
     final itemDescription = description.text.trim();
     final itemCode = code.text.trim();
-    final itemQuantity = int.tryParse(quantity.text.trim());
+    final itemQuantity = double.tryParse(quantity.text.trim());
     final itemRate = double.tryParse(rate.text.trim());
+    final itemGstRate = double.tryParse(gstRate.text.trim());
     description.dispose();
     code.dispose();
     quantity.dispose();
     rate.dispose();
+    gstRate.dispose();
     if (save != true || !mounted) return;
     try {
       final payload = {
@@ -250,7 +273,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
         'code': itemCode,
         'quantity': itemQuantity,
         'unit_rate_paise': (itemRate! * 100).round(),
-        'gst_rate_percent': 18,
+        'gst_rate_percent': itemGstRate,
       };
       if (existing == null) {
         await Supabase.instance.client.from('job_line_items').insert({
@@ -274,6 +297,21 @@ class _JobCardScreenState extends State<JobCardScreen> {
         );
       }
     }
+  }
+
+  bool _isValidDecimal(
+    String? value, {
+    required double minimum,
+    double? maximum,
+  }) {
+    final parsed = double.tryParse(value?.trim() ?? '');
+    if (parsed == null ||
+        parsed < minimum ||
+        (maximum != null && parsed > maximum)) {
+      return false;
+    }
+    final parts = value!.trim().split('.');
+    return parts.length <= 2 && (parts.length == 1 || parts.last.length <= 2);
   }
 
   Future<void> _deleteLineItem(InvoiceLineItem item) async {
@@ -719,7 +757,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
                           ),
                         ),
                         Text(
-                          '${item.code} â€¢ Qty: ${item.quantity} hr â€¢ GST Rate: ${item.gstRatePercent}% (+â‚¹$gstAmt)',
+                          '${item.code} | Qty: ${item.quantity} hr | GST Rate: ${item.gstRatePercent}% (+INR $gstAmt)',
                           style: const TextStyle(
                             fontSize: 10.5,
                             color: AppTokens.textSecondary,
@@ -843,7 +881,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
                           ),
                         ),
                         Text(
-                          '${item.code} â€¢ Units: ${item.quantity} â€¢ GST Rate: ${item.gstRatePercent}% (+â‚¹$gstAmt)',
+                          '${item.code} | Units: ${item.quantity} | GST Rate: ${item.gstRatePercent}% (+INR $gstAmt)',
                           style: const TextStyle(
                             fontSize: 10.5,
                             color: AppTokens.textSecondary,
@@ -930,14 +968,14 @@ class _JobCardScreenState extends State<JobCardScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          _buildSummaryRow('Taxable Labour (SAC 998714)', 'â‚¹$taxableLabour'),
-          _buildSummaryRow('Taxable Spare Parts (HSN)', 'â‚¹$taxableParts'),
+          _buildSummaryRow('Taxable Labour (SAC)', 'INR $taxableLabour'),
+          _buildSummaryRow('Taxable Spare Parts (HSN)', 'INR $taxableParts'),
           const Divider(height: 16.0, color: AppTokens.borderLight),
-          _buildSummaryRow('Central GST (CGST)', 'â‚¹$cgst'),
-          _buildSummaryRow('State GST (SGST / UTGST)', 'â‚¹$sgst'),
+          _buildSummaryRow('Central GST (CGST)', 'INR $cgst'),
+          _buildSummaryRow('State GST (SGST / UTGST)', 'INR $sgst'),
           _buildSummaryRow(
             'Total Automotive GST',
-            'â‚¹$totalGst',
+            'INR $totalGst',
             isEmphasized: true,
           ),
           const Divider(
@@ -957,7 +995,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
                 ),
               ),
               Text(
-                'â‚¹$grandTotal',
+                'INR $grandTotal',
                 style: GoogleFonts.inter(
                   fontSize: 22.0,
                   fontWeight: FontWeight.w900,
@@ -1027,7 +1065,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
                         text:
                             'Workshop estimate for $_regNumber\n'
                             'Vehicle: $_vehicleDetails\n'
-                            'Total including GST: â‚¹$grandTotalRupees\n'
+                            'Total including GST: INR $grandTotalRupees\n'
                             'Please review and reply with approval or questions.',
                       ),
                     );
