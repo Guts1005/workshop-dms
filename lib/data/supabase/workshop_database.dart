@@ -44,6 +44,12 @@ ApplicationNextAction nextApplicationAction({
       label: 'Revise estimate',
     );
   }
+  if (jobStatus == 'WORK_IN_PROGRESS') {
+    return const ApplicationNextAction(
+      route: '/work-in-progress',
+      label: 'Update work progress',
+    );
+  }
   return const ApplicationNextAction(
     route: '/job-card',
     label: 'Open job card and estimate',
@@ -184,6 +190,8 @@ class WorkshopDatabase {
         pending.add('Record customer response');
       } else if (status == 'ESTIMATE_REVISION_REQUIRED') {
         pending.add('Revise estimate items');
+      } else if (status == 'WORK_IN_PROGRESS') {
+        pending.add('Add a technician progress update');
       } else if (!hasReport) {
         pending.add('Vehicle condition report');
       } else if (!hasMechanicalInspection) {

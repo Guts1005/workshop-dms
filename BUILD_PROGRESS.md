@@ -15,7 +15,8 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | Job card / estimate | Partial | Line items persist; sent estimates lock. Per-item approval, decline, revision response, audit history, and unanimous-approval transition are implemented. Vehicle passport history and live Supabase verification remain. |
 | Mechanical inspection | Implemented; migration/live QA pending | Records brake, tyre, and battery readings or explicit not-applicable choices; validates odometer and persists completion. Application cards route to inspection before the estimate. Apply migration `202611200002` before live use. |
 | Customer approvals / WhatsApp | Implemented; migration/live QA pending | WhatsApp launch requires recorded consent; responses are captured per item and recorded through an audited RPC. Migration `202611200005` locks status and approval fields behind validated database functions. Apply migrations `202611200004` and `202611200005` before live use. Delivery receipts are not tracked. |
-| Work in progress / inventory | Not implemented | No complete persisted workflow. |
+| Work in progress | Initial workflow implemented; migration/live QA pending | Shows approved estimate scope and an immutable, audited log for technician notes, parts delays, and customer updates. Migration `202611200006` adds the update table and RPC. QC/road test is still the next workflow gate. |
+| Inventory | Not implemented | No persisted stock or supplier records. |
 | QC / road test | Not implemented | Route is a placeholder. |
 | GST invoice / payment / delivery | Not implemented | Routes are placeholders; corresponding durable tables and gates are missing. |
 | Vehicle passport / reminders | Partial | Internal history and calculation helpers exist; public QR/passport and reminders are incomplete. |
@@ -23,7 +24,7 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 
 ## Next work
 
-1. Apply all eight migrations, then verify RLS, auth, photos, and the complete intake-to-workflow flow against the target Supabase project.
+1. Apply all nine migrations, then verify RLS, auth, photos, and the complete intake-to-workflow flow against the target Supabase project.
 2. Add customer decision history to vehicle history; implement QC and road-test gates.
 3. Add inventory, GST invoice, payment, and delivery persistence and gates.
 4. Complete passport and service reminders, then durable offline sync.

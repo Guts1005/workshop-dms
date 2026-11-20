@@ -12,6 +12,7 @@ import '../features/bay_capture/bay_capture_screen.dart';
 import '../features/condition_map/condition_map_screen.dart';
 import '../features/mechanical_inspection/mechanical_inspection_screen.dart';
 import '../features/whatsapp_dispatch/whatsapp_dispatch_screen.dart';
+import '../features/work_in_progress/work_in_progress_screen.dart';
 import '../features/job_card/presentation/job_card_screen.dart';
 import 'placeholder_screen.dart';
 
@@ -304,6 +305,16 @@ final GoRouter appRouter = GoRouter(
         return WhatsAppDispatchScreen(
           jobCardId: extra?['jobCardId'] as String?,
         );
+      },
+    ),
+
+    // Technician updates for approved work
+    GoRoute(
+      path: '/work-in-progress',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return WorkInProgressScreen(jobCardId: extra?['jobCardId'] as String?);
       },
     ),
 

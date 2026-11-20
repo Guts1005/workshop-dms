@@ -92,6 +92,19 @@ void main() {
       expect(action.route, '/job-card');
       expect(action.label, 'Revise estimate');
     });
+
+    test('routes approved work to technician progress updates', () {
+      final action = nextApplicationAction(
+        jobStatus: 'WORK_IN_PROGRESS',
+        mandatoryPhotoCount: 6,
+        hasManagerOverride: false,
+        hasConditionReport: true,
+        hasMechanicalInspection: true,
+      );
+
+      expect(action.route, '/work-in-progress');
+      expect(action.label, 'Update work progress');
+    });
   });
 
   group('validateMechanicalInspection', () {

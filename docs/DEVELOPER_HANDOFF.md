@@ -14,13 +14,14 @@
 - Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with persisted line-item creation, estimate-sent state, and revision editing. WhatsApp launch requires customer consent; the customer response screen captures per-item approval, decline, or revision requests. A server RPC writes audit snapshots and advances only unanimous approval to work in progress. Database grants and row policies prevent direct lifecycle changes or estimate edits after dispatch.
 - Vehicle history/passport view and GST/reminder calculation helpers exist, but the linked routes and persistence are not complete.
-- Eight SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, and database-enforced estimate lifecycle permissions. Migrations `202611200001` through `202611200005` are local and have not been applied to Supabase.
+- Nine SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, and work-progress history. Migrations `202611200001` through `202611200006` are local and have not been applied to Supabase.
+- Work-in-progress page shows approved estimate scope and appends technician progress, parts-delay, and customer-update notes through an audited RPC. It does not advance the job into QC or delivery.
 
 ## Remaining work, in priority order
 
 ### P0: Apply and verify the real application path against the target Supabase project
 
-- Apply all eight migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The five latest migrations add the photo gate, mechanical inspection records, estimate-dispatch state, audited customer responses, and restricted lifecycle updates.
+- Apply all nine migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The six latest migrations add the photo gate, mechanical inspection records, estimate-dispatch state, audited customer responses, restricted estimate updates, and work-progress history.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
 - Exercise signup/sign-in, workshop creation, customer/vehicle creation, application creation, six mandatory check-in photos, optional photo selection, finding save/reload, report sign-off, and application progress from a clean account.
 - Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account.
@@ -79,9 +80,9 @@ Inventory, technician work-in-progress, and debtors are not complete modules. Th
 
 ## Verification already completed
 
-- Local Flutter verification: all 95 tests passed, `flutter analyze` completed with no issues, and `flutter build web --release` succeeded.
+- Local Flutter verification: all 99 tests passed, `flutter analyze` completed with no issues, and `flutter build web --release` succeeded.
 - `git diff --check` completed cleanly before the latest SQL policy additions; rerun before commit.
-- Live Supabase migration state, live Storage policies, the newer workflow migrations, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply migrations four through eight before exercising check-in, inspection, estimate dispatch, and customer responses against the live project.
+- Live Supabase migration state, live Storage policies, the newer workflow migrations, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply migrations four through nine before exercising check-in, inspection, estimate dispatch, customer responses, and technician updates against the live project.
 
 ## First recommended developer session
 
