@@ -27,7 +27,7 @@ Workshop DMS is an active prototype. All 17 repository migrations are now applie
 
 1. Resume the synthetic QA job at condition report; save and reload a finding/photo, complete sign-off, verify private photo access, then test six-photo capture and workshop isolation with a second account.
 2. Walk the remaining estimate, approval, work, QC, invoice, and payment/delivery lifecycle with a clean, authorized test account.
-3. Add customer decision history to vehicle history, finish passport and service reminders, then implement durable offline sync.
+3. Verify customer decisions in vehicle history, finish the internal passport and service reminders, then implement durable offline sync.
 4. Add golden tests and finish device, platform, accessibility, and release QA. GitHub Actions runs formatting, analysis, tests, and a web release build for `master` pushes and pull requests.
 
 See [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md) for detailed priorities, architecture notes, setup, and verification limits. The older `tasks/` documents are historical specifications and do not represent current completion status.
