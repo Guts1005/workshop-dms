@@ -105,6 +105,19 @@ void main() {
       expect(action.route, '/work-in-progress');
       expect(action.label, 'Update work progress');
     });
+
+    test('routes passed QC to invoice preparation', () {
+      final action = nextApplicationAction(
+        jobStatus: 'QC_PASSED',
+        mandatoryPhotoCount: 6,
+        hasManagerOverride: false,
+        hasConditionReport: true,
+        hasMechanicalInspection: true,
+      );
+
+      expect(action.route, '/gst-invoicing');
+      expect(action.label, 'Prepare invoice');
+    });
   });
 
   group('validateMechanicalInspection', () {

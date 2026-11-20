@@ -14,14 +14,15 @@
 - Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with persisted line-item creation, estimate-sent state, and revision editing. WhatsApp launch requires customer consent; the customer response screen captures per-item approval, decline, or revision requests. A server RPC writes audit snapshots and advances only unanimous approval to work in progress. Database grants and row policies prevent direct lifecycle changes or estimate edits after dispatch.
 - Vehicle history/passport view and GST/reminder calculation helpers exist, but the linked routes and persistence are not complete.
-- Nine SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, and work-progress history. Migrations `202611200001` through `202611200006` are local and have not been applied to Supabase.
-- Work-in-progress page shows approved estimate scope and appends technician progress, parts-delay, and customer-update notes through an audited RPC. It does not advance the job into QC or delivery.
+- Ten SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, work-progress history, and quality sign-off. Migrations `202611200001` through `202611200007` are local and have not been applied to Supabase.
+- Work-in-progress page shows approved estimate scope and appends technician progress, parts-delay, and customer-update notes through an audited RPC. It does not change job lifecycle status; QC is a separate sign-off gate.
+- QC screen captures completed-work confirmation, four vehicle checks, and road-test result. A failed check remains in service; only an audited pass advances to `QC_PASSED`.
 
 ## Remaining work, in priority order
 
 ### P0: Apply and verify the real application path against the target Supabase project
 
-- Apply all nine migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The six latest migrations add the photo gate, mechanical inspection records, estimate-dispatch state, audited customer responses, restricted estimate updates, and work-progress history.
+- Apply all ten migrations to the intended project and confirm that Storage bucket `workshop-checkin` is private with the expected policies. The seven latest migrations add the photo gate, mechanical inspection records, estimate-dispatch state, audited customer responses, restricted estimate updates, work-progress history, and quality sign-off.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
 - Exercise signup/sign-in, workshop creation, customer/vehicle creation, application creation, six mandatory check-in photos, optional photo selection, finding save/reload, report sign-off, and application progress from a clean account.
 - Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account.
@@ -31,7 +32,7 @@
 
 - Finish job-card and estimate lifecycle, including editing/removing line items, robust loading/error states, customer approval/decline persistence, and transitions to work in progress.
 - Add declined and revision-request history to vehicle history so prior customer decisions inform future recommendations. WhatsApp launch is consent-gated, but delivery/read receipts are not tracked.
-- Implement `/qc-gate`, inspection evidence, road-test sign-off, and workflow gating before invoicing.
+- Implement persisted GST invoicing and payment gates after the new `QC_PASSED` state.
 
 ### P1: Build inventory, billing, and delivery records
 
@@ -63,7 +64,6 @@
 
 `lib/routing/app_router.dart` currently routes these pages to `PhasePlaceholderScreen`:
 
-- `/qc-gate`
 - `/gst-invoicing`
 - `/payment-gate`
 - `/reminders`
@@ -80,9 +80,9 @@ Inventory, technician work-in-progress, and debtors are not complete modules. Th
 
 ## Verification already completed
 
-- Local Flutter verification: all 99 tests passed, `flutter analyze` completed with no issues, and `flutter build web --release` succeeded.
-- `git diff --check` completed cleanly before the latest SQL policy additions; rerun before commit.
-- Live Supabase migration state, live Storage policies, the newer workflow migrations, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply migrations four through nine before exercising check-in, inspection, estimate dispatch, customer responses, and technician updates against the live project.
+- Local Flutter verification: all 104 tests passed, `flutter analyze` completed with no issues, and `flutter build web --release` succeeded after the quality-gate changes.
+- `git diff --check` completed cleanly after the latest changes.
+- Live Supabase migration state, live Storage policies, the newer workflow migrations, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply migrations four through ten before exercising check-in, inspection, estimate dispatch, customer responses, technician updates, and QC against the live project.
 
 ## First recommended developer session
 

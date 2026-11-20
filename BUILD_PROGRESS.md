@@ -17,16 +17,16 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | Customer approvals / WhatsApp | Implemented; migration/live QA pending | WhatsApp launch requires recorded consent; responses are captured per item and recorded through an audited RPC. Migration `202611200005` locks status and approval fields behind validated database functions. Apply migrations `202611200004` and `202611200005` before live use. Delivery receipts are not tracked. |
 | Work in progress | Initial workflow implemented; migration/live QA pending | Shows approved estimate scope and an immutable, audited log for technician notes, parts delays, and customer updates. Migration `202611200006` adds the update table and RPC. QC/road test is still the next workflow gate. |
 | Inventory | Not implemented | No persisted stock or supplier records. |
-| QC / road test | Not implemented | Route is a placeholder. |
+| QC / road test | Initial workflow implemented; migration/live QA pending | Requires repair-complete confirmation, four explicit checks, and a road-test result or reason. Failed QC keeps work in progress; audited pass moves to `QC_PASSED`. Apply migration `202611200007` before live use. |
 | GST invoice / payment / delivery | Not implemented | Routes are placeholders; corresponding durable tables and gates are missing. |
 | Vehicle passport / reminders | Partial | Internal history and calculation helpers exist; public QR/passport and reminders are incomplete. |
 | Offline-first sync | Not implemented | Current outbox service is in-memory and is not wired as a durable background worker. |
 
 ## Next work
 
-1. Apply all nine migrations, then verify RLS, auth, photos, and the complete intake-to-workflow flow against the target Supabase project.
-2. Add customer decision history to vehicle history; implement QC and road-test gates.
-3. Add inventory, GST invoice, payment, and delivery persistence and gates.
+1. Apply all ten migrations, then verify RLS, auth, photos, and the complete intake-to-workflow flow against the target Supabase project.
+2. Add customer decision history to vehicle history and persisted GST invoice, payment, and delivery gates.
+3. Add inventory persistence and stock controls.
 4. Complete passport and service reminders, then durable offline sync.
 5. Add CI and finish platform, security, accessibility, and release QA.
 

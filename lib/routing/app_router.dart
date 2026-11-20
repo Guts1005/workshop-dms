@@ -13,6 +13,7 @@ import '../features/condition_map/condition_map_screen.dart';
 import '../features/mechanical_inspection/mechanical_inspection_screen.dart';
 import '../features/whatsapp_dispatch/whatsapp_dispatch_screen.dart';
 import '../features/work_in_progress/work_in_progress_screen.dart';
+import '../features/quality_gate/quality_gate_screen.dart';
 import '../features/job_card/presentation/job_card_screen.dart';
 import 'placeholder_screen.dart';
 
@@ -322,11 +323,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/qc-gate',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PhasePlaceholderScreen(
-        pageNumber: 8,
-        title: 'QC & Road-Test Sign-off',
-        description: 'Quality control verification and road-test sign-off prior to invoice generation.',
-      ),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return QualityGateScreen(jobCardId: extra?['jobCardId'] as String?);
+      },
     ),
 
     // Automotive GST Invoicing

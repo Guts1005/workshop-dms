@@ -108,6 +108,19 @@ class _WorkInProgressScreenState extends ConsumerState<WorkInProgressScreen> {
                           ),
                         ),
                       ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(
+                        '/qc-gate',
+                        extra: {'jobCardId': workspace.jobCardId},
+                      ),
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('Run quality check'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        foregroundColor: AppTokens.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 18),
                     _sectionTitle('ADD A PROGRESS UPDATE'),
                     const SizedBox(height: 8),

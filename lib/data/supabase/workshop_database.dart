@@ -50,6 +50,12 @@ ApplicationNextAction nextApplicationAction({
       label: 'Update work progress',
     );
   }
+  if (jobStatus == 'QC_PASSED') {
+    return const ApplicationNextAction(
+      route: '/gst-invoicing',
+      label: 'Prepare invoice',
+    );
+  }
   return const ApplicationNextAction(
     route: '/job-card',
     label: 'Open job card and estimate',
@@ -192,6 +198,8 @@ class WorkshopDatabase {
         pending.add('Revise estimate items');
       } else if (status == 'WORK_IN_PROGRESS') {
         pending.add('Add a technician progress update');
+      } else if (status == 'QC_PASSED') {
+        pending.add('Prepare invoice');
       } else if (!hasReport) {
         pending.add('Vehicle condition report');
       } else if (!hasMechanicalInspection) {
@@ -311,6 +319,7 @@ class WorkshopDatabase {
     'ESTIMATE_SENT' || 'WAITING_APPROVAL' => 'Waiting for approval',
     'ESTIMATE_REVISION_REQUIRED' => 'Estimate changes requested',
     'WORK_IN_PROGRESS' => 'Being serviced',
+    'QC_PASSED' => 'QC passed · invoice pending',
     'READY_FOR_PICKUP' => 'Ready for pickup',
     'DELIVERED' => 'Completed',
     'CANCELLED' => 'Cancelled',
