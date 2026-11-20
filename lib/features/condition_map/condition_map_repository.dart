@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -151,7 +152,6 @@ class SupabaseConditionMapRepository implements ConditionMapRepository {
   SupabaseConditionMapRepository(this.client);
   final SupabaseClient client;
   static const _photoBucket = 'workshop-checkin';
-  final _uuid = const Uuid();
 
   Future<String> _workshopId() async =>
       (await client
@@ -203,6 +203,13 @@ class SupabaseConditionMapRepository implements ConditionMapRepository {
     final workshopId = await _workshopId();
     var savedPin = pin;
     String? uploadedPath;
+    final existingRow = await client
+        .from('condition_findings')
+        .select('photo_storage_path')
+        .eq('job_card_id', jobCardId)
+        .eq('id', pin.id)
+        .maybeSingle();
+    final previousPath = existingRow?['photo_storage_path'] as String?;
     if (photoBytes != null) {
       if (photoBytes.isEmpty) {
         throw StateError('The selected photo is empty. Choose another photo.');
@@ -220,13 +227,15 @@ class SupabaseConditionMapRepository implements ConditionMapRepository {
         'image/webp' => 'webp',
         _ => 'jpg',
       };
-      uploadedPath = '$workshopId/$jobCardId/findings/${_uuid.v4()}.$extension';
+      final contentHash = sha256.convert(photoBytes).toString();
+      uploadedPath =
+          '$workshopId/$jobCardId/findings/${pin.id}_$contentHash.$extension';
       await client.storage
           .from(_photoBucket)
           .uploadBinary(
             uploadedPath,
             photoBytes,
-            fileOptions: FileOptions(contentType: contentType),
+            fileOptions: FileOptions(contentType: contentType, upsert: true),
           );
       savedPin = pin.copyWith(photoPath: uploadedPath);
     }
@@ -245,10 +254,38 @@ class SupabaseConditionMapRepository implements ConditionMapRepository {
         'created_at': savedPin.createdAt.toUtc().toIso8601String(),
       }, onConflict: 'job_card_id,id');
     } catch (_) {
+      var replacementIsReferenced = false;
       if (uploadedPath != null) {
-        await client.storage.from(_photoBucket).remove([uploadedPath]);
+        try {
+          final currentRow = await client
+              .from('condition_findings')
+              .select('photo_storage_path')
+              .eq('job_card_id', jobCardId)
+              .eq('id', pin.id)
+              .maybeSingle();
+          replacementIsReferenced =
+              currentRow?['photo_storage_path'] == uploadedPath;
+        } catch (_) {
+          // Keep the uploaded file if the commit state cannot be confirmed.
+        }
+      }
+      if (uploadedPath != null &&
+          uploadedPath != previousPath &&
+          !replacementIsReferenced) {
+        try {
+          await client.storage.from(_photoBucket).remove([uploadedPath]);
+        } catch (_) {
+          // An unreferenced private object can be cleaned later.
+        }
       }
       rethrow;
+    }
+    if (previousPath != null && previousPath != savedPin.photoPath) {
+      try {
+        await client.storage.from(_photoBucket).remove([previousPath]);
+      } catch (_) {
+        // The row references the replacement; the old private object can be cleaned later.
+      }
     }
     return savedPin;
   }

@@ -1410,7 +1410,9 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
         Row(
           children: List.generate(8, (i) {
             final threshold = (i + 1) * 12.5;
-            final isFilled = state.fuelLevelPercent >= threshold - 6.0;
+            final isFilled =
+                state.fuelLevelObserved &&
+                state.fuelLevelPercent >= threshold - 6.0;
             final isLow = state.fuelLevelPercent <= 25;
             final blockColor = isFilled
                 ? (isLow ? AppTokens.orange : AppTokens.green)

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,9 +21,13 @@ final conditionMapControllerProvider =
     });
 
 class ConditionMapController extends StateNotifier<ConditionMapState> {
-  static int _lastPinId = 0;
+  // condition_findings.id is a PostgreSQL integer (signed 32-bit). Keep IDs
+  // inside that range while making collisions across app sessions unlikely.
+  static int _lastPinId = Random.secure().nextInt(1 << 30) + 1;
   final ConditionMapRepository repository;
   PreWorkSignOff? _pendingSignOff;
+  ConditionPin? _pendingPin;
+  bool _pinWriteUncertain = false;
 
   ConditionMapController({
     required this.repository,
@@ -41,6 +46,8 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
   }) async {
     if (state.jobCardId != jobCardId) {
       _pendingSignOff = null;
+      _pendingPin = null;
+      _pinWriteUncertain = false;
     }
     state = state.copyWith(
       jobCardId: jobCardId,
@@ -99,11 +106,19 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
   }) async {
     _ensureEditable();
 
-    final nowId = DateTime.now().microsecondsSinceEpoch;
-    final newId = nowId > _lastPinId ? nowId : _lastPinId + 1;
-    _lastPinId = newId;
+    if (_pendingPin == null && _pinWriteUncertain) {
+      await _refreshAfterUncertainPinWrite();
+    }
+
+    final pending = _pendingPin;
+    if (pending == null) {
+      final usedIds = state.pins.map((pin) => pin.id).toSet();
+      do {
+        _lastPinId = _lastPinId >= 0x7ffffffe ? 1 : _lastPinId + 1;
+      } while (usedIds.contains(_lastPinId));
+    }
     final pin = ConditionPin(
-      id: newId,
+      id: pending?.id ?? _lastPinId,
       view: view,
       normalizedX: nx.clamp(0.0, 1.0),
       normalizedY: ny.clamp(0.0, 1.0),
@@ -112,28 +127,52 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
       note: note,
       photoPath: photoPath,
       photoHash: photoHash,
-      createdAt: DateTime.now(),
+      createdAt: pending?.createdAt ?? DateTime.now(),
     );
+    _pendingPin = pin;
 
-    final savedPin = await repository.savePin(
-      jobCardId: state.jobCardId,
-      pin: pin,
-      photoBytes: photoBytes,
-      photoContentType: photoContentType,
-    );
-    final reviewed = Set<ConditionViewDirection>.from(state.reviewedViews)
-      ..add(view);
-    await repository.saveReviewedViews(state.jobCardId, reviewed);
+    try {
+      final savedPin = await repository.savePin(
+        jobCardId: state.jobCardId,
+        pin: pin,
+        photoBytes: photoBytes,
+        photoContentType: photoContentType,
+      );
+      final reviewed = Set<ConditionViewDirection>.from(state.reviewedViews)
+        ..add(view);
+      await repository.saveReviewedViews(state.jobCardId, reviewed);
 
-    final updatedPins = List<ConditionPin>.from(state.pins)..add(savedPin);
-    state = state.copyWith(
-      pins: updatedPins,
-      reviewedViews: reviewed,
-      selectedPin: savedPin,
-      clearError: true,
-    );
+      final updatedPins = List<ConditionPin>.from(state.pins)
+        ..removeWhere((existing) => existing.id == savedPin.id)
+        ..add(savedPin);
+      state = state.copyWith(
+        pins: updatedPins,
+        reviewedViews: reviewed,
+        selectedPin: savedPin,
+        clearError: true,
+      );
+      _pendingPin = null;
+      _pinWriteUncertain = false;
+      return savedPin;
+    } catch (_) {
+      _pinWriteUncertain = true;
+      rethrow;
+    }
+  }
 
-    return savedPin;
+  void discardPendingPin() => _pendingPin = null;
+
+  Future<void> _refreshAfterUncertainPinWrite() async {
+    try {
+      final pins = await repository.getPinsForJobCard(state.jobCardId);
+      final reviewed = await repository.getReviewedViews(state.jobCardId);
+      state = state.copyWith(pins: pins, reviewedViews: reviewed);
+      _pinWriteUncertain = false;
+    } catch (_) {
+      throw StateError(
+        'Could not confirm the previous finding. Refresh this report before adding another.',
+      );
+    }
   }
 
   Future<void> updatePin(ConditionPin updatedPin) async {

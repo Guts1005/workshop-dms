@@ -1,7 +1,7 @@
 # Workshop DMS developer handoff
 
 **Status date:** 21 November 2026  
-**Current state:** Active prototype with Supabase-backed workflows. All 17 repository migrations are applied to the configured Supabase project; the `workshop-checkin` bucket is private and its workshop-scoped Storage policies are present. Authenticated end-to-end testing, second-workshop isolation testing, and device camera/gallery testing remain. This is not yet a production release.
+**Current state:** Active prototype with Supabase-backed workflows. All 17 repository migrations are applied to the configured project; the workshop-checkin bucket is private and its workshop-scoped Storage policies are present. A labeled synthetic QA application was created and advanced through intake to the condition report. Finding/photo save and sign-off still need a live retest. Six-photo camera capture, second-workshop isolation testing, and device camera/gallery testing remain. This is not yet a production release.
 
 ## What is implemented
 
@@ -10,7 +10,7 @@
 - Customer/vehicle intake and application creation backed by Supabase. Retries reuse a request ID only while submitted details are unchanged; editing after a failed attempt starts a new request. Migration `202611200011_idempotent_application_intake.sql` enforces the key in the database and restricts job-card creation to the RPC.
 - Application list and dashboard reads from workshop records.
 - Bay check-in photo capture, private Storage uploads, and manager override records.
-- Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket.
+- Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket. A finding retry reuses its record ID and content-addressed storage path; failed replacement uploads keep the previous photo reference intact.
 - Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with persisted line-item creation, estimate-sent state, and revision editing. WhatsApp launch requires customer consent; the customer response screen captures per-item approval, decline, or revision requests. A server RPC writes audit snapshots and advances only unanimous approval to work in progress. After an uncertain response, the app confirms the persisted decisions before reporting failure. Database grants and row policies prevent direct lifecycle changes or estimate edits after dispatch.
 - Vehicle history/passport view and GST helpers exist. Reminder calculations use recorded odometer history only, but the reminders route and reminder persistence/dispatch are not complete.
@@ -27,9 +27,10 @@
 
 - All seventeen migrations are applied to the configured project. Live schema inspection confirms the later workflow tables exist, RLS is enabled, `workshop-checkin` is private, and the bucket has authenticated select/insert/update/delete policies. Duplicate-safe intake, signoff, and delivery RPCs are installed.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
-- Exercise signup/sign-in, workshop creation, customer/vehicle creation, application creation, six mandatory check-in photos, optional photo selection, finding save/reload, report sign-off, and application progress from a clean account.
-- Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account. Database-level policies are present, but no authenticated app session was used in this pass.
-- Resolve any client/RPC mismatches found in that run. The one existing job card was left untouched; no test customer, job, or photo was inserted.
+- Resume the existing synthetic QA job at condition report; save/reload the finding and photo, complete report sign-off, and verify the application advances. The intake, job-card creation, manager override, and route to condition report already worked in this QA run.
+- Exercise signup/sign-in and workshop creation from a clean account, then capture the six mandatory check-in photos and test application progress.
+- Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account. Do not use the synthetic QA run as proof of full authentication, storage retrieval, or isolation behavior.
+- Resolve any client/RPC mismatches found in that run. The synthetic QA job is explicitly labeled and has not been deleted; do not use it as real workshop/customer data.
 
 ### P1: Finish the core service workflow
 
@@ -82,9 +83,10 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 ## Verification already completed
 
-- Local Flutter verification after the retry-recovery changes: all 139 tests passed, `flutter analyze` reported no issues, and the release web build succeeded. Focused workflow suites cover lost invoice, payment, refresh, delivery, and customer-response outcomes.
+- Local Flutter verification after the condition retry and intake gauge changes: all 142 tests passed, `flutter analyze` reported no issues, and the release web build succeeded. Focused workflow suites cover lost invoice, payment, refresh, delivery, customer-response, condition-finding retries, and unobserved fuel levels.
 - Live Supabase inspection confirmed all seventeen migrations, all workflow tables with RLS enabled, the private photo bucket, and workshop-scoped Storage policies. The trigger-only approval guard cannot be called through RPC; the authenticated signoff RPC remains callable and anon cannot call it. Supabase's remaining security warnings are for intended authenticated, input-validating RPCs; leaked-password protection remains disabled in project Auth settings.
-- Authenticated RPC behavior, actual photo upload/view/delete, second-workshop isolation, and physical-device camera/gallery permissions remain unverified. No test customer, job, or photo was inserted into the live project.
+- Live synthetic owner-flow QA created a labeled test job card, reached photo check-in, recorded a labeled QA manager override, and opened the condition report. Selecting a labeled synthetic image showed its preview and uploaded successfully, but saving the finding failed because the client sent a timestamp-sized ID to a PostgreSQL 32-bit integer column. Supabase Storage logs confirmed the uploaded object was removed after the row failed; no finding/photo remains saved. The ID generator is now constrained to positive 32-bit values, with retry recovery for uncertain writes. A live retry and condition sign-off remain unverified because the browser connection dropped. The synthetic QA job and override remain in the project; they are test data, not real customer/vehicle records.
+- Remaining authenticated QA: retry the synthetic condition finding/photo, verify private photo retrieval, complete condition sign-off, verify second-workshop isolation, and test camera/gallery permissions on a physical device.
 
 ## First recommended developer session
 

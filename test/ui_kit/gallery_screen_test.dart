@@ -142,6 +142,26 @@ void main() {
       expect(find.text('100% TANK'), findsOneWidget);
     });
 
+    testWidgets('FuelIntakeSlider does not imply an unobserved reading', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FuelIntakeSlider(
+              value: 0.5,
+              isConfirmed: false,
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('SELECT LEVEL'), findsOneWidget);
+      expect(find.text('50% TANK'), findsNothing);
+      expect(tester.widget<Slider>(find.byType(Slider)).value, 0.0);
+    });
+
     testWidgets('BelongingsPillsGroup toggles inventory items correctly', (
       tester,
     ) async {

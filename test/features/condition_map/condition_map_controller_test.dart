@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workshop_dms/data/sync/outbox_sync_service.dart';
 import 'package:workshop_dms/features/condition_map/condition_map_controller.dart';
@@ -31,6 +33,32 @@ class LoseFirstSignOffResponseRepository extends LocalConditionMapRepository {
       _loseFirstResponse = false;
       throw Exception('Simulated response lost after server commit');
     }
+  }
+}
+
+class LoseFirstFindingResponseRepository extends LocalConditionMapRepository {
+  final List<ConditionPin> submittedPins = [];
+  bool _loseFirstResponse = true;
+
+  @override
+  Future<ConditionPin> savePin({
+    required String jobCardId,
+    required ConditionPin pin,
+    Uint8List? photoBytes,
+    String? photoContentType,
+  }) async {
+    submittedPins.add(pin);
+    final saved = await super.savePin(
+      jobCardId: jobCardId,
+      pin: pin,
+      photoBytes: photoBytes,
+      photoContentType: photoContentType,
+    );
+    if (_loseFirstResponse) {
+      _loseFirstResponse = false;
+      throw Exception('Simulated response lost after server commit');
+    }
+    return saved;
   }
 }
 
@@ -88,6 +116,7 @@ void main() {
       );
 
       expect(pin.id, greaterThan(0));
+      expect(pin.id, lessThanOrEqualTo(0x7fffffff));
       expect(pin.normalizedX, 1.0);
       expect(pin.normalizedY, 0.0);
       expect(pin.type, DefectType.dent);
@@ -108,6 +137,89 @@ void main() {
       expect(item.payload['type'], 'dent');
       expect(item.payload['severity'], 'severe');
     });
+
+    test(
+      'Retry after a lost finding response reuses the same finding id',
+      () async {
+        final retryRepository = LoseFirstFindingResponseRepository();
+        final retryController = ConditionMapController(
+          repository: retryRepository,
+          initialJobCardId: 'JC-FINDING-RETRY',
+          initialRegistration: 'DL01AB9988',
+        );
+        final photoBytes = Uint8List.fromList([1, 2, 3, 4]);
+
+        Future<ConditionPin> saveFinding() => retryController.addPin(
+          view: ConditionViewDirection.front,
+          nx: .5,
+          ny: .4,
+          type: DefectType.surfaceScuff,
+          severity: DefectSeverity.minor,
+          note: 'Short scratch near the lamp',
+          photoBytes: photoBytes,
+          photoContentType: 'image/jpeg',
+        );
+
+        await expectLater(saveFinding(), throwsException);
+        final firstAttempt = retryRepository.submittedPins.single;
+        final saved = await saveFinding();
+
+        expect(retryRepository.submittedPins, hasLength(2));
+        expect(retryRepository.submittedPins.last.id, firstAttempt.id);
+        expect(
+          retryRepository.submittedPins.last.createdAt,
+          firstAttempt.createdAt,
+        );
+        expect(saved.id, firstAttempt.id);
+        expect(
+          (await retryRepository.getPinsForJobCard('JC-FINDING-RETRY')),
+          hasLength(1),
+        );
+        expect(retryController.state.pins, hasLength(1));
+      },
+    );
+
+    test(
+      'Cancel after an uncertain save refreshes before a new finding',
+      () async {
+        final retryRepository = LoseFirstFindingResponseRepository();
+        final retryController = ConditionMapController(
+          repository: retryRepository,
+          initialJobCardId: 'JC-FINDING-CANCEL',
+          initialRegistration: 'QA-ONLY',
+        );
+
+        await expectLater(
+          retryController.addPin(
+            view: ConditionViewDirection.front,
+            nx: .5,
+            ny: .4,
+            type: DefectType.surfaceScuff,
+            severity: DefectSeverity.minor,
+            note: 'QA TEST ONLY: first synthetic finding',
+          ),
+          throwsException,
+        );
+        final firstPinId = retryRepository.submittedPins.single.id;
+
+        retryController.discardPendingPin();
+        final secondPin = await retryController.addPin(
+          view: ConditionViewDirection.rear,
+          nx: .6,
+          ny: .5,
+          type: DefectType.dent,
+          severity: DefectSeverity.moderate,
+          note: 'QA TEST ONLY: second synthetic finding',
+        );
+
+        expect(secondPin.id, isNot(firstPinId));
+        expect(retryController.state.pins, hasLength(2));
+        expect(
+          await retryRepository.getPinsForJobCard('JC-FINDING-CANCEL'),
+          hasLength(2),
+        );
+      },
+    );
 
     test('Adding multiple pins increments sequential ID and filters by active view', () async {
       await controller.addPin(

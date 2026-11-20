@@ -544,6 +544,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
     String? photoContentType;
     String? photoError;
     var isPickingPhoto = false;
+    var saved = false;
     final controller = ref.read(conditionMapControllerProvider.notifier);
     await showDialog<void>(
       context: context,
@@ -777,6 +778,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                           photoBytes: photoBytes,
                           photoContentType: photoContentType,
                         );
+                        saved = true;
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                       } catch (_) {
                         if (context.mounted) {
@@ -792,6 +794,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
         ),
       ),
     );
+    if (!saved) controller.discardPendingPin();
     note.dispose();
   }
 

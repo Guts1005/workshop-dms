@@ -26,7 +26,11 @@ class FuelIntakeSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percent = (value * 100).round();
-    final isLowFuel = value <= 0.15;
+    final isLowFuel = isConfirmed && value <= 0.15;
+    final displayValue = isConfirmed ? value.clamp(0.0, 1.0) : 0.0;
+    final gaugeColor = isConfirmed
+        ? (isLowFuel ? AppTokens.brandRed : AppTokens.inverse)
+        : AppTokens.borderLight;
 
     return Container(
       padding: const EdgeInsets.all(14.0),
@@ -96,20 +100,15 @@ class FuelIntakeSlider extends StatelessWidget {
               return SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 8.0,
-                  activeTrackColor: isLowFuel
-                      ? AppTokens.brandRed
-                      : AppTokens.inverse,
+                  activeTrackColor: isLowFuel ? AppTokens.brandRed : gaugeColor,
                   inactiveTrackColor: AppTokens.surfaceSubtle,
-                  thumbColor: isLowFuel
-                      ? AppTokens.brandRed
-                      : AppTokens.inverse,
+                  thumbColor: isLowFuel ? AppTokens.brandRed : gaugeColor,
                   thumbShape: const RoundSliderThumbShape(
                     enabledThumbRadius: 10.0,
                     elevation: 2.0,
                   ),
-                  overlayColor:
-                      (isLowFuel ? AppTokens.brandRed : AppTokens.inverse)
-                          .withValues(alpha: 0.15),
+                  overlayColor: (isLowFuel ? AppTokens.brandRed : gaugeColor)
+                      .withValues(alpha: 0.15),
                   overlayShape: const RoundSliderOverlayShape(
                     overlayRadius: 18.0,
                   ),
@@ -120,7 +119,7 @@ class FuelIntakeSlider extends StatelessWidget {
                   inactiveTickMarkColor: AppTokens.borderSolid,
                 ),
                 child: Slider(
-                  value: value.clamp(0.0, 1.0),
+                  value: displayValue,
                   min: 0.0,
                   max: 1.0,
                   divisions: 4,
@@ -137,7 +136,8 @@ class FuelIntakeSlider extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(_steps.length, (index) {
                 final stepVal = _steps[index];
-                final isSelected = (value - stepVal).abs() < 0.05;
+                final isSelected =
+                    isConfirmed && (value - stepVal).abs() < 0.05;
                 return InkWell(
                   onTap: isReadOnly ? null : () => onChanged(stepVal),
                   borderRadius: BorderRadius.circular(4.0),
