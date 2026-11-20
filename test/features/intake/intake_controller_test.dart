@@ -192,5 +192,35 @@ void main() {
         expect(retryRepository.requestIds, hasLength(2));
       },
     );
+
+    test(
+      'Edited intake starts a new request after a failed submission',
+      () async {
+        final retryRepository = _LostResponseIntakeRepository();
+        final retryController = IntakeController(repository: retryRepository);
+        retryController.onRegistrationChanged('MH12DE1432');
+        retryController.onPhoneChanged('9876543210');
+        retryController.onNameChanged('Ramesh Patel');
+        retryController.onMakeChanged('HYUNDAI');
+        retryController.onModelChanged('CRETA SX');
+        retryController.onBodyTypeChanged(VehicleBodyType.sub4mSuv);
+        retryController.onOdometerChanged('15420');
+        retryController.onFuelLevelChanged(75);
+        retryController.onRequestedWorkChanged('First service');
+        retryController.onExpectedDeliveryChanged(
+          DateTime.now().add(const Duration(days: 1)),
+        );
+
+        expect(await retryController.submitIntake(), isFalse);
+        retryController.onRequestedWorkChanged('First service and brake check');
+
+        expect(await retryController.submitIntake(), isTrue);
+        expect(retryRepository.requestIds, hasLength(2));
+        expect(
+          retryRepository.requestIds.last,
+          isNot(retryRepository.requestIds.first),
+        );
+      },
+    );
   });
 }

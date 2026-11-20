@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -20,7 +22,8 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   final IntakeRepository repository;
   int _vehicleLookupRequest = 0;
   int _customerLookupRequest = 0;
-  final String _submissionRequestId = const Uuid().v4();
+  String _submissionRequestId = const Uuid().v4();
+  String? _lastSubmissionFingerprint;
 
   IntakeController({required this.repository}) : super(const IntakeFormState());
 
@@ -361,11 +364,19 @@ class IntakeController extends StateNotifier<IntakeFormState> {
       return false;
     }
 
+    final submittedForm = state;
+    final fingerprint = _submissionFingerprint(submittedForm);
+    if (_lastSubmissionFingerprint != null &&
+        _lastSubmissionFingerprint != fingerprint) {
+      _submissionRequestId = const Uuid().v4();
+    }
+    _lastSubmissionFingerprint = fingerprint;
+
     state = state.copyWith(status: IntakeStatus.saving, errorMessage: null);
 
     try {
       final jobCardId = await repository.submitIntake(
-        state,
+        submittedForm,
         requestId: _submissionRequestId,
       );
       state = state.copyWith(
@@ -381,4 +392,23 @@ class IntakeController extends StateNotifier<IntakeFormState> {
       return false;
     }
   }
+
+  String _submissionFingerprint(IntakeFormState form) => jsonEncode({
+    'registration_number': form.registrationNumber.toUpperCase().replaceAll(
+      RegExp(r'[\s-]'),
+      '',
+    ),
+    'vin': form.vin.trim().isEmpty ? null : form.vin.trim().toUpperCase(),
+    'make': form.make.trim(),
+    'model': form.model.trim(),
+    'body_type': form.bodyType.label.trim(),
+    'customer_name': form.customerName.trim(),
+    'customer_phone': IntakeValidators.normalizeMobile(form.customerPhone),
+    'whatsapp_consent': form.whatsappConsent,
+    'odometer_km': int.parse(form.odometer),
+    'fuel_level_percent': form.fuelLevelPercent,
+    'requested_work': form.requestedWork.trim(),
+    'expected_delivery': form.expectedDelivery?.toUtc().toIso8601String(),
+    'belongings': form.belongings.toMap(),
+  });
 }

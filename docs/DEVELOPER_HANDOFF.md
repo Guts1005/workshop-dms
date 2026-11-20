@@ -7,7 +7,7 @@
 
 - Flutter app shell with Home, Applications, and Vehicles navigation.
 - Supabase email authentication, workshop setup, workshop-scoped records, and an empty setup state when configuration or data is missing.
-- Customer/vehicle intake and application creation backed by Supabase. Intake retries reuse a request ID; migration `202611200011_idempotent_application_intake.sql` enforces the key in the database and restricts job-card creation to the RPC.
+- Customer/vehicle intake and application creation backed by Supabase. Retries reuse a request ID only while submitted details are unchanged; editing after a failed attempt starts a new request. Migration `202611200011_idempotent_application_intake.sql` enforces the key in the database and restricts job-card creation to the RPC.
 - Application list and dashboard reads from workshop records.
 - Bay check-in photo capture, private Storage uploads, and manager override records.
 - Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket.
@@ -82,7 +82,7 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 ## Verification already completed
 
-- Local Flutter verification: the focused condition signoff suite passed, all 133 tests passed, and `flutter analyze` reported no issues. A release web build and `git diff --check` are still pending for the current uncommitted changes.
+- Local Flutter verification: the focused condition signoff and intake suites passed, all 134 tests passed, and `flutter analyze` reported no issues. The release web build also succeeded.
 - Live Supabase inspection confirmed all sixteen migrations, all workflow tables with RLS enabled, the private photo bucket, and workshop-scoped Storage policies. The trigger-only approval guard cannot be called through RPC; the authenticated signoff RPC remains callable and anon cannot call it. Supabase's remaining security warnings are for intended authenticated, input-validating RPCs; leaked-password protection remains disabled in project Auth settings.
 - Authenticated RPC behavior, actual photo upload/view/delete, second-workshop isolation, and physical-device camera/gallery permissions remain unverified. No test customer, job, or photo was inserted into the live project.
 

@@ -9,7 +9,7 @@ Workshop DMS is an active prototype. All 16 repository migrations are now applie
 | Area | Status | Notes |
 | --- | --- | --- |
 | App shell and authentication | Implemented | Supabase setup, sign-in, and workshop setup screens exist. |
-| Intake and applications | Implemented; authenticated live QA pending | Reads and RPC-backed writes are Supabase-backed. Request IDs make retries duplicate-safe; migrations are applied. Application cards route to the next incomplete task. |
+| Intake and applications | Implemented; authenticated live QA pending | Reads and RPC-backed writes are Supabase-backed. Unchanged retries reuse the request ID; edited submissions receive a new one. Migrations are applied. Application cards route to the next incomplete task. |
 | Bay check-in | Implemented; device QA pending | Six-photo gate is enforced in the client and database; manager overrides require a workshop owner. Private Storage bucket and workshop-scoped policies are present. |
 | Condition report | Implemented; authenticated live QA pending | Findings, optional photos, review areas, and sign-off exist. Sign-off retries reuse the same timestamp and checksum and return idempotently in the database. |
 | Job card / estimate | Partial | Line items persist; sent estimates lock. Per-item approval, decline, revision response, audit history, and unanimous-approval transition are implemented. Vehicle passport history and live Supabase verification remain. |
