@@ -82,7 +82,7 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 ## Verification already completed
 
-- Local Flutter verification: all 124 tests passed, `flutter analyze` completed with no issues, and the web release build succeeded after inventory changes.
+- Local Flutter verification: all 125 tests passed, `flutter analyze` completed with no issues, and the web release build succeeded after vehicle-history updates.
 - `git diff --check` completed cleanly after the latest changes.
 - Live Supabase migration state, live Storage policies, workflow RPCs, and physical-device camera flow were not verified. This environment has no Supabase CLI/MCP, `psql`, or running Docker daemon, so database execution remains the key verification gap. Apply all thirteen migrations before exercising intake, inspections, customer responses, work progress, QC, invoice, payment, delivery, and inventory against the live project.
 

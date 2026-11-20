@@ -4,6 +4,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../ui_kit/tokens/app_tokens.dart';
 
+String vehicleRecordStatusLabel(String value) => switch (value) {
+  'DELIVERED' => 'Completed',
+  'CANCELLED' => 'Cancelled',
+  'READY_FOR_PICKUP' => 'Ready for pickup',
+  'QC_PASSED' => 'Invoice pending',
+  'WORK_IN_PROGRESS' => 'In service',
+  'ESTIMATE_REVISION_REQUIRED' => 'Estimate update needed',
+  'WAITING_APPROVAL' || 'ESTIMATE_SENT' => 'Waiting for approval',
+  'INSPECTION_PENDING' => 'Inspection',
+  'RECEIVED' => 'Check-in',
+  _ => 'Open',
+};
+
 class DigitalPassportScreen extends StatefulWidget {
   final String? registrationNumber;
   final String? model;
@@ -92,7 +105,7 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${vehicle['make']} ${vehicle['model']} · ${vehicle['body_type']}',
+                      "${vehicle['make']} ${vehicle['model']} - ${vehicle['body_type']}",
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -133,7 +146,7 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
                       row['requested_work'] as String? ?? 'Service application',
                     ),
                     subtitle: Text(
-                      '${date == null ? '' : '${date.day}/${date.month}/${date.year} · '}${row['intake_odometer_km']} km',
+                      '${date == null ? '' : '${date.day}/${date.month}/${date.year} - '}${row['intake_odometer_km']} km',
                     ),
                     trailing: Text(_status(row['status'] as String? ?? '')),
                   ),
@@ -145,14 +158,7 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
     ),
   );
 
-  String _status(String value) => switch (value) {
-    'DELIVERED' => 'Completed',
-    'CANCELLED' => 'Cancelled',
-    'READY_FOR_PICKUP' => 'Ready',
-    'WORK_IN_PROGRESS' => 'In progress',
-    'WAITING_APPROVAL' || 'ESTIMATE_SENT' => 'Awaiting approval',
-    _ => 'Open',
-  };
+  String _status(String value) => vehicleRecordStatusLabel(value);
 }
 
 class _EmptyRecord extends StatelessWidget {

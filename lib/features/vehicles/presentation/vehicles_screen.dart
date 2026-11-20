@@ -252,6 +252,21 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                   _detail('VIN', vehicle['vin'] as String),
                 if ((vehicle['customerName'] as String).isNotEmpty)
                   _detail('Latest customer', vehicle['customerName'] as String),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    this.context.push(
+                      '/passport',
+                      extra: {
+                        'registrationNumber': vehicle['plate'],
+                        'model': vehicle['model'],
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.history),
+                  label: const Text('Open service record'),
+                ),
                 const SizedBox(height: 10),
                 const Text(
                   'Applications',
@@ -282,12 +297,9 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                     ),
                     onTap: () {
                       Navigator.pop(context);
-                      context.push(
-                        '/condition-map',
-                        extra: {
-                          'jobCardId': job['id'],
-                          'registrationNumber': vehicle['plate'],
-                        },
+                      this.context.go(
+                        '/applications',
+                        extra: {'registrationNumber': vehicle['plate']},
                       );
                     },
                   ),
