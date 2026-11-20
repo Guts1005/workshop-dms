@@ -3,6 +3,27 @@ import 'package:workshop_dms/features/intake/models/intake_form_state.dart';
 import 'package:workshop_dms/features/intake/presentation/intake_controller.dart';
 import 'package:workshop_dms/features/intake/services/intake_repository.dart';
 
+class _LostResponseIntakeRepository extends LocalIntakeRepository {
+  final requestIds = <String>[];
+  String? committedJobCardId;
+  bool loseFirstResponse = true;
+
+  @override
+  Future<String> submitIntake(
+    IntakeFormState formState, {
+    required String requestId,
+  }) async {
+    requestIds.add(requestId);
+    final result = await super.submitIntake(formState, requestId: requestId);
+    if (loseFirstResponse) {
+      loseFirstResponse = false;
+      committedJobCardId = result;
+      throw StateError('The response was lost after the server committed.');
+    }
+    return result;
+  }
+}
+
 void main() {
   group('IntakeController Unit Tests', () {
     late LocalIntakeRepository repository;
@@ -105,5 +126,71 @@ void main() {
       expect(controller.state.createdJobCardId, isNotNull);
       expect(controller.state.errorMessage, isNull);
     });
+
+    test(
+      'Local intake retry rejects a reused ID with edited details',
+      () async {
+        final intake = IntakeFormState(
+          registrationNumber: 'KA01AB1234',
+          customerPhone: '9876543210',
+          customerName: 'Asha Rao',
+          make: 'TOYOTA',
+          model: 'ETIOS',
+          odometer: '25000',
+          requestedWork: 'Inspect brakes',
+          expectedDelivery: DateTime(2026, 11, 22),
+        );
+
+        final jobId = await repository.submitIntake(
+          intake,
+          requestId: 'same-request',
+        );
+        expect(
+          await repository.submitIntake(intake, requestId: 'same-request'),
+          jobId,
+        );
+        await expectLater(
+          repository.submitIntake(
+            intake.copyWith(requestedWork: 'Replace brake pads'),
+            requestId: 'same-request',
+          ),
+          throwsA(isA<StateError>()),
+        );
+      },
+    );
+
+    test(
+      'Retries an intake with the same request ID after a lost response',
+      () async {
+        final retryRepository = _LostResponseIntakeRepository();
+        final retryController = IntakeController(repository: retryRepository);
+        retryController.onRegistrationChanged('MH12DE1432');
+        retryController.onPhoneChanged('9876543210');
+        retryController.onNameChanged('Ramesh Patel');
+        retryController.onMakeChanged('HYUNDAI');
+        retryController.onModelChanged('CRETA SX');
+        retryController.onBodyTypeChanged(VehicleBodyType.sub4mSuv);
+        retryController.onOdometerChanged('15420');
+        retryController.onFuelLevelChanged(75);
+        retryController.onRequestedWorkChanged('First service');
+        retryController.onExpectedDeliveryChanged(
+          DateTime.now().add(const Duration(days: 1)),
+        );
+
+        expect(await retryController.submitIntake(), isFalse);
+        expect(await retryController.submitIntake(), isTrue);
+        expect(retryRepository.requestIds, hasLength(2));
+        expect(
+          retryRepository.requestIds.first,
+          retryRepository.requestIds.last,
+        );
+        expect(
+          retryController.state.createdJobCardId,
+          retryRepository.committedJobCardId,
+        );
+        expect(await retryController.submitIntake(), isTrue);
+        expect(retryRepository.requestIds, hasLength(2));
+      },
+    );
   });
 }

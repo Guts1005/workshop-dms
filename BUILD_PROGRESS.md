@@ -1,15 +1,15 @@
 # Build progress
 
-**Updated:** 20 November 2026
+**Updated:** 21 November 2026
 
-Workshop DMS is an active prototype. Intake, application listing, bay check-in, condition reporting, invoicing, payment, delivery, and initial inventory flows are implemented against Supabase, but the end-to-end live-project flow and device QA still need verification. Reminders remain incomplete.
+Workshop DMS is an active prototype. The configured Supabase project currently exposes the original intake, vehicle, job-card, photo, and condition-report tables, but a read-only schema probe found the newer inspection, approval, work-progress, QC, billing, payment, delivery, and inventory tables missing. Reminders remain incomplete, and the full live-project flow still needs verification.
 
 ## Current snapshot
 
 | Area | Status | Notes |
 | --- | --- | --- |
 | App shell and authentication | Implemented | Supabase setup, sign-in, and workshop setup screens exist. |
-| Intake and applications | Implemented; live QA pending | Writes and reads are Supabase-backed. Application cards now route to the next incomplete task. Verify against the intended project. |
+| Intake and applications | Implemented; live QA pending | Reads and RPC-backed writes are Supabase-backed. Retries reuse a request ID to avoid duplicate applications; migration `202611200011` must be applied. Application cards route to the next incomplete task. |
 | Bay check-in | Implemented; migration/device QA pending | Six-photo gate is enforced in the client and in migration `202611200001`; manager overrides require a workshop owner. Private Storage upload and retake-safe replacement are present. Apply the migration to the target project before live use. |
 | Condition report | Implemented; live QA pending | Findings, optional photos, review areas, and sign-off exist. |
 | Job card / estimate | Partial | Line items persist; sent estimates lock. Per-item approval, decline, revision response, audit history, and unanimous-approval transition are implemented. Vehicle passport history and live Supabase verification remain. |
@@ -25,7 +25,7 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 
 ## Next work
 
-1. Apply all thirteen migrations, then verify RLS, auth, photos, invoice numbering, payment reconciliation, stock controls, and the complete workflow against the target Supabase project.
+1. Apply and verify all fourteen migrations against the target Supabase project. A read-only API probe on 21 November found the original customer, vehicle, job-card, check-in-photo, and condition-report tables, while tables from later workflow migrations returned 404. RLS, auth, RPC behavior, and Storage policies remain unverified.
 2. Add customer decision history to vehicle history and connect inventory issue/return controls to active work.
 3. Complete passport and service reminders, then durable offline sync.
 4. Add golden tests and finish platform, security, accessibility, and release QA. GitHub Actions now runs formatting, analysis, tests, and a web release build for `master` pushes and pull requests.

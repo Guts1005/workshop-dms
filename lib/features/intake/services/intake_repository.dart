@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:uuid/uuid.dart';
 import 'package:workshop_dms/data/sync/outbox_sync_service.dart';
@@ -101,13 +102,26 @@ class JobCardRecord {
   };
 }
 
+class _IntakeRequestResult {
+  const _IntakeRequestResult({
+    required this.jobCardId,
+    required this.fingerprint,
+  });
+
+  final String jobCardId;
+  final String fingerprint;
+}
+
 abstract class IntakeRepository {
   Future<CustomerRecord?> findCustomerByPhone(String phone);
   Future<VehicleRecord?> findVehicleByRegistration(String registrationNumber);
   Future<List<PreviousServiceSummary>> getVehicleServiceHistory(
     String vehicleId,
   );
-  Future<String> submitIntake(IntakeFormState formState);
+  Future<String> submitIntake(
+    IntakeFormState formState, {
+    required String requestId,
+  });
 }
 
 /// Offline-first In-Memory and SQLite repository backed by OutboxSyncService
@@ -119,6 +133,7 @@ class LocalIntakeRepository implements IntakeRepository {
   final Map<String, VehicleRecord> _vehicles = {};
   final Map<String, JobCardRecord> _jobCards = {};
   final Map<String, List<PreviousServiceSummary>> _historyByVehicleId = {};
+  final Map<String, _IntakeRequestResult> _jobCardByRequestId = {};
 
   LocalIntakeRepository({this.outboxSyncService});
 
@@ -150,7 +165,21 @@ class LocalIntakeRepository implements IntakeRepository {
   }
 
   @override
-  Future<String> submitIntake(IntakeFormState formState) async {
+  Future<String> submitIntake(
+    IntakeFormState formState, {
+    required String requestId,
+  }) async {
+    final fingerprint = _intakeFingerprint(formState);
+    final existing = _jobCardByRequestId[requestId];
+    if (existing != null) {
+      if (existing.fingerprint != fingerprint) {
+        throw StateError(
+          'This intake request ID was already used with different details.',
+        );
+      }
+      return existing.jobCardId;
+    }
+
     final normalizedReg = formState.registrationNumber.toUpperCase().replaceAll(
       RegExp(r'[\s\-]'),
       '',
@@ -228,6 +257,10 @@ class LocalIntakeRepository implements IntakeRepository {
       createdAt: DateTime.now(),
     );
     _jobCards[jobCardId] = jobCard;
+    _jobCardByRequestId[requestId] = _IntakeRequestResult(
+      jobCardId: jobCardId,
+      fingerprint: fingerprint,
+    );
 
     outboxSyncService?.enqueue(
       id: _uuid.v4(),
@@ -238,6 +271,31 @@ class LocalIntakeRepository implements IntakeRepository {
     );
 
     return jobCardId;
+  }
+
+  String _intakeFingerprint(IntakeFormState state) {
+    final phoneDigits = state.customerPhone.replaceAll(RegExp(r'\D'), '');
+    final normalizedPhone = phoneDigits.length > 10
+        ? phoneDigits.substring(phoneDigits.length - 10)
+        : phoneDigits;
+    return jsonEncode({
+      'registration_number': state.registrationNumber.toUpperCase().replaceAll(
+        RegExp(r'[\s-]'),
+        '',
+      ),
+      'vin': state.vin.trim().isEmpty ? null : state.vin.trim().toUpperCase(),
+      'make': state.make.trim(),
+      'model': state.model.trim(),
+      'body_type': state.bodyType.label,
+      'customer_name': state.customerName.trim(),
+      'customer_phone': normalizedPhone,
+      'whatsapp_consent': state.whatsappConsent,
+      'odometer_km': int.tryParse(state.odometer),
+      'fuel_level_percent': state.fuelLevelPercent,
+      'requested_work': state.requestedWork.trim(),
+      'expected_delivery': state.expectedDelivery?.toUtc().toIso8601String(),
+      'belongings': state.belongings.toMap(),
+    });
   }
 }
 
@@ -329,7 +387,10 @@ class SupabaseIntakeRepository implements IntakeRepository {
   }
 
   @override
-  Future<String> submitIntake(IntakeFormState formState) async {
+  Future<String> submitIntake(
+    IntakeFormState formState, {
+    required String requestId,
+  }) async {
     final result = await client.rpc(
       'create_application',
       params: {
@@ -348,6 +409,7 @@ class SupabaseIntakeRepository implements IntakeRepository {
             ?.toUtc()
             .toIso8601String(),
         'p_belongings': formState.belongings.toMap(),
+        'p_request_id': requestId,
       },
     );
     if (result is! String || result.isEmpty) {

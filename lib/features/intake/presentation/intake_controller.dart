@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/intake_form_state.dart';
 import '../services/intake_repository.dart';
@@ -19,6 +20,7 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   final IntakeRepository repository;
   int _vehicleLookupRequest = 0;
   int _customerLookupRequest = 0;
+  final String _submissionRequestId = const Uuid().v4();
 
   IntakeController({required this.repository}) : super(const IntakeFormState());
 
@@ -354,6 +356,7 @@ class IntakeController extends StateNotifier<IntakeFormState> {
 
   Future<bool> submitIntake() async {
     if (state.status == IntakeStatus.saving) return false;
+    if (state.status == IntakeStatus.success) return true;
     if (!validateForm()) {
       return false;
     }
@@ -361,7 +364,10 @@ class IntakeController extends StateNotifier<IntakeFormState> {
     state = state.copyWith(status: IntakeStatus.saving, errorMessage: null);
 
     try {
-      final jobCardId = await repository.submitIntake(state);
+      final jobCardId = await repository.submitIntake(
+        state,
+        requestId: _submissionRequestId,
+      );
       state = state.copyWith(
         status: IntakeStatus.success,
         createdJobCardId: jobCardId,
