@@ -131,6 +131,19 @@ void main() {
       expect(action.route, '/payment-gate');
       expect(action.label, 'Record payment and delivery');
     });
+
+    test('keeps delivered applications out of the intake workflow', () {
+      final action = nextApplicationAction(
+        jobStatus: 'DELIVERED',
+        mandatoryPhotoCount: 0,
+        hasManagerOverride: false,
+        hasConditionReport: false,
+        hasMechanicalInspection: false,
+      );
+
+      expect(action.route, '/applications');
+      expect(action.label, 'View completed application');
+    });
   });
 
   group('validateMechanicalInspection', () {

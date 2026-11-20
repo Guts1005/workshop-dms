@@ -2,7 +2,7 @@
 
 **Updated:** 20 November 2026
 
-Workshop DMS is an active prototype. Intake, application listing, bay check-in, and condition reporting are implemented against Supabase, but the end-to-end live-project flow and device QA still need verification. Several downstream workflow pages are placeholders.
+Workshop DMS is an active prototype. Intake, application listing, bay check-in, condition reporting, invoicing, payment, and delivery flows are implemented against Supabase, but the end-to-end live-project flow and device QA still need verification. Inventory and reminders remain incomplete.
 
 ## Current snapshot
 
@@ -19,16 +19,15 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 | Inventory | Not implemented | No persisted stock or supplier records. |
 | QC / road test | Initial workflow implemented; migration/live QA pending | Requires repair-complete confirmation, four explicit checks, and a road-test result or reason. Failed QC keeps work in progress; audited pass moves to `QC_PASSED`. Apply migration `202611200007` before live use. |
 | GST invoice | Initial workflow implemented; migration/live QA pending | For GST-registered suppliers, uses explicitly entered approved-estimate rates, creates an immutable snapshot and FY serial in a database RPC, computes state-based tax split, and prints a PDF. Bill-of-supply and IRN submission are not implemented; rate and place-of-supply classification need accountant verification. Apply migration `202611200008` before live use. |
-| Payment / delivery | Not implemented | Route placeholder; payment records, balance reconciliation, owner credit override, and delivery gate are missing. |
+| Payment / delivery | Initial workflow implemented; migration/live QA pending | Payment ledger, balance checks, owner-only audited credit override, and server-enforced handover are implemented. Apply migration `202611200009` before live use. |
 | Vehicle passport / reminders | Partial | Internal history and calculation helpers exist; public QR/passport and reminders are incomplete. |
 | Offline-first sync | Not implemented | Current outbox service is in-memory and is not wired as a durable background worker. |
 
 ## Next work
 
-1. Apply all eleven migrations, then verify RLS, auth, photos, invoice numbering, tax totals, and the complete intake-to-workflow flow against the target Supabase project.
-2. Implement payment reconciliation, credit override, and server-enforced delivery confirmation.
-3. Add inventory persistence and stock controls; add customer decision history to vehicle history.
-4. Complete passport and service reminders, then durable offline sync.
-5. Add CI and finish platform, security, accessibility, and release QA.
+1. Apply all twelve migrations, then verify RLS, auth, photos, invoice numbering, payment reconciliation, and the complete workflow against the target Supabase project.
+2. Add inventory persistence and stock controls; add customer decision history to vehicle history.
+3. Complete passport and service reminders, then durable offline sync.
+4. Add CI and finish platform, security, accessibility, and release QA.
 
 See [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md) for detailed priorities, architecture notes, setup, and verification limits. The older `tasks/` documents are historical specifications and do not represent current completion status.

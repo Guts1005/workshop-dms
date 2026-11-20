@@ -14,6 +14,18 @@ ApplicationNextAction nextApplicationAction({
   required bool hasConditionReport,
   required bool hasMechanicalInspection,
 }) {
+  if (jobStatus == 'DELIVERED') {
+    return const ApplicationNextAction(
+      route: '/applications',
+      label: 'View completed application',
+    );
+  }
+  if (jobStatus == 'CANCELLED') {
+    return const ApplicationNextAction(
+      route: '/applications',
+      label: 'View cancelled application',
+    );
+  }
   if (!hasConditionReport && mandatoryPhotoCount < 6 && !hasManagerOverride) {
     return const ApplicationNextAction(
       route: '/bay-capture',
@@ -331,7 +343,7 @@ class WorkshopDatabase {
     'ESTIMATE_SENT' || 'WAITING_APPROVAL' => 'Waiting for approval',
     'ESTIMATE_REVISION_REQUIRED' => 'Estimate changes requested',
     'WORK_IN_PROGRESS' => 'Being serviced',
-    'QC_PASSED' => 'QC passed · invoice pending',
+    'QC_PASSED' => 'QC passed - invoice pending',
     'READY_FOR_PICKUP' => 'Ready for pickup',
     'DELIVERED' => 'Completed',
     'CANCELLED' => 'Cancelled',

@@ -8,6 +8,18 @@ import '../../../ui_kit/widgets/sharp_card.dart';
 import '../../../ui_kit/widgets/status_chip.dart';
 import '../../../data/supabase/workshop_database.dart';
 
+bool applicationRouteHasAction(String? route) => const {
+  '/bay-capture',
+  '/condition-map',
+  '/mechanical-inspection',
+  '/job-card',
+  '/whatsapp-dispatch',
+  '/work-in-progress',
+  '/qc-gate',
+  '/gst-invoicing',
+  '/payment-gate',
+}.contains(route);
+
 /// Production-Grade Applications Screen (Destination 2 of 3)
 /// Lists and searches current and past workshop applications / jobs:
 /// - Plain human statuses: "Being serviced", "Waiting for approval", "Ready for pickup", "Completed"
@@ -681,11 +693,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
                   ],
 
                   // Only expose workspaces that are implemented.
-                  if (app['route'] == '/bay-capture' ||
-                      app['route'] == '/mechanical-inspection' ||
-                      app['route'] == '/whatsapp-dispatch' ||
-                      app['route'] == '/job-card' ||
-                      app['route'] == '/condition-map')
+                  if (applicationRouteHasAction(app['route'] as String?))
                     ElevatedButton(
                       onPressed: () {
                         Navigator.of(modalContext).pop();

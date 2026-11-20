@@ -15,6 +15,7 @@ import '../features/whatsapp_dispatch/whatsapp_dispatch_screen.dart';
 import '../features/work_in_progress/work_in_progress_screen.dart';
 import '../features/quality_gate/quality_gate_screen.dart';
 import '../features/billing/invoice_screen.dart';
+import '../features/payment_gate/payment_gate_screen.dart';
 import '../features/job_card/presentation/job_card_screen.dart';
 import 'placeholder_screen.dart';
 
@@ -344,12 +345,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/payment-gate',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PhasePlaceholderScreen(
-        pageNumber: 10,
-        title: 'Payment & Vehicle Handover',
-        description:
-            'Swipe-to-confirm delivery verification and balance clearance.',
-      ),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PaymentGateScreen(jobCardId: extra?['jobCardId'] as String?);
+      },
     ),
 
     // Detailed Vehicle Passport
