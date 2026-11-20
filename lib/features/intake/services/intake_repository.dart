@@ -1,6 +1,11 @@
 import 'dart:async';
+
 import 'package:uuid/uuid.dart';
 import 'package:workshop_dms/data/sync/outbox_sync_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../data/supabase/workshop_database.dart';
+
 import '../models/intake_form_state.dart';
 
 class CustomerRecord {
@@ -19,12 +24,12 @@ class CustomerRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'phone': phone,
-        'consentWhatsapp': consentWhatsapp,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'phone': phone,
+    'consentWhatsapp': consentWhatsapp,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 class VehicleRecord {
@@ -51,16 +56,16 @@ class VehicleRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'registrationNumber': registrationNumber,
-        'vin': vin,
-        'make': make,
-        'model': model,
-        'bodyType': bodyType,
-        'odometerKm': odometerKm,
-        'fuelLevelPercent': fuelLevelPercent,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'registrationNumber': registrationNumber,
+    'vin': vin,
+    'make': make,
+    'model': model,
+    'bodyType': bodyType,
+    'odometerKm': odometerKm,
+    'fuelLevelPercent': fuelLevelPercent,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 class JobCardRecord {
@@ -85,21 +90,23 @@ class JobCardRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'vehicleId': vehicleId,
-        'customerId': customerId,
-        'status': status,
-        'requestedWork': requestedWork,
-        'expectedDelivery': expectedDelivery.toIso8601String(),
-        'belongings': belongings,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'vehicleId': vehicleId,
+    'customerId': customerId,
+    'status': status,
+    'requestedWork': requestedWork,
+    'expectedDelivery': expectedDelivery.toIso8601String(),
+    'belongings': belongings,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 abstract class IntakeRepository {
   Future<CustomerRecord?> findCustomerByPhone(String phone);
   Future<VehicleRecord?> findVehicleByRegistration(String registrationNumber);
-  Future<List<PreviousServiceSummary>> getVehicleServiceHistory(String vehicleId);
+  Future<List<PreviousServiceSummary>> getVehicleServiceHistory(
+    String vehicleId,
+  );
   Future<String> submitIntake(IntakeFormState formState);
 }
 
@@ -107,7 +114,6 @@ abstract class IntakeRepository {
 class LocalIntakeRepository implements IntakeRepository {
   final OutboxSyncService? outboxSyncService;
   final _uuid = const Uuid();
-
   // Local persistent stores
   final Map<String, CustomerRecord> _customers = {};
   final Map<String, VehicleRecord> _vehicles = {};
@@ -116,82 +122,46 @@ class LocalIntakeRepository implements IntakeRepository {
 
   LocalIntakeRepository({this.outboxSyncService});
 
-  /// Seed initial demo data (for showroom and existing car testing)
-  void seedDemoData() {
-    const custId = 'cust-demo-1';
-    const vehId = 'veh-demo-1';
-
-    _customers['9829012345'] = CustomerRecord(
-      id: custId,
-      name: 'Aditya Mehta',
-      phone: '9829012345',
-      consentWhatsapp: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 120)),
-    );
-
-    _vehicles['RJ27CA1024'] = VehicleRecord(
-      id: vehId,
-      registrationNumber: 'RJ27CA1024',
-      vin: 'MA3EWA12S00123456',
-      make: 'MG MOTOR',
-      model: 'HECTOR PLUS SHARP PRO',
-      bodyType: 'MID/FULL SUV',
-      odometerKm: 27227,
-      fuelLevelPercent: 65,
-      createdAt: DateTime.now().subtract(const Duration(days: 120)),
-    );
-
-    _historyByVehicleId[vehId] = [
-      PreviousServiceSummary(
-        jobCardId: 'jc-prev-1',
-        serviceDate: DateTime(2026, 6, 18),
-        odometerKm: 27227,
-        totalAmountPaise: 747672,
-        orderId: 'N330302623',
-        feedback: 'Exceptional',
-      ),
-      PreviousServiceSummary(
-        jobCardId: 'jc-prev-2',
-        serviceDate: DateTime(2026, 3, 31),
-        odometerKm: 23279,
-        totalAmountPaise: 0,
-        orderId: 'N330301684',
-        feedback: 'Exceptional',
-      ),
-      PreviousServiceSummary(
-        jobCardId: 'jc-prev-3',
-        serviceDate: DateTime(2026, 2, 9),
-        odometerKm: 20711,
-        totalAmountPaise: 924582,
-        orderId: 'N330301285',
-        feedback: 'Exceptional',
-      ),
-    ];
-  }
-
   @override
   Future<CustomerRecord?> findCustomerByPhone(String phone) async {
     final cleaned = phone.replaceAll(RegExp(r'[\s\-]'), '');
-    final normalized = cleaned.length > 10 ? cleaned.substring(cleaned.length - 10) : cleaned;
+    final normalized = cleaned.length > 10
+        ? cleaned.substring(cleaned.length - 10)
+        : cleaned;
     return _customers[normalized];
   }
 
   @override
-  Future<VehicleRecord?> findVehicleByRegistration(String registrationNumber) async {
-    final normalized = registrationNumber.toUpperCase().replaceAll(RegExp(r'[\s\-]'), '');
+  Future<VehicleRecord?> findVehicleByRegistration(
+    String registrationNumber,
+  ) async {
+    final normalized = registrationNumber.toUpperCase().replaceAll(
+      RegExp(r'[\s\-]'),
+      '',
+    );
     return _vehicles[normalized];
   }
 
   @override
-  Future<List<PreviousServiceSummary>> getVehicleServiceHistory(String vehicleId) async {
+  Future<List<PreviousServiceSummary>> getVehicleServiceHistory(
+    String vehicleId,
+  ) async {
     return _historyByVehicleId[vehicleId] ?? [];
   }
 
   @override
   Future<String> submitIntake(IntakeFormState formState) async {
-    final normalizedReg = formState.registrationNumber.toUpperCase().replaceAll(RegExp(r'[\s\-]'), '');
-    final normalizedPhone = formState.customerPhone.replaceAll(RegExp(r'[\s\-]'), '');
-    final cleanPhone = normalizedPhone.length > 10 ? normalizedPhone.substring(normalizedPhone.length - 10) : normalizedPhone;
+    final normalizedReg = formState.registrationNumber.toUpperCase().replaceAll(
+      RegExp(r'[\s\-]'),
+      '',
+    );
+    final normalizedPhone = formState.customerPhone.replaceAll(
+      RegExp(r'[\s\-]'),
+      '',
+    );
+    final cleanPhone = normalizedPhone.length > 10
+        ? normalizedPhone.substring(normalizedPhone.length - 10)
+        : normalizedPhone;
 
     // 1. Resolve or Create Customer
     var customer = _customers[cleanPhone];
@@ -223,7 +193,9 @@ class LocalIntakeRepository implements IntakeRepository {
     vehicle = VehicleRecord(
       id: vehId,
       registrationNumber: normalizedReg,
-      vin: formState.vin.trim().isNotEmpty ? formState.vin.trim().toUpperCase() : null,
+      vin: formState.vin.trim().isNotEmpty
+          ? formState.vin.trim().toUpperCase()
+          : null,
       make: formState.make,
       model: formState.model.trim(),
       bodyType: formState.bodyType.label,
@@ -249,7 +221,9 @@ class LocalIntakeRepository implements IntakeRepository {
       customerId: customer.id,
       status: 'RECEIVED',
       requestedWork: formState.requestedWork.trim(),
-      expectedDelivery: formState.expectedDelivery ?? DateTime.now().add(const Duration(days: 1)),
+      expectedDelivery:
+          formState.expectedDelivery ??
+          DateTime.now().add(const Duration(days: 1)),
       belongings: formState.belongings.toMap(),
       createdAt: DateTime.now(),
     );
@@ -264,5 +238,123 @@ class LocalIntakeRepository implements IntakeRepository {
     );
 
     return jobCardId;
+  }
+}
+
+class SupabaseIntakeRepository implements IntakeRepository {
+  SupabaseIntakeRepository(this.client) : _database = WorkshopDatabase(client);
+
+  final SupabaseClient client;
+  final WorkshopDatabase _database;
+
+  @override
+  Future<CustomerRecord?> findCustomerByPhone(String phone) async {
+    final workshopId = await _database.currentWorkshopId();
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    final normalized = digits.length > 10
+        ? digits.substring(digits.length - 10)
+        : digits;
+    final row = await client
+        .from('customers')
+        .select('id, name, phone, consent_whatsapp, created_at')
+        .eq('workshop_id', workshopId)
+        .eq('phone', normalized)
+        .maybeSingle();
+    if (row == null) return null;
+    return CustomerRecord(
+      id: row['id'] as String,
+      name: row['name'] as String,
+      phone: row['phone'] as String,
+      consentWhatsapp: row['consent_whatsapp'] as bool,
+      createdAt: DateTime.parse(row['created_at'] as String),
+    );
+  }
+
+  @override
+  Future<VehicleRecord?> findVehicleByRegistration(
+    String registrationNumber,
+  ) async {
+    final workshopId = await _database.currentWorkshopId();
+    final normalized = registrationNumber.toUpperCase().replaceAll(
+      RegExp(r'[\s-]'),
+      '',
+    );
+    final row = await client
+        .from('vehicles')
+        .select(
+          'id, registration_number, vin, make, model, body_type, odometer_km, fuel_level_percent, created_at',
+        )
+        .eq('workshop_id', workshopId)
+        .eq('registration_number', normalized)
+        .maybeSingle();
+    if (row == null) return null;
+    return VehicleRecord(
+      id: row['id'] as String,
+      registrationNumber: row['registration_number'] as String,
+      vin: row['vin'] as String?,
+      make: row['make'] as String,
+      model: row['model'] as String,
+      bodyType: row['body_type'] as String,
+      odometerKm: row['odometer_km'] as int,
+      fuelLevelPercent: row['fuel_level_percent'] as int,
+      createdAt: DateTime.parse(row['created_at'] as String),
+    );
+  }
+
+  @override
+  Future<List<PreviousServiceSummary>> getVehicleServiceHistory(
+    String vehicleId,
+  ) async {
+    final workshopId = await _database.currentWorkshopId();
+    final rows = await client
+        .from('job_cards')
+        .select('id, created_at, intake_odometer_km, requested_work')
+        .eq('workshop_id', workshopId)
+        .eq('vehicle_id', vehicleId)
+        .neq('status', 'CANCELLED')
+        .order('created_at', ascending: false);
+    return rows
+        .map(
+          (row) => PreviousServiceSummary(
+            jobCardId: row['id'] as String,
+            serviceDate: DateTime.parse(row['created_at'] as String),
+            odometerKm: row['intake_odometer_km'] as int,
+            orderId: row['id'] as String,
+            totalAmountPaise: null,
+            feedback: null,
+            requestedWork: row['requested_work'] as String,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<String> submitIntake(IntakeFormState formState) async {
+    final result = await client.rpc(
+      'create_application',
+      params: {
+        'p_registration_number': formState.registrationNumber,
+        'p_vin': formState.vin,
+        'p_make': formState.make,
+        'p_model': formState.model,
+        'p_body_type': formState.bodyType.label,
+        'p_customer_name': formState.customerName,
+        'p_customer_phone': formState.customerPhone,
+        'p_whatsapp_consent': formState.whatsappConsent,
+        'p_odometer_km': int.parse(formState.odometer),
+        'p_fuel_level_percent': formState.fuelLevelPercent,
+        'p_requested_work': formState.requestedWork,
+        'p_expected_delivery': formState.expectedDelivery
+            ?.toUtc()
+            .toIso8601String(),
+        'p_belongings': formState.belongings.toMap(),
+      },
+    );
+    if (result is! String || result.isEmpty) {
+      throw const FormatException(
+        'The database did not return the new application ID.',
+      );
+    }
+    return result;
   }
 }

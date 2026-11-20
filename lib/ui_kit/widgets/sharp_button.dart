@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../tokens/app_tokens.dart';
 
-enum SharpButtonVariant {
-  primary,
-  secondary,
-  destructive,
-}
+enum SharpButtonVariant { primary, secondary, destructive }
 
 class SharpButton extends StatefulWidget {
   final String label;
@@ -70,10 +67,16 @@ class _SharpButtonState extends State<SharpButton> {
           border = null;
           break;
         case SharpButtonVariant.secondary:
-          backgroundColor = widget.onDark ? const Color(0xFF1E2430) : const Color(0xFFF1F5F9);
-          textColor = widget.onDark ? AppTokens.textOnDark : AppTokens.textPrimary;
+          backgroundColor = widget.onDark
+              ? const Color(0xFF1E2430)
+              : const Color(0xFFF1F5F9);
+          textColor = widget.onDark
+              ? AppTokens.textOnDark
+              : AppTokens.textPrimary;
           border = Border.all(
-            color: widget.onDark ? const Color(0xFF374151) : AppTokens.borderLight,
+            color: widget.onDark
+                ? const Color(0xFF374151)
+                : AppTokens.borderLight,
             width: 1.0,
           );
           break;
@@ -96,15 +99,7 @@ class _SharpButtonState extends State<SharpButton> {
         color: backgroundColor,
         borderRadius: effectiveRadius,
         border: border,
-        boxShadow: isEnabled && widget.variant == SharpButtonVariant.primary
-            ? [
-                BoxShadow(
-                  color: (widget.onDark ? Colors.black : AppTokens.inverse).withValues(alpha: 0.18),
-                  blurRadius: 8.0,
-                  offset: const Offset(0, 3),
-                ),
-              ]
-            : null,
+        boxShadow: null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -115,17 +110,17 @@ class _SharpButtonState extends State<SharpButton> {
             const SizedBox(width: AppTokens.minTouchGap),
           ],
           Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                widget.label.toUpperCase(),
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
+            child: Text(
+              widget.label.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: textColor,
+                fontSize: widget.variant == SharpButtonVariant.destructive
+                    ? 18.0
+                    : 16.0,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
               ),
             ),
           ),
@@ -138,7 +133,7 @@ class _SharpButtonState extends State<SharpButton> {
         decoration: BoxDecoration(
           borderRadius: effectiveRadius,
           border: Border.all(
-            color: AppTokens.brandRed,
+            color: AppTokens.inverse,
             width: AppTokens.focusRingWidth,
           ),
         ),
@@ -154,7 +149,9 @@ class _SharpButtonState extends State<SharpButton> {
         behavior: HitTestBehavior.opaque,
         onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
         onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
-        onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
+        onTapCancel: isEnabled
+            ? () => setState(() => _isPressed = false)
+            : null,
         onTap: widget.onPressed,
         child: content,
       ),

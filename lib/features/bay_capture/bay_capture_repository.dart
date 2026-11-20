@@ -1,5 +1,8 @@
 import 'dart:async';
+
 import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../data/sync/outbox_sync_service.dart';
 import 'bay_capture_models.dart';
 
@@ -9,7 +12,9 @@ abstract class BayCaptureRepository {
     required CapturedCheckInPhoto photo,
   });
 
-  Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(String jobCardId);
+  Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(
+    String jobCardId,
+  );
 
   Future<void> removePhoto({
     required String jobCardId,
@@ -34,7 +39,8 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
   final _uuid = const Uuid();
 
   // In-memory backing stores per jobCardId
-  final Map<String, Map<CheckInShotType, CapturedCheckInPhoto>> _photosByJobCard = {};
+  final Map<String, Map<CheckInShotType, CapturedCheckInPhoto>>
+  _photosByJobCard = {};
   final Map<String, ManagerOverrideRecord> _overridesByJobCard = {};
   final Map<String, String> _jobCardStatuses = {};
 
@@ -68,7 +74,9 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
   }
 
   @override
-  Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(String jobCardId) async {
+  Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(
+    String jobCardId,
+  ) async {
     return Map.unmodifiable(_photosByJobCard[jobCardId] ?? {});
   }
 
@@ -116,17 +124,8 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
     ManagerOverrideRecord? override,
   }) async {
     final photos = _photosByJobCard[jobCardId] ?? {};
-    final mandatoryCount = CheckInShotType.values
-        .where((shot) => shot.isMandatory && photos.containsKey(shot))
-        .length;
-
-    final hasOverride = override != null || _overridesByJobCard.containsKey(jobCardId);
-
-    if (mandatoryCount < 6 && !hasOverride) {
-      throw StateError(
-        'Cannot finalize check-in: Missing mandatory photos ($mandatoryCount/6 captured) and no Manager Override authorized.',
-      );
-    }
+    final hasOverride =
+        override != null || _overridesByJobCard.containsKey(jobCardId);
 
     if (override != null) {
       await recordManagerOverride(jobCardId: jobCardId, override: override);
@@ -144,10 +143,161 @@ class LocalBayCaptureRepository implements BayCaptureRepository {
         'status': 'INSPECTION_PENDING',
         'bayCaptureCompletedAt': DateTime.now().toIso8601String(),
         'photosCount': photos.length,
+        'missingShots': CheckInShotType.values
+            .where((shot) => shot.isMandatory && !photos.containsKey(shot))
+            .map((shot) => shot.name)
+            .toList(),
         'hasOverride': hasOverride,
       },
     );
   }
 
   String? getJobCardStatus(String jobCardId) => _jobCardStatuses[jobCardId];
+}
+
+class SupabaseBayCaptureRepository implements BayCaptureRepository {
+  SupabaseBayCaptureRepository(this.client);
+  final SupabaseClient client;
+  static const _bucket = 'workshop-checkin';
+
+  Future<String> _workshopId() async =>
+      (await client
+              .from('workshop_memberships')
+              .select('workshop_id')
+              .eq('user_id', client.auth.currentUser!.id)
+              .single())['workshop_id']
+          as String;
+
+  String _path(String workshopId, String jobId, CheckInShotType shot) =>
+      '$workshopId/$jobId/${shot.name}.jpg';
+
+  @override
+  Future<void> savePhoto({
+    required String jobCardId,
+    required CapturedCheckInPhoto photo,
+  }) async {
+    final bytes = photo.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('Photo data is empty. Retake the photo and try again.');
+    }
+    final workshopId = await _workshopId();
+    final path = _path(workshopId, jobCardId, photo.shotType);
+    await client.storage
+        .from(_bucket)
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(
+            contentType: 'image/jpeg',
+            upsert: true,
+          ),
+        );
+    try {
+      await client.from('bay_photos').upsert({
+        'workshop_id': workshopId,
+        'job_card_id': jobCardId,
+        'shot_type': photo.shotType.name,
+        'storage_path': path,
+        'sha256_hash': photo.sha256Hash,
+        'captured_at': photo.capturedAt.toUtc().toIso8601String(),
+      }, onConflict: 'job_card_id,shot_type');
+    } catch (_) {
+      await client.storage.from(_bucket).remove([path]);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<CheckInShotType, CapturedCheckInPhoto>> getPhotosForJobCard(
+    String jobCardId,
+  ) async {
+    final rows = await client
+        .from('bay_photos')
+        .select('shot_type, storage_path, sha256_hash, captured_at')
+        .eq('job_card_id', jobCardId);
+    return {
+      for (final row in rows)
+        CheckInShotType.values.firstWhere(
+          (shot) => shot.name == row['shot_type'],
+        ): CapturedCheckInPhoto(
+          shotType: CheckInShotType.values.firstWhere(
+            (shot) => shot.name == row['shot_type'],
+          ),
+          localFilePath: row['storage_path'] as String,
+          sha256Hash: row['sha256_hash'] as String,
+          capturedAt: DateTime.parse(row['captured_at'] as String),
+          fileSizeBytes: 0,
+        ),
+    };
+  }
+
+  @override
+  Future<void> removePhoto({
+    required String jobCardId,
+    required CheckInShotType shotType,
+  }) async {
+    final row = await client
+        .from('bay_photos')
+        .select('storage_path')
+        .eq('job_card_id', jobCardId)
+        .eq('shot_type', shotType.name)
+        .maybeSingle();
+    if (row == null) return;
+    await client
+        .from('bay_photos')
+        .delete()
+        .eq('job_card_id', jobCardId)
+        .eq('shot_type', shotType.name);
+    await client.storage.from(_bucket).remove([row['storage_path'] as String]);
+  }
+
+  @override
+  Future<void> recordManagerOverride({
+    required String jobCardId,
+    required ManagerOverrideRecord override,
+  }) async {
+    final workshopId = await _workshopId();
+    await client.from('manager_overrides').insert({
+      'workshop_id': workshopId,
+      'job_card_id': jobCardId,
+      'authorized_by': override.authorizedBy,
+      'reason': override.reason,
+      'missing_shots': override.missingShots.map((shot) => shot.name).toList(),
+      'created_at': override.timestamp.toUtc().toIso8601String(),
+    });
+  }
+
+  @override
+  Future<ManagerOverrideRecord?> getManagerOverride(String jobCardId) async {
+    final row = await client
+        .from('manager_overrides')
+        .select('authorized_by, reason, missing_shots, created_at')
+        .eq('job_card_id', jobCardId)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (row == null) return null;
+    return ManagerOverrideRecord(
+      authorizedBy: row['authorized_by'] as String,
+      reason: row['reason'] as String,
+      timestamp: DateTime.parse(row['created_at'] as String),
+      missingShots: (row['missing_shots'] as List<dynamic>)
+          .map(
+            (name) =>
+                CheckInShotType.values.firstWhere((shot) => shot.name == name),
+          )
+          .toList(),
+    );
+  }
+
+  @override
+  Future<void> finalizeBayCheckIn({
+    required String jobCardId,
+    ManagerOverrideRecord? override,
+  }) async {
+    await client
+        .from('job_cards')
+        .update({'status': 'INSPECTION_PENDING'})
+        .eq('id', jobCardId);
+  }
 }

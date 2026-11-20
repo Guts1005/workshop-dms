@@ -1,16 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'dart:typed_data';
+
 import 'bay_capture_models.dart';
 import 'bay_capture_repository.dart';
 
 final bayCaptureRepositoryProvider = Provider<BayCaptureRepository>((ref) {
-  return LocalBayCaptureRepository();
+  return SupabaseBayCaptureRepository(Supabase.instance.client);
 });
 
 final bayCaptureControllerProvider =
-    StateNotifierProvider.autoDispose<BayCaptureController, BayCaptureState>((ref) {
-  final repo = ref.watch(bayCaptureRepositoryProvider);
-  return BayCaptureController(repository: repo);
-});
+    StateNotifierProvider.autoDispose<BayCaptureController, BayCaptureState>((
+      ref,
+    ) {
+      final repo = ref.watch(bayCaptureRepositoryProvider);
+      return BayCaptureController(repository: repo);
+    });
 
 class BayCaptureController extends StateNotifier<BayCaptureState> {
   final BayCaptureRepository repository;
@@ -19,12 +25,17 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
     required this.repository,
     String? initialJobCardId,
     String? initialRegistration,
-  }) : super(BayCaptureState(
-          jobCardId: initialJobCardId ?? 'JC-TEMP-${DateTime.now().millisecondsSinceEpoch}',
-          registrationNumber: initialRegistration ?? 'MH02CL8899',
-        ));
+  }) : super(
+         BayCaptureState(
+           jobCardId: initialJobCardId ?? '',
+           registrationNumber: initialRegistration ?? '',
+         ),
+       );
 
-  Future<void> initSession({required String jobCardId, required String registrationNumber}) async {
+  Future<void> initSession({
+    required String jobCardId,
+    required String registrationNumber,
+  }) async {
     state = state.copyWith(
       jobCardId: jobCardId,
       registrationNumber: registrationNumber,
@@ -50,6 +61,7 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
     required String filePath,
     required String sha256Hash,
     required int fileSizeBytes,
+    Uint8List? bytes,
   }) async {
     state = state.copyWith(status: BayCaptureStatus.saving, clearError: true);
 
@@ -60,14 +72,14 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
         sha256Hash: sha256Hash,
         capturedAt: DateTime.now(),
         fileSizeBytes: fileSizeBytes,
+        bytes: bytes,
       );
 
-      await repository.savePhoto(
-        jobCardId: state.jobCardId,
-        photo: photo,
-      );
+      await repository.savePhoto(jobCardId: state.jobCardId, photo: photo);
 
-      final updatedMap = Map<CheckInShotType, CapturedCheckInPhoto>.from(state.capturedPhotos);
+      final updatedMap = Map<CheckInShotType, CapturedCheckInPhoto>.from(
+        state.capturedPhotos,
+      );
       updatedMap[shotType] = photo;
 
       // Determine next uncaptured mandatory shot (if any)
@@ -92,15 +104,26 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
     }
   }
 
-  void retakeShot(CheckInShotType shotType) {
-    final updatedMap = Map<CheckInShotType, CapturedCheckInPhoto>.from(state.capturedPhotos);
-    updatedMap.remove(shotType);
-    repository.removePhoto(jobCardId: state.jobCardId, shotType: shotType);
-    state = state.copyWith(
-      activeShotType: shotType,
-      capturedPhotos: updatedMap,
-      clearError: true,
-    );
+  Future<void> retakeShot(CheckInShotType shotType) async {
+    try {
+      await repository.removePhoto(
+        jobCardId: state.jobCardId,
+        shotType: shotType,
+      );
+      final updatedMap = Map<CheckInShotType, CapturedCheckInPhoto>.from(
+        state.capturedPhotos,
+      )..remove(shotType);
+      state = state.copyWith(
+        activeShotType: shotType,
+        capturedPhotos: updatedMap,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        status: BayCaptureStatus.error,
+        errorMessage: 'Could not remove the saved photo: $error',
+      );
+    }
   }
 
   String? validateManagerOverride({
@@ -163,14 +186,6 @@ class BayCaptureController extends StateNotifier<BayCaptureState> {
   }
 
   Future<bool> finalizeCheckIn() async {
-    if (!state.canFinalizeCheckIn) {
-      state = state.copyWith(
-        errorMessage:
-            'Gating Error: All 6 mandatory shots required (${state.mandatoryCompletedCount}/6 complete) or Manager Override authorization.',
-      );
-      return false;
-    }
-
     state = state.copyWith(status: BayCaptureStatus.saving, clearError: true);
 
     try {

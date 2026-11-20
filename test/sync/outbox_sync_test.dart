@@ -22,7 +22,10 @@ void main() {
 
     setUp(() {
       mockClient = MockRemoteSyncClient();
-      syncService = OutboxSyncService(remoteClient: mockClient, initialOnline: true);
+      syncService = OutboxSyncService(
+        remoteClient: mockClient,
+        initialOnline: true,
+      );
     });
 
     test('Immediate sync when device is online', () async {
@@ -42,51 +45,54 @@ void main() {
       expect(mockClient.pushedItems.first.recordId, 'veh-101');
     });
 
-    test('Queues items while offline, flushes automatically when coming online', () async {
-      // 1. Go offline
-      syncService.setOnline(false);
-      expect(syncService.isOnline, isFalse);
+    test(
+      'Queues items while offline, flushes automatically when coming online',
+      () async {
+        // 1. Go offline
+        syncService.setOnline(false);
+        expect(syncService.isOnline, isFalse);
 
-      // 2. Perform 3 offline mutations
-      syncService.enqueue(
-        id: 'mut-1',
-        targetTable: 'customers',
-        recordId: 'cust-1',
-        operation: 'INSERT',
-        payload: {'name': 'Bhavyam'},
-      );
-      syncService.enqueue(
-        id: 'mut-2',
-        targetTable: 'vehicles',
-        recordId: 'veh-1',
-        operation: 'INSERT',
-        payload: {'reg': 'RJ27CA1024'},
-      );
-      syncService.enqueue(
-        id: 'mut-3',
-        targetTable: 'job_cards',
-        recordId: 'jc-1',
-        operation: 'INSERT',
-        payload: {'status': 'RECEIVED'},
-      );
+        // 2. Perform 3 offline mutations
+        syncService.enqueue(
+          id: 'mut-1',
+          targetTable: 'customers',
+          recordId: 'cust-1',
+          operation: 'INSERT',
+          payload: {'name': 'Bhavyam'},
+        );
+        syncService.enqueue(
+          id: 'mut-2',
+          targetTable: 'vehicles',
+          recordId: 'veh-1',
+          operation: 'INSERT',
+          payload: {'reg': 'RJ27CA1024'},
+        );
+        syncService.enqueue(
+          id: 'mut-3',
+          targetTable: 'job_cards',
+          recordId: 'jc-1',
+          operation: 'INSERT',
+          payload: {'status': 'RECEIVED'},
+        );
 
-      // Verify all 3 are stored locally in the outbox
-      expect(syncService.pendingCount, 3);
-      expect(syncService.syncedCount, 0);
-      expect(mockClient.pushedItems.isEmpty, isTrue);
+        // Verify all 3 are stored locally in the outbox
+        expect(syncService.pendingCount, 3);
+        expect(syncService.syncedCount, 0);
+        expect(mockClient.pushedItems.isEmpty, isTrue);
 
-      // 3. Network reconnects
-      syncService.setOnline(true);
-      await pumpEventQueue();
+        // 3. Network reconnects
+        syncService.setOnline(true);
+        await pumpEventQueue();
 
-      // Verify all 3 were flushed in FIFO order
-      expect(syncService.pendingCount, 0);
-      expect(syncService.syncedCount, 3);
-      expect(mockClient.pushedItems.length, 3);
-      expect(mockClient.pushedItems[0].recordId, 'cust-1');
-      expect(mockClient.pushedItems[1].recordId, 'veh-1');
-      expect(mockClient.pushedItems[2].recordId, 'jc-1');
-    });
+        // Verify all 3 were flushed in FIFO order
+        expect(syncService.pendingCount, 0);
+        expect(syncService.syncedCount, 3);
+        expect(mockClient.pushedItems.length, 3);
+        expect(mockClient.pushedItems[0].recordId, 'cust-1');
+        expect(mockClient.pushedItems[1].recordId, 'veh-1');
+        expect(mockClient.pushedItems[2].recordId, 'jc-1');
+      },
+    );
 
     test('Network error increments retry count and sets lastError without dropping payload', () async {
       mockClient.shouldFail = true;

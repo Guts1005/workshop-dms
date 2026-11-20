@@ -27,7 +27,10 @@ void main() {
       });
 
       test('Normalizes registration string correctly', () {
-        expect(IntakeValidators.normalizeRegistration('rj-27 ca 1024'), 'RJ27CA1024');
+        expect(
+          IntakeValidators.normalizeRegistration('rj-27 ca 1024'),
+          'RJ27CA1024',
+        );
       });
     });
 
@@ -44,14 +47,26 @@ void main() {
       test('Rejects invalid mobile numbers', () {
         expect(IntakeValidators.validateMobile(null), isNotNull);
         expect(IntakeValidators.validateMobile(''), isNotNull);
-        expect(IntakeValidators.validateMobile('1234567890'), isNotNull); // Doesn't start with 6-9
-        expect(IntakeValidators.validateMobile('98290'), isNotNull); // Too short
-        expect(IntakeValidators.validateMobile('982901234567'), isNotNull); // Too long
+        expect(
+          IntakeValidators.validateMobile('1234567890'),
+          isNotNull,
+        ); // Doesn't start with 6-9
+        expect(
+          IntakeValidators.validateMobile('98290'),
+          isNotNull,
+        ); // Too short
+        expect(
+          IntakeValidators.validateMobile('982901234567'),
+          isNotNull,
+        ); // Too long
         expect(IntakeValidators.validateMobile('abcdefghij'), isNotNull);
       });
 
       test('Normalizes mobile numbers correctly', () {
-        expect(IntakeValidators.normalizeMobile('+91 98290 12345'), '9829012345');
+        expect(
+          IntakeValidators.normalizeMobile('+91 98290 12345'),
+          '9829012345',
+        );
         expect(IntakeValidators.normalizeMobile('09829012345'), '9829012345');
       });
     });
@@ -81,13 +96,25 @@ void main() {
         expect(IntakeValidators.validateOdometer(''), isNotNull);
         expect(IntakeValidators.validateOdometer('-500'), isNotNull);
         expect(IntakeValidators.validateOdometer('abc'), isNotNull);
-        expect(IntakeValidators.validateOdometer('2000000'), isNotNull); // Exceeds max
+        expect(
+          IntakeValidators.validateOdometer('2000000'),
+          isNotNull,
+        ); // Exceeds max
       });
 
-      test('Flags rollback when reading is lower than previous recorded service', () {
-        expect(IntakeValidators.validateOdometer('25000', previousKm: 30000), contains('rollback'));
-        expect(IntakeValidators.validateOdometer('32000', previousKm: 30000), isNull);
-      });
+      test(
+        'Flags rollback when reading is lower than previous recorded service',
+        () {
+          expect(
+            IntakeValidators.validateOdometer('25000', previousKm: 30000),
+            contains('rollback'),
+          );
+          expect(
+            IntakeValidators.validateOdometer('32000', previousKm: 30000),
+            isNull,
+          );
+        },
+      );
     });
 
     group('VIN validation', () {
@@ -100,13 +127,31 @@ void main() {
         expect(IntakeValidators.validateVin('MA3EWA12S00123456'), isNull);
       });
 
-      test('Rejects VIN with forbidden characters (I, O, Q) or wrong length', () {
-        expect(IntakeValidators.validateVin('MA3EWA12S0012345'), isNotNull); // 16 chars
-        expect(IntakeValidators.validateVin('MA3EWA12S001234567'), isNotNull); // 18 chars
-        expect(IntakeValidators.validateVin('MA3EWA12I00123456'), contains('ISO 3779')); // contains 'I'
-        expect(IntakeValidators.validateVin('MA3EWA12O00123456'), contains('ISO 3779')); // contains 'O'
-        expect(IntakeValidators.validateVin('MA3EWA12Q00123456'), contains('ISO 3779')); // contains 'Q'
-      });
+      test(
+        'Rejects VIN with forbidden characters (I, O, Q) or wrong length',
+        () {
+          expect(
+            IntakeValidators.validateVin('MA3EWA12S0012345'),
+            isNotNull,
+          ); // 16 chars
+          expect(
+            IntakeValidators.validateVin('MA3EWA12S001234567'),
+            isNotNull,
+          ); // 18 chars
+          expect(
+            IntakeValidators.validateVin('MA3EWA12I00123456'),
+            contains('ISO 3779'),
+          ); // contains 'I'
+          expect(
+            IntakeValidators.validateVin('MA3EWA12O00123456'),
+            contains('ISO 3779'),
+          ); // contains 'O'
+          expect(
+            IntakeValidators.validateVin('MA3EWA12Q00123456'),
+            contains('ISO 3779'),
+          ); // contains 'Q'
+        },
+      );
     });
 
     group('Expected delivery validation', () {

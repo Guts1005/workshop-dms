@@ -1,5 +1,7 @@
 import 'package:crypto/crypto.dart';
 
+import 'dart:typed_data';
+
 enum CheckInShotType {
   frontLeft45(
     'FRONT-LEFT 45° CORNER (HERO)',
@@ -55,6 +57,7 @@ class CapturedCheckInPhoto {
   final String sha256Hash;
   final DateTime capturedAt;
   final int fileSizeBytes;
+  final Uint8List? bytes;
 
   const CapturedCheckInPhoto({
     required this.shotType,
@@ -62,6 +65,7 @@ class CapturedCheckInPhoto {
     required this.sha256Hash,
     required this.capturedAt,
     required this.fileSizeBytes,
+    this.bytes,
   });
 
   static String computeHash(List<int> bytes) {
@@ -69,16 +73,18 @@ class CapturedCheckInPhoto {
   }
 
   Map<String, dynamic> toJson() => {
-        'shotType': shotType.name,
-        'localFilePath': localFilePath,
-        'sha256Hash': sha256Hash,
-        'capturedAt': capturedAt.toIso8601String(),
-        'fileSizeBytes': fileSizeBytes,
-      };
+    'shotType': shotType.name,
+    'localFilePath': localFilePath,
+    'sha256Hash': sha256Hash,
+    'capturedAt': capturedAt.toIso8601String(),
+    'fileSizeBytes': fileSizeBytes,
+  };
 
   factory CapturedCheckInPhoto.fromJson(Map<String, dynamic> json) {
     return CapturedCheckInPhoto(
-      shotType: CheckInShotType.values.firstWhere((e) => e.name == json['shotType']),
+      shotType: CheckInShotType.values.firstWhere(
+        (e) => e.name == json['shotType'],
+      ),
       localFilePath: json['localFilePath'] as String,
       sha256Hash: json['sha256Hash'] as String,
       capturedAt: DateTime.parse(json['capturedAt'] as String),
@@ -101,11 +107,11 @@ class ManagerOverrideRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'authorizedBy': authorizedBy,
-        'reason': reason,
-        'timestamp': timestamp.toIso8601String(),
-        'missingShots': missingShots.map((s) => s.name).toList(),
-      };
+    'authorizedBy': authorizedBy,
+    'reason': reason,
+    'timestamp': timestamp.toIso8601String(),
+    'missingShots': missingShots.map((s) => s.name).toList(),
+  };
 
   factory ManagerOverrideRecord.fromJson(Map<String, dynamic> json) {
     return ManagerOverrideRecord(
@@ -113,20 +119,15 @@ class ManagerOverrideRecord {
       reason: json['reason'] as String,
       timestamp: DateTime.parse(json['timestamp'] as String),
       missingShots: (json['missingShots'] as List<dynamic>)
-          .map((name) => CheckInShotType.values.firstWhere((s) => s.name == name))
+          .map(
+            (name) => CheckInShotType.values.firstWhere((s) => s.name == name),
+          )
           .toList(),
     );
   }
 }
 
-enum BayCaptureStatus {
-  idle,
-  capturing,
-  reviewing,
-  saving,
-  completed,
-  error,
-}
+enum BayCaptureStatus { idle, capturing, reviewing, saving, completed, error }
 
 class BayCaptureState {
   final String jobCardId;
@@ -157,12 +158,14 @@ class BayCaptureState {
     return CheckInShotType.values.where((shot) => shot.isMandatory).length;
   }
 
-  bool get isAllMandatoryCaptured => mandatoryCompletedCount == totalMandatoryCount;
+  bool get isAllMandatoryCaptured =>
+      mandatoryCompletedCount == totalMandatoryCount;
 
   bool get isOverrideActive => managerOverride != null;
 
-  /// Gate: Check-in cannot finalize without either all 6 mandatory shots OR an authorized Manager Override
-  bool get canFinalizeCheckIn => isAllMandatoryCaptured || isOverrideActive;
+  /// Let the advisor continue when a camera or vehicle access is unavailable.
+  /// Any missing shots stay visible as incomplete follow-up work.
+  bool get canFinalizeCheckIn => true;
 
   List<CheckInShotType> get missingMandatoryShots {
     return CheckInShotType.values
@@ -186,7 +189,9 @@ class BayCaptureState {
       registrationNumber: registrationNumber ?? this.registrationNumber,
       activeShotType: activeShotType ?? this.activeShotType,
       capturedPhotos: capturedPhotos ?? this.capturedPhotos,
-      managerOverride: clearOverride ? null : (managerOverride ?? this.managerOverride),
+      managerOverride: clearOverride
+          ? null
+          : (managerOverride ?? this.managerOverride),
       status: status ?? this.status,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );

@@ -24,7 +24,9 @@ void main() {
     setUp(() {
       mockRemoteClient = MockRemoteSyncClient();
       outboxService = OutboxSyncService(remoteClient: mockRemoteClient);
-      repository = LocalConditionMapRepository(outboxSyncService: outboxService);
+      repository = LocalConditionMapRepository(
+        outboxSyncService: outboxService,
+      );
       controller = ConditionMapController(
         repository: repository,
         initialJobCardId: 'JC-MAP-001',
@@ -43,14 +45,17 @@ void main() {
       expect(state.selectedPin, isNull);
     });
 
-    test('Switching views updates activeView and deselects active pin', () async {
-      controller.switchView(ConditionViewDirection.front);
-      expect(controller.state.activeView, ConditionViewDirection.front);
-      expect(controller.state.selectedPin, isNull);
+    test(
+      'Switching views updates activeView and deselects active pin',
+      () async {
+        controller.switchView(ConditionViewDirection.front);
+        expect(controller.state.activeView, ConditionViewDirection.front);
+        expect(controller.state.selectedPin, isNull);
 
-      controller.switchView(ConditionViewDirection.rear);
-      expect(controller.state.activeView, ConditionViewDirection.rear);
-    });
+        controller.switchView(ConditionViewDirection.rear);
+        expect(controller.state.activeView, ConditionViewDirection.rear);
+      },
+    );
 
     test('Adding a pin saves to repository, queues outbox mutation, and clamps coordinates', () async {
       final pin = await controller.addPin(
@@ -62,7 +67,7 @@ void main() {
         note: 'Deep dent on door panel',
       );
 
-      expect(pin.id, 1);
+      expect(pin.id, greaterThan(0));
       expect(pin.normalizedX, 1.0);
       expect(pin.normalizedY, 0.0);
       expect(pin.type, DefectType.dent);
@@ -103,17 +108,18 @@ void main() {
 
       final state = controller.state;
       expect(state.totalPinCount, 2);
-      expect(state.pins[0].id, 1);
-      expect(state.pins[1].id, 2);
+      final leftPinId = state.pins[0].id;
+      final frontPinId = state.pins[1].id;
+      expect(leftPinId, isNot(frontPinId));
 
       // In sideLeft view, only 1 pin is active
       expect(state.activeViewPins.length, 1);
-      expect(state.activeViewPins.first.id, 1);
+      expect(state.activeViewPins.first.id, leftPinId);
 
       // Switch to front view, 1 pin active
       controller.switchView(ConditionViewDirection.front);
       expect(controller.state.activeViewPins.length, 1);
-      expect(controller.state.activeViewPins.first.id, 2);
+      expect(controller.state.activeViewPins.first.id, frontPinId);
     });
 
     test('Deleting a pin removes it from state, queues outbox delete, and unselects', () async {
@@ -133,27 +139,44 @@ void main() {
       expect(controller.state.totalPinCount, 0);
       expect(controller.state.selectedPin, isNull);
 
-      final deleteMutation = outboxService.allItems.firstWhere((i) => i.operation == 'DELETE');
+      final deleteMutation = outboxService.allItems.firstWhere(
+        (i) => i.operation == 'DELETE',
+      );
       expect(deleteMutation.targetTable, 'condition_pins');
       expect(deleteMutation.payload['pinId'], pin.id);
     });
 
-    test('Sign-off input validation rejects invalid inputs', () {
+    test('Sign-off input validation rejects invalid inputs', () async {
+      for (final view in ConditionViewDirection.values) {
+        await controller.markViewReviewed(view);
+      }
       // Too short customer name
       expect(
-        controller.validateSignOffInput(customerName: 'A', customerPhone: '9876543210', advisorName: 'Kunal'),
+        controller.validateSignOffInput(
+          customerName: 'A',
+          customerPhone: '9876543210',
+          advisorName: 'Kunal',
+        ),
         contains('Customer name must be at least 2 characters'),
       );
 
       // Invalid phone number
       expect(
-        controller.validateSignOffInput(customerName: 'Aarav', customerPhone: '12345', advisorName: 'Kunal'),
+        controller.validateSignOffInput(
+          customerName: 'Aarav',
+          customerPhone: '12345',
+          advisorName: 'Kunal',
+        ),
         contains('10-digit customer mobile number'),
       );
 
       // Too short advisor name
       expect(
-        controller.validateSignOffInput(customerName: 'Aarav', customerPhone: '9876543210', advisorName: 'K'),
+        controller.validateSignOffInput(
+          customerName: 'Aarav',
+          customerPhone: '9876543210',
+          advisorName: 'K',
+        ),
         contains('Service advisor name must be at least 2 characters'),
       );
     });
@@ -167,6 +190,10 @@ void main() {
         type: DefectType.dent,
         severity: DefectSeverity.moderate,
       );
+
+      for (final view in ConditionViewDirection.values) {
+        await controller.markViewReviewed(view);
+      }
       await controller.addPin(
         view: ConditionViewDirection.rear,
         nx: 0.65,
@@ -196,37 +223,47 @@ void main() {
       expect(repository.getJobCardStatus('JC-MAP-001'), 'INSPECTION_PENDING');
 
       // Verify signoff and jobcard update in outbox
-      final signoffMutation = outboxService.allItems.firstWhere((i) => i.targetTable == 'condition_signoffs');
+      final signoffMutation = outboxService.allItems.firstWhere(
+        (i) => i.targetTable == 'condition_signoffs',
+      );
       expect(signoffMutation.payload['customerName'], 'Rohan Sharma');
 
-      final jobCardMutation = outboxService.allItems.firstWhere((i) => i.targetTable == 'job_cards');
+      final jobCardMutation = outboxService.allItems.firstWhere(
+        (i) => i.targetTable == 'job_cards',
+      );
       expect(jobCardMutation.payload['status'], 'INSPECTION_PENDING');
       expect(jobCardMutation.payload['conditionPinsCount'], 2);
     });
 
-    test('Modifications are blocked once map is signed off and locked', () async {
-      await controller.confirmPreWorkSignOff(
-        customerName: 'Rohan Sharma',
-        customerPhone: '9876543210',
-        advisorName: 'Manish Verma',
-      );
+    test(
+      'Modifications are blocked once map is signed off and locked',
+      () async {
+        for (final view in ConditionViewDirection.values) {
+          await controller.markViewReviewed(view);
+        }
+        await controller.confirmPreWorkSignOff(
+          customerName: 'Rohan Sharma',
+          customerPhone: '9876543210',
+          advisorName: 'Manish Verma',
+        );
 
-      expect(controller.state.isLocked, isTrue);
+        expect(controller.state.isLocked, isTrue);
 
-      // Attempt to add pin throws StateError
-      expect(
-        () => controller.addPin(
-          view: ConditionViewDirection.front,
-          nx: 0.5,
-          ny: 0.5,
-          type: DefectType.dent,
-          severity: DefectSeverity.minor,
-        ),
-        throwsStateError,
-      );
+        // Attempt to add pin throws StateError
+        expect(
+          () => controller.addPin(
+            view: ConditionViewDirection.front,
+            nx: 0.5,
+            ny: 0.5,
+            type: DefectType.dent,
+            severity: DefectSeverity.minor,
+          ),
+          throwsStateError,
+        );
 
-      // Attempt to delete throws StateError
-      expect(() => controller.deletePin(1), throwsStateError);
-    });
+        // Attempt to delete throws StateError
+        expect(() => controller.deletePin(1), throwsStateError);
+      },
+    );
   });
 }

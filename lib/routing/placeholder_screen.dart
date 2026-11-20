@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../ui_kit/tokens/app_tokens.dart';
 
 class PhasePlaceholderScreen extends StatelessWidget {
@@ -15,78 +18,158 @@ class PhasePlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppTokens.base,
-      padding: const EdgeInsets.all(24.0),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 580.0),
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            color: AppTokens.raised,
-            borderRadius: AppTokens.zeroRadius,
-            border: Border.all(color: AppTokens.borderSolid, width: 1.0),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                color: AppTokens.inverse,
-                child: Text(
-                  'STAGE GATED: PAGE $pageNumber',
-                  style: const TextStyle(
-                    color: AppTokens.textOnDark,
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: 'monospace',
-                  ),
-                ),
+    return Scaffold(
+      backgroundColor: AppTokens.base,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 580.0),
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16.0),
+                border: Border.all(color: const Color(0xFFCBD5E1), width: 1.0),
+                boxShadow: AppTokens.softShadow,
               ),
-              const SizedBox(height: 12.0),
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.w900,
-                  color: AppTokens.textPrimary,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  color: AppTokens.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              Container(
-                height: 1.0,
-                color: AppTokens.dividerPassive,
-              ),
-              const SizedBox(height: 12.0),
-              const Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.lock_outline, size: 16.0, color: AppTokens.redOrange),
-                  SizedBox(width: 8.0),
-                  Expanded(
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 4.0,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: AppTokens.inverse,
+                      borderRadius: AppTokens.inputRadius,
+                    ),
                     child: Text(
-                      'LOCKED UNTIL PRIOR PAGE SIGN-OFF IN BUILD_PROGRESS.MD',
-                      style: TextStyle(
+                      'SERVICE WORKSPACE',
+                      style: GoogleFonts.inter(
+                        color: AppTokens.textOnDark,
                         fontSize: 11.0,
-                        fontWeight: FontWeight.w700,
-                        color: AppTokens.redOrange,
-                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14.0),
+                  Text(
+                    title.toUpperCase(),
+                    style: GoogleFonts.inter(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w900,
+                      color: AppTokens.textPrimary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    description,
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      color: AppTokens.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Container(height: 1.0, color: AppTokens.borderLight),
+                  const SizedBox(height: 14.0),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.lock_outline,
+                        size: 16.0,
+                        color: Color(0xFFD97706),
+                      ),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: Text(
+                          'We’ll show updates here as your application progresses.',
+                          style: GoogleFonts.inter(
+                            fontSize: 11.0,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFB45309),
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8.0),
+                          onTap: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            } else {
+                              context.go('/applications');
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F172A),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.arrow_back,
+                                  size: 14.0,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 6.0),
+                                Text(
+                                  'BACK TO APPLICATIONS',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10.0),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8.0),
+                        onTap: () => context.go('/'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14.0,
+                            vertical: 10.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8.0),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'HOME HUB',
+                            style: GoogleFonts.inter(
+                              color: AppTokens.textPrimary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

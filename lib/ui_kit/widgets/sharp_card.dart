@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../tokens/app_tokens.dart';
 
 /// Modern Automotive Telemetry Card with soft ambient elevation,
@@ -48,11 +49,17 @@ class SharpCard extends StatelessWidget {
         children: [
           if (title != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               decoration: const BoxDecoration(
-                color: Color(0xFFF8FAFC),
+                color: AppTokens.surface,
                 border: Border(
-                  bottom: BorderSide(color: Color(0xFFEDF2F7), width: 1.0),
+                  bottom: BorderSide(
+                    color: AppTokens.dividerPassive,
+                    width: 1.0,
+                  ),
                 ),
               ),
               child: Row(
@@ -64,9 +71,9 @@ class SharpCard extends StatelessWidget {
                         Container(
                           width: 3.5,
                           height: 14.0,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppTokens.brandRed,
-                            borderRadius: BorderRadius.circular(2.0),
+                            borderRadius: BorderRadius.zero,
                           ),
                         ),
                         const SizedBox(width: 8.0),
@@ -76,7 +83,7 @@ class SharpCard extends StatelessWidget {
                             style: AppTokens.fontMonospace(
                               color: AppTokens.textPrimary,
                               fontWeight: FontWeight.w800,
-                              fontSize: 12.0,
+                              fontSize: 16.0,
                               letterSpacing: 0.6,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -89,10 +96,7 @@ class SharpCard extends StatelessWidget {
                 ],
               ),
             ),
-          Padding(
-            padding: padding,
-            child: child,
-          ),
+          Padding(padding: padding, child: child),
         ],
       ),
     );

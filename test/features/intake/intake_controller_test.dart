@@ -10,44 +10,51 @@ void main() {
 
     setUp(() {
       repository = LocalIntakeRepository();
-      repository.seedDemoData();
       controller = IntakeController(repository: repository);
     });
 
     test('Initial state is idle with default values', () {
       final state = controller.state;
       expect(state.status, IntakeStatus.idle);
-      expect(state.make, 'MARUTI SUZUKI');
+      expect(state.make, isEmpty);
       expect(state.fuelLevelPercent, 50);
-      expect(state.whatsappConsent, isTrue);
-      expect(state.belongings.jackAndToolKit, isTrue);
-      expect(state.belongings.spareTyre, isTrue);
+      expect(state.fuelLevelConfirmed, isFalse);
+      expect(state.whatsappConsent, isFalse);
+      expect(state.belongings.jackAndToolKit, isFalse);
+      expect(state.belongings.spareTyre, isFalse);
       expect(state.isExistingVehicle, isFalse);
       expect(state.isExistingCustomer, isFalse);
     });
 
-    test('Auto-looks up existing vehicle and populates history and lastRecordedKm', () async {
-      controller.onRegistrationChanged('RJ27CA1024');
-      await pumpEventQueue();
+    test(
+      'Unknown registration stays a new vehicle without fabricated history',
+      () async {
+        controller.onRegistrationChanged('RJ27CA1024');
+        await pumpEventQueue();
 
-      final state = controller.state;
-      expect(state.isExistingVehicle, isTrue);
-      expect(state.make, 'MG MOTOR');
-      expect(state.model, 'HECTOR PLUS SHARP PRO');
-      expect(state.vin, 'MA3EWA12S00123456');
-      expect(state.lastRecordedKm, 27227);
-      expect(state.previousHistory.length, 3);
-      expect(state.previousHistory.first.orderId, 'N330302623');
-    });
+        final state = controller.state;
+        expect(state.isExistingVehicle, isFalse);
+        expect(state.previousHistory, isEmpty);
+      },
+    );
 
     test('Auto-looks up existing customer by 10-digit phone', () async {
       controller.onPhoneChanged('+91 98290 12345');
       await pumpEventQueue();
 
       final state = controller.state;
-      expect(state.isExistingCustomer, isTrue);
-      expect(state.customerName, 'Aditya Mehta');
-      expect(state.whatsappConsent, isTrue);
+      expect(state.isExistingCustomer, isFalse);
+      expect(state.customerName, isEmpty);
+    });
+
+    test('Fuel value changes do not confirm the physical intake check', () {
+      controller.onFuelLevelChanged(25);
+
+      expect(controller.state.fuelLevelPercent, 25);
+      expect(controller.state.fuelLevelConfirmed, isFalse);
+
+      controller.onFuelLevelConfirmationChanged(true);
+      expect(controller.state.fuelLevelConfirmed, isTrue);
     });
 
     test('Validation fails when required fields are missing', () {
@@ -60,17 +67,19 @@ void main() {
       expect(controller.state.errors.containsKey('odometer'), isTrue);
     });
 
-    test('Validation catches odometer rollback against previous recorded service', () async {
-      controller.onRegistrationChanged('RJ27CA1024');
-      await pumpEventQueue();
+    test(
+      'Validation permits odometer entry when there is no existing history',
+      () async {
+        controller.onRegistrationChanged('RJ27CA1024');
+        await pumpEventQueue();
 
-      // Hector was last recorded at 27,227 KM. Try entering 25,000 KM.
-      controller.onOdometerChanged('25000');
-      final isValid = controller.validateForm();
+        controller.onOdometerChanged('25000');
+        final isValid = controller.validateForm();
 
-      expect(isValid, isFalse);
-      expect(controller.state.errors['odometer'], contains('rollback'));
-    });
+        expect(isValid, isFalse);
+        expect(controller.state.errors.containsKey('odometer'), isFalse);
+      },
+    );
 
     test('Successfully submits intake when all fields are valid', () async {
       controller.onRegistrationChanged('MH12DE1432');
@@ -81,8 +90,13 @@ void main() {
       controller.onBodyTypeChanged(VehicleBodyType.sub4mSuv);
       controller.onOdometerChanged('15420');
       controller.onFuelLevelChanged(75);
-      controller.onRequestedWorkChanged('1st Periodic Service, Brake pad inspection');
-      controller.onExpectedDeliveryChanged(DateTime.now().add(const Duration(days: 1)));
+      controller.onFuelLevelConfirmationChanged(true);
+      controller.onRequestedWorkChanged(
+        '1st Periodic Service, Brake pad inspection',
+      );
+      controller.onExpectedDeliveryChanged(
+        DateTime.now().add(const Duration(days: 1)),
+      );
 
       final success = await controller.submitIntake();
 

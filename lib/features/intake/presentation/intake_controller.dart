@@ -1,28 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/intake_form_state.dart';
 import '../services/intake_repository.dart';
 import '../services/intake_validators.dart';
 
 final intakeRepositoryProvider = Provider<IntakeRepository>((ref) {
-  final repo = LocalIntakeRepository();
-  repo.seedDemoData();
-  return repo;
+  return SupabaseIntakeRepository(Supabase.instance.client);
 });
 
 final intakeControllerProvider =
     StateNotifierProvider.autoDispose<IntakeController, IntakeFormState>((ref) {
-  final repo = ref.watch(intakeRepositoryProvider);
-  return IntakeController(repository: repo);
-});
+      final repo = ref.watch(intakeRepositoryProvider);
+      return IntakeController(repository: repo);
+    });
 
 class IntakeController extends StateNotifier<IntakeFormState> {
   final IntakeRepository repository;
+  int _vehicleLookupRequest = 0;
+  int _customerLookupRequest = 0;
 
   IntakeController({required this.repository}) : super(const IntakeFormState());
 
   void onRegistrationChanged(String value) {
+    final resetVehicle = state.isExistingVehicle;
     state = state.copyWith(
       registrationNumber: value,
+      make: resetVehicle ? '' : state.make,
+      model: resetVehicle ? '' : state.model,
+      bodyTypeConfirmed: resetVehicle ? false : state.bodyTypeConfirmed,
+      fuelLevelConfirmed: false,
+      vin: resetVehicle ? '' : state.vin,
+      isExistingVehicle: resetVehicle ? false : state.isExistingVehicle,
+      previousHistory: resetVehicle ? const [] : state.previousHistory,
+      lastRecordedKm: resetVehicle ? null : state.lastRecordedKm,
       errors: Map.from(state.errors)..remove('registration'),
     );
 
@@ -30,16 +41,31 @@ class IntakeController extends StateNotifier<IntakeFormState> {
     final error = IntakeValidators.validateRegistration(value);
     if (error == null) {
       lookupVehicle(value);
+    } else {
+      _vehicleLookupRequest++;
+      state = state.copyWith(status: IntakeStatus.idle, errorMessage: null);
     }
   }
 
   Future<void> lookupVehicle(String registration) async {
+    final request = ++_vehicleLookupRequest;
     state = state.copyWith(status: IntakeStatus.lookingUp);
     try {
       final vehicle = await repository.findVehicleByRegistration(registration);
+      if (request != _vehicleLookupRequest ||
+          state.registrationNumber.toUpperCase().replaceAll(
+                RegExp(r'[\s-]'),
+                '',
+              ) !=
+              registration.toUpperCase().replaceAll(RegExp(r'[\s-]'), '')) {
+        return;
+      }
       if (vehicle != null) {
         final history = await repository.getVehicleServiceHistory(vehicle.id);
-        final lastKm = history.isNotEmpty ? history.first.odometerKm : vehicle.odometerKm;
+        if (request != _vehicleLookupRequest) return;
+        final lastKm = history.isNotEmpty
+            ? history.first.odometerKm
+            : vehicle.odometerKm;
 
         // Auto-match body type
         final matchingBodyType = VehicleBodyType.values.firstWhere(
@@ -54,6 +80,10 @@ class IntakeController extends StateNotifier<IntakeFormState> {
           model: vehicle.model,
           vin: vehicle.vin ?? state.vin,
           bodyType: matchingBodyType,
+          bodyTypeConfirmed: true,
+          // Saved fuel is only the last recorded value. Confirm the current
+          // intake reading explicitly for every application.
+          fuelLevelConfirmed: false,
           lastRecordedKm: lastKm,
           previousHistory: history,
           fuelLevelPercent: vehicle.fuelLevelPercent,
@@ -67,6 +97,7 @@ class IntakeController extends StateNotifier<IntakeFormState> {
         );
       }
     } catch (e) {
+      if (request != _vehicleLookupRequest) return;
       state = state.copyWith(
         status: IntakeStatus.idle,
         errorMessage: 'Failed to look up vehicle: $e',
@@ -75,8 +106,11 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   }
 
   void onPhoneChanged(String value) {
+    final resetCustomer = state.isExistingCustomer;
     state = state.copyWith(
       customerPhone: value,
+      customerName: resetCustomer ? '' : state.customerName,
+      isExistingCustomer: resetCustomer ? false : state.isExistingCustomer,
       errors: Map.from(state.errors)..remove('phone'),
     );
 
@@ -87,8 +121,14 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   }
 
   Future<void> lookupCustomer(String phone) async {
+    final request = ++_customerLookupRequest;
     try {
       final customer = await repository.findCustomerByPhone(phone);
+      if (request != _customerLookupRequest ||
+          IntakeValidators.normalizeMobile(state.customerPhone) !=
+              IntakeValidators.normalizeMobile(phone)) {
+        return;
+      }
       if (customer != null) {
         state = state.copyWith(
           isExistingCustomer: true,
@@ -96,14 +136,24 @@ class IntakeController extends StateNotifier<IntakeFormState> {
           whatsappConsent: customer.consentWhatsapp,
         );
       } else {
-        state = state.copyWith(isExistingCustomer: false);
+        state = state.copyWith(
+          isExistingCustomer: false,
+          customerName: state.isExistingCustomer ? '' : state.customerName,
+        );
       }
-    } catch (_) {}
+    } catch (e) {
+      if (request == _customerLookupRequest) {
+        state = state.copyWith(
+          errorMessage: 'Could not look up this customer. You can still enter their details.',
+        );
+      }
+    }
   }
 
   void onNameChanged(String value) {
     state = state.copyWith(
       customerName: value,
+      isExistingCustomer: false,
       errors: Map.from(state.errors)..remove('name'),
     );
   }
@@ -116,7 +166,10 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   }
 
   void onMakeChanged(String value) {
-    state = state.copyWith(make: value);
+    state = state.copyWith(
+      make: value,
+      errors: Map.from(state.errors)..remove('make'),
+    );
   }
 
   void onModelChanged(String value) {
@@ -127,7 +180,11 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   }
 
   void onBodyTypeChanged(VehicleBodyType type) {
-    state = state.copyWith(bodyType: type);
+    state = state.copyWith(
+      bodyType: type,
+      bodyTypeConfirmed: true,
+      errors: Map.from(state.errors)..remove('bodyType'),
+    );
   }
 
   void onOdometerChanged(String value) {
@@ -138,7 +195,17 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   }
 
   void onFuelLevelChanged(int percent) {
-    state = state.copyWith(fuelLevelPercent: percent);
+    state = state.copyWith(
+      fuelLevelPercent: percent,
+      errors: Map.from(state.errors)..remove('fuelLevel'),
+    );
+  }
+
+  void onFuelLevelConfirmationChanged(bool confirmed) {
+    state = state.copyWith(
+      fuelLevelConfirmed: confirmed,
+      errors: Map.from(state.errors)..remove('fuelLevel'),
+    );
   }
 
   void onRequestedWorkChanged(String value) {
@@ -157,6 +224,10 @@ class IntakeController extends StateNotifier<IntakeFormState> {
 
   void onWhatsappConsentChanged(bool value) {
     state = state.copyWith(whatsappConsent: value);
+  }
+
+  void onBelongingsChanged(BelongingsChecklist belongings) {
+    state = state.copyWith(belongings: belongings);
   }
 
   void onBelongingItemToggled(String itemKey, bool value) {
@@ -187,8 +258,12 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   bool validateForm() {
     final errors = <String, String>{};
 
-    final regErr = IntakeValidators.validateRegistration(state.registrationNumber);
+    final regErr = IntakeValidators.validateRegistration(
+      state.registrationNumber,
+    );
     if (regErr != null) errors['registration'] = regErr;
+
+    if (state.make.trim().isEmpty) errors['make'] = 'Select the vehicle make';
 
     final phoneErr = IntakeValidators.validateMobile(state.customerPhone);
     if (phoneErr != null) errors['phone'] = phoneErr;
@@ -198,6 +273,12 @@ class IntakeController extends StateNotifier<IntakeFormState> {
 
     if (state.model.trim().isEmpty) {
       errors['model'] = 'Vehicle model is required';
+    }
+    if (!state.bodyTypeConfirmed) {
+      errors['bodyType'] = 'Select the vehicle body type';
+    }
+    if (!state.fuelLevelConfirmed) {
+      errors['fuelLevel'] = 'Confirm the observed fuel level';
     }
 
     final odoErr = IntakeValidators.validateOdometer(
@@ -210,17 +291,76 @@ class IntakeController extends StateNotifier<IntakeFormState> {
     if (vinErr != null) errors['vin'] = vinErr;
 
     if (state.requestedWork.trim().isEmpty) {
-      errors['requestedWork'] = 'Please specify customer requested work / complaints';
+      errors['requestedWork'] =
+          'Please specify customer requested work / complaints';
     }
 
-    final deliveryErr = IntakeValidators.validateExpectedDelivery(state.expectedDelivery);
+    final deliveryErr = IntakeValidators.validateExpectedDelivery(
+      state.expectedDelivery,
+    );
     if (deliveryErr != null) errors['expectedDelivery'] = deliveryErr;
 
     state = state.copyWith(errors: errors);
     return errors.isEmpty;
   }
 
+  String? validateStep(int step) {
+    final errors = <String, String>{};
+    if (step == 0) {
+      final registrationError = IntakeValidators.validateRegistration(
+        state.registrationNumber,
+      );
+      if (registrationError != null) {
+        errors['registration'] = registrationError;
+      }
+      if (state.make.trim().isEmpty) {
+        errors['make'] = 'Select the vehicle make';
+      }
+      if (state.model.trim().isEmpty) {
+        errors['model'] = 'Enter the vehicle model';
+      }
+      if (!state.bodyTypeConfirmed) {
+        errors['bodyType'] = 'Select the vehicle body type';
+      }
+    } else if (step == 1) {
+      final phoneError = IntakeValidators.validateMobile(state.customerPhone);
+      if (phoneError != null) {
+        errors['phone'] = phoneError;
+      }
+      final nameError = IntakeValidators.validateCustomerName(
+        state.customerName,
+      );
+      if (nameError != null) {
+        errors['name'] = nameError;
+      }
+    } else if (step == 2) {
+      final odometerError = IntakeValidators.validateOdometer(
+        state.odometer,
+        previousKm: state.lastRecordedKm,
+      );
+      if (odometerError != null) {
+        errors['odometer'] = odometerError;
+      }
+      if (!state.fuelLevelConfirmed) {
+        errors['fuelLevel'] = 'Confirm the observed fuel level';
+      }
+    } else if (step == 3) {
+      if (state.requestedWork.trim().isEmpty) {
+        errors['requestedWork'] = 'Describe the work requested';
+      }
+      final deliveryError = IntakeValidators.validateExpectedDelivery(
+        state.expectedDelivery,
+      );
+      if (deliveryError != null) {
+        errors['expectedDelivery'] = deliveryError;
+      }
+    }
+    state = state.copyWith(errors: errors, errorMessage: null);
+    return errors.values.firstOrNull;
+  }
+
   Future<bool> submitIntake() async {
+    if (state.status == IntakeStatus.saving) return false;
     if (!validateForm()) {
       return false;
     }

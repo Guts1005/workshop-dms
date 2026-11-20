@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../camera_capture/camera_capture_module.dart';
+import '../../ui_kit/tokens/app_tokens.dart';
 import '../../ui_kit/widgets/sharp_button.dart';
 import '../../ui_kit/widgets/status_chip.dart';
 import 'bay_capture_controller.dart';
@@ -12,11 +14,7 @@ class BayCaptureScreen extends ConsumerStatefulWidget {
   final String? jobCardId;
   final String? registrationNumber;
 
-  const BayCaptureScreen({
-    super.key,
-    this.jobCardId,
-    this.registrationNumber,
-  });
+  const BayCaptureScreen({super.key, this.jobCardId, this.registrationNumber});
 
   @override
   ConsumerState<BayCaptureScreen> createState() => _BayCaptureScreenState();
@@ -28,9 +26,11 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.jobCardId != null || widget.registrationNumber != null) {
-        ref.read(bayCaptureControllerProvider.notifier).initSession(
-              jobCardId: widget.jobCardId ?? 'JC-${DateTime.now().millisecondsSinceEpoch}',
-              registrationNumber: widget.registrationNumber ?? 'RJ27CA1024',
+        ref
+            .read(bayCaptureControllerProvider.notifier)
+            .initSession(
+              jobCardId: widget.jobCardId ?? '',
+              registrationNumber: widget.registrationNumber ?? '',
             );
       }
     });
@@ -39,8 +39,12 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
   void _showManagerOverrideDialog() {
     final state = ref.read(bayCaptureControllerProvider);
     final controller = ref.read(bayCaptureControllerProvider.notifier);
-    final managerNameController = TextEditingController(text: state.managerOverride?.authorizedBy ?? '');
-    final reasonController = TextEditingController(text: state.managerOverride?.reason ?? '');
+    final managerNameController = TextEditingController(
+      text: state.managerOverride?.authorizedBy ?? '',
+    );
+    final reasonController = TextEditingController(
+      text: state.managerOverride?.reason ?? '',
+    );
     String? localError;
 
     showDialog(
@@ -49,31 +53,40 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
         return StatefulBuilder(
           builder: (dialogCtx, setDialogState) {
             return AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+              backgroundColor: AppTokens.raised,
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppTokens.cardRadius,
+              ),
               titlePadding: EdgeInsets.zero,
               title: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18.0,
+                  vertical: 14.0,
+                ),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF111827),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+                  color: AppTokens.inverse,
+                  borderRadius: AppTokens.cardRadius,
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6.0),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8.0),
+                        color: AppTokens.brandRed.withValues(alpha: 0.15),
+                        borderRadius: AppTokens.cardRadius,
                       ),
-                      child: const Icon(Icons.security, color: Color(0xFFEF4444), size: 18.0),
+                      child: const Icon(
+                        Icons.security,
+                        color: AppTokens.brandRed,
+                        size: 18.0,
+                      ),
                     ),
                     const SizedBox(width: 10.0),
                     Expanded(
                       child: Text(
                         'MANAGER OVERRIDE AUTHORIZATION',
                         style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: AppTokens.raised,
                           fontWeight: FontWeight.w800,
                           fontSize: 13.0,
                           letterSpacing: 0.3,
@@ -94,7 +107,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         'A Manager Override allows bypassing missing mandatory check-in shots when capture is physically impossible (e.g. accident damage, vehicle covered, workshop camera malfunction).',
                         style: GoogleFonts.inter(
                           fontSize: 12.5,
-                          color: const Color(0xFF64748B),
+                          color: AppTokens.textSecondary,
                           height: 1.45,
                         ),
                       ),
@@ -102,9 +115,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                       Container(
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(12.0),
-                          border: Border.all(color: const Color(0xFFFEE2E2)),
+                          color: AppTokens.surfaceSubtle,
+                          borderRadius: AppTokens.cardRadius,
+                          border: Border.all(color: AppTokens.surfaceSubtle),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,17 +127,23 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 11.0,
-                                color: const Color(0xFFDC2626),
+                                color: AppTokens.brandRed,
                                 letterSpacing: 0.3,
                               ),
                             ),
                             const SizedBox(height: 6.0),
                             for (final shot in state.missingMandatoryShots)
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2.0,
+                                ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.circle, size: 5.0, color: Color(0xFFDC2626)),
+                                    const Icon(
+                                      Icons.circle,
+                                      size: 5.0,
+                                      color: AppTokens.brandRed,
+                                    ),
                                     const SizedBox(width: 6.0),
                                     Expanded(
                                       child: Text(
@@ -132,7 +151,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                                         style: GoogleFonts.inter(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF991B1B),
+                                          color: AppTokens.brandRed,
                                         ),
                                       ),
                                     ),
@@ -148,7 +167,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w700,
                           fontSize: 11.0,
-                          color: const Color(0xFF475569),
+                          color: AppTokens.textSecondary,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -157,21 +176,34 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         controller: managerNameController,
                         decoration: InputDecoration(
                           hintText: 'e.g. Rajesh Kumar (Workshop Mgr)',
-                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                          hintStyle: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            color: AppTokens.textTertiary,
+                          ),
                           filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          fillColor: AppTokens.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14.0,
+                            vertical: 12.0,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          border: const OutlineInputBorder(
+                            borderRadius: AppTokens.cardRadius,
+                            borderSide: BorderSide(
+                              color: AppTokens.borderLight,
+                            ),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.5),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: AppTokens.cardRadius,
+                            borderSide: BorderSide(
+                              color: AppTokens.borderLight,
+                            ),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: AppTokens.cardRadius,
+                            borderSide: BorderSide(
+                              color: AppTokens.inverse,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
@@ -181,7 +213,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w700,
                           fontSize: 11.0,
-                          color: const Color(0xFF475569),
+                          color: AppTokens.textSecondary,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -191,21 +223,34 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         maxLines: 2,
                         decoration: InputDecoration(
                           hintText: 'e.g. Vehicle arrived on flatbed with severe front-end impact, bumper missing',
-                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
+                          hintStyle: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            color: AppTokens.textTertiary,
+                          ),
                           filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          fillColor: AppTokens.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14.0,
+                            vertical: 12.0,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          border: const OutlineInputBorder(
+                            borderRadius: AppTokens.cardRadius,
+                            borderSide: BorderSide(
+                              color: AppTokens.borderLight,
+                            ),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.5),
+                          enabledBorder: const OutlineInputBorder(
+                            borderRadius: AppTokens.cardRadius,
+                            borderSide: BorderSide(
+                              color: AppTokens.borderLight,
+                            ),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: AppTokens.cardRadius,
+                            borderSide: BorderSide(
+                              color: AppTokens.inverse,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
@@ -213,14 +258,14 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                         const SizedBox(height: 10.0),
                         Container(
                           padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF2F2),
-                            borderRadius: BorderRadius.circular(8.0),
+                          decoration: const BoxDecoration(
+                            color: AppTokens.surfaceSubtle,
+                            borderRadius: AppTokens.cardRadius,
                           ),
                           child: Text(
                             localError!,
                             style: GoogleFonts.inter(
-                              color: const Color(0xFFDC2626),
+                              color: AppTokens.brandRed,
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -231,7 +276,10 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   ),
                 ),
               ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 18.0,
+                vertical: 14.0,
+              ),
               actions: [
                 if (state.isOverrideActive)
                   TextButton(
@@ -242,7 +290,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                     child: Text(
                       'REVOKE OVERRIDE',
                       style: GoogleFonts.inter(
-                        color: const Color(0xFFDC2626),
+                        color: AppTokens.brandRed,
                         fontWeight: FontWeight.w700,
                         fontSize: 12.0,
                       ),
@@ -253,7 +301,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   child: Text(
                     'CANCEL',
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF64748B),
+                      color: AppTokens.textSecondary,
                       fontWeight: FontWeight.w600,
                       fontSize: 12.0,
                     ),
@@ -294,8 +342,45 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     final controller = ref.read(bayCaptureControllerProvider.notifier);
     final isNarrow = MediaQuery.of(context).size.width < 900.0;
 
+    if (state.jobCardId.isEmpty || state.registrationNumber.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppTokens.base,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.assignment_outlined, size: 40),
+                const SizedBox(height: 16),
+                Text(
+                  'Open check-in from an application',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose an active application first so photos and inspection details are saved to the right vehicle.',
+                  style: AppTokens.fontBody(color: AppTokens.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                SharpButton(
+                  label: 'Go to Applications',
+                  onPressed: () => context.go('/applications'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
+      backgroundColor: AppTokens.base,
       body: SafeArea(
         child: Column(
           children: [
@@ -306,16 +391,27 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
             if (state.errorMessage != null)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                color: const Color(0xFFDC2626),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 10.0,
+                ),
+                color: AppTokens.brandRed,
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.white, size: 18.0),
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppTokens.raised,
+                      size: 18.0,
+                    ),
                     const SizedBox(width: 8.0),
                     Expanded(
                       child: Text(
                         state.errorMessage!,
-                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.0),
+                        style: GoogleFonts.inter(
+                          color: AppTokens.raised,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.0,
+                        ),
                       ),
                     ),
                   ],
@@ -324,7 +420,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
 
             // Main Content Zone (Responsive, zero horizontal overflow)
             Expanded(
-              child: isNarrow ? _buildNarrowLayout(state, controller) : _buildWideLayout(state, controller),
+              child: isNarrow
+                  ? _buildNarrowLayout(state, controller)
+                  : _buildWideLayout(state, controller),
             ),
 
             // Bottom Gated Action Bar
@@ -339,8 +437,10 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1.0)),
+        color: AppTokens.raised,
+        border: Border(
+          bottom: BorderSide(color: AppTokens.borderLight, width: 1.0),
+        ),
         boxShadow: [
           BoxShadow(
             color: Color(0x05000000),
@@ -355,19 +455,37 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
           Expanded(
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCC0000),
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                  child: Text(
-                    '02',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w900,
+                InkWell(
+                  borderRadius: AppTokens.cardRadius,
+                  onTap: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/bays');
+                    }
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(
+                      Icons.arrow_back,
+                      size: 20.0,
+                      color: AppTokens.inverse,
                     ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppTokens.brandRed,
+                    borderRadius: AppTokens.inputRadius,
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    color: AppTokens.raised,
+                    size: 14.0,
                   ),
                 ),
                 const SizedBox(width: 10.0),
@@ -376,9 +494,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'PAGE 2: BAY CHECK-IN CAPTURE',
+                        'PHOTO INSPECTION',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF0F172A),
+                          color: AppTokens.textPrimary,
                           fontSize: 12.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.2,
@@ -387,9 +505,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                       ),
                       const SizedBox(height: 2.0),
                       Text(
-                        'JOB: ${state.jobCardId} • VEHICLE: ${state.registrationNumber}',
+                        'JOB: ${state.jobCardId} â€¢ VEHICLE: ${state.registrationNumber}',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF64748B),
+                          color: AppTokens.textSecondary,
                           fontSize: 10.5,
                           fontWeight: FontWeight.w600,
                         ),
@@ -409,15 +527,21 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: StatusChip(
-                    label: 'OVERRIDE: ${state.managerOverride!.authorizedBy.toUpperCase()}',
+                    label:
+                        'OVERRIDE: ${state.managerOverride!.authorizedBy.toUpperCase()}',
                     icon: Icons.shield,
                     type: StatusType.dueSoon,
                   ),
                 ),
               StatusChip(
-                label: '${state.mandatoryCompletedCount}/${state.totalMandatoryCount} MANDATORY',
-                icon: state.isAllMandatoryCaptured ? Icons.check_circle : Icons.camera_alt,
-                type: state.isAllMandatoryCaptured ? StatusType.ok : StatusType.dueSoon,
+                label:
+                    '${state.mandatoryCompletedCount}/${state.totalMandatoryCount} MANDATORY',
+                icon: state.isAllMandatoryCaptured
+                    ? Icons.check_circle
+                    : Icons.camera_alt,
+                type: state.isAllMandatoryCaptured
+                    ? StatusType.ok
+                    : StatusType.dueSoon,
               ),
             ],
           ),
@@ -426,7 +550,10 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildNarrowLayout(BayCaptureState state, BayCaptureController controller) {
+  Widget _buildNarrowLayout(
+    BayCaptureState state,
+    BayCaptureController controller,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12.0),
       child: Column(
@@ -442,7 +569,10 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildWideLayout(BayCaptureState state, BayCaptureController controller) {
+  Widget _buildWideLayout(
+    BayCaptureState state,
+    BayCaptureController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -465,7 +595,11 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
           const SizedBox(width: 16.0),
           // Right Area: Active Hardware Camera View / Review Frame
           Expanded(
-            child: _buildCameraWorkspace(state, controller, height: double.infinity),
+            child: _buildCameraWorkspace(
+              state,
+              controller,
+              height: double.infinity,
+            ),
           ),
         ],
       ),
@@ -479,9 +613,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     return Container(
       padding: const EdgeInsets.all(14.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: AppTokens.raised,
+        borderRadius: AppTokens.cardRadius,
+        border: Border.all(color: AppTokens.borderLight),
         boxShadow: const [
           BoxShadow(
             color: Color(0x04000000),
@@ -501,14 +635,18 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 10.0,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF64748B),
+                  color: AppTokens.textSecondary,
                   letterSpacing: 0.5,
                 ),
               ),
               StatusChip(
                 label: active.isMandatory ? 'MANDATORY' : 'OPTIONAL',
-                icon: active.isMandatory ? Icons.priority_high : Icons.info_outline,
-                type: active.isMandatory ? StatusType.critical : StatusType.neutral,
+                icon: active.isMandatory
+                    ? Icons.priority_high
+                    : Icons.info_outline,
+                type: active.isMandatory
+                    ? StatusType.critical
+                    : StatusType.neutral,
               ),
             ],
           ),
@@ -518,33 +656,44 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
             style: GoogleFonts.inter(
               fontSize: 13.5,
               fontWeight: FontWeight.w900,
-              color: const Color(0xFF0F172A),
+              color: AppTokens.inverse,
             ),
           ),
           const SizedBox(height: 4.0),
           Text(
             active.instruction,
-            style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B), height: 1.35),
+            style: GoogleFonts.inter(
+              fontSize: 11.5,
+              color: AppTokens.textSecondary,
+              height: 1.35,
+            ),
           ),
           if (captured != null) ...[
             const SizedBox(height: 8.0),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 6.0,
+              ),
               decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: const Color(0xFFA7F3D0)),
+                color: AppTokens.surfaceSubtle,
+                borderRadius: AppTokens.cardRadius,
+                border: Border.all(color: AppTokens.green),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 14.0),
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppTokens.green,
+                    size: 14.0,
+                  ),
                   const SizedBox(width: 6.0),
                   Expanded(
                     child: Text(
                       'VERIFIED: ${captured.sha256Hash.substring(0, 16)}...',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 9.5,
-                        color: const Color(0xFF047857),
+                        color: AppTokens.green,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -558,16 +707,20 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildCameraWorkspace(BayCaptureState state, BayCaptureController controller, {required double height}) {
+  Widget _buildCameraWorkspace(
+    BayCaptureState state,
+    BayCaptureController controller, {
+    required double height,
+  }) {
     final active = state.activeShotType;
     final captured = state.capturedPhotos[active];
 
     return Container(
       height: height == double.infinity ? null : height,
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: AppTokens.inverse,
+        borderRadius: AppTokens.cardRadius,
+        border: Border.all(color: AppTokens.borderLight),
         boxShadow: const [
           BoxShadow(
             color: Color(0x06000000),
@@ -590,12 +743,13 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
               title: active.title,
               instruction: active.instruction,
               shotType: active,
-              onPhotoConfirmed: (photoPath, hash, sizeBytes) async {
+              onPhotoConfirmed: (photoPath, hash, sizeBytes, bytes) async {
                 await controller.recordCapturedPhoto(
                   shotType: active,
                   filePath: photoPath,
                   sha256Hash: hash,
                   fileSizeBytes: sizeBytes,
+                  bytes: bytes,
                 );
               },
             ),
@@ -610,7 +764,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     BayCaptureController controller,
   ) {
     return Container(
-      color: Colors.white,
+      color: AppTokens.raised,
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -618,28 +772,35 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: const BoxDecoration(
-              color: Color(0xFFECFDF5),
+              color: AppTokens.surfaceSubtle,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 48.0),
+            child: const Icon(
+              Icons.check_circle,
+              color: AppTokens.green,
+              size: 48.0,
+            ),
           ),
           const SizedBox(height: 14.0),
           Text(
             '${active.title} RECORDED',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              color: const Color(0xFF0F172A),
+              color: AppTokens.inverse,
               fontWeight: FontWeight.w900,
               fontSize: 16.0,
             ),
           ),
           const SizedBox(height: 10.0),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14.0,
+              vertical: 10.0,
+            ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: AppTokens.surface,
+              borderRadius: AppTokens.cardRadius,
+              border: Border.all(color: AppTokens.borderLight),
             ),
             child: Column(
               children: [
@@ -648,7 +809,7 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
+                    color: AppTokens.textSecondary,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -658,14 +819,17 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10.0,
-                    color: const Color(0xFF047857),
+                    color: AppTokens.green,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  'TIMESTAMP: ${captured.capturedAt.toLocal()} • SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
-                  style: GoogleFonts.inter(fontSize: 10.5, color: const Color(0xFF64748B)),
+                  'TIMESTAMP: ${captured.capturedAt.toLocal()} â€¢ SIZE: ${(captured.fileSizeBytes / 1024).toStringAsFixed(1)} KB',
+                  style: GoogleFonts.inter(
+                    fontSize: 10.5,
+                    color: AppTokens.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -684,7 +848,10 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildShotsList(BayCaptureState state, BayCaptureController controller) {
+  Widget _buildShotsList(
+    BayCaptureState state,
+    BayCaptureController controller,
+  ) {
     return Column(
       children: [
         for (final shot in CheckInShotType.values)
@@ -693,7 +860,11 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildShotsGrid(BayCaptureState state, BayCaptureController controller, {required int crossAxisCount}) {
+  Widget _buildShotsGrid(
+    BayCaptureState state,
+    BayCaptureController controller, {
+    required int crossAxisCount,
+  }) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -708,29 +879,35 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildShotTile(CheckInShotType shot, BayCaptureState state, BayCaptureController controller) {
+  Widget _buildShotTile(
+    CheckInShotType shot,
+    BayCaptureState state,
+    BayCaptureController controller,
+  ) {
     final isSelected = state.activeShotType == shot;
     final isCaptured = state.capturedPhotos.containsKey(shot);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(14.0),
+      borderRadius: AppTokens.cardRadius,
       onTap: () => controller.selectShot(shot),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         margin: const EdgeInsets.only(bottom: 8.0),
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : const Color(0xFFFBFBFD),
-          borderRadius: BorderRadius.circular(14.0),
+          color: isSelected ? AppTokens.raised : AppTokens.base,
+          borderRadius: AppTokens.cardRadius,
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF111827)
-                : (isCaptured ? const Color(0xFFA7F3D0) : const Color(0xFFE5E7EB)),
+                ? AppTokens.inverse
+                : (isCaptured ? AppTokens.green : AppTokens.borderLight),
             width: isSelected ? 2.0 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: isSelected ? const Color(0x12000000) : const Color(0x04000000),
+              color: isSelected
+                  ? const Color(0x12000000)
+                  : const Color(0x04000000),
               blurRadius: isSelected ? 8.0 : 4.0,
               offset: const Offset(0, 2),
             ),
@@ -743,14 +920,20 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
               height: 28.0,
               decoration: BoxDecoration(
                 color: isCaptured
-                    ? const Color(0xFF10B981)
-                    : (shot.isMandatory ? const Color(0xFFCC0000) : const Color(0xFF64748B)),
-                borderRadius: BorderRadius.circular(8.0),
+                    ? AppTokens.green
+                    : (shot.isMandatory
+                          ? AppTokens.brandRed
+                          : AppTokens.textSecondary),
+                borderRadius: AppTokens.cardRadius,
               ),
               alignment: Alignment.center,
               child: Icon(
-                isCaptured ? Icons.check : (shot.isMandatory ? Icons.priority_high : Icons.camera_alt),
-                color: Colors.white,
+                isCaptured
+                    ? Icons.check
+                    : (shot.isMandatory
+                          ? Icons.priority_high
+                          : Icons.camera_alt),
+                color: AppTokens.raised,
                 size: 15.0,
               ),
             ),
@@ -764,19 +947,27 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                     shot.title,
                     style: GoogleFonts.inter(
                       fontSize: 11.0,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF334155),
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: isSelected
+                          ? AppTokens.inverse
+                          : AppTokens.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2.0),
                   Text(
-                    isCaptured ? 'VERIFIED (SHA-256)' : (shot.isMandatory ? 'REQUIRED' : 'OPTIONAL'),
+                    isCaptured
+                        ? 'VERIFIED (SHA-256)'
+                        : (shot.isMandatory ? 'REQUIRED' : 'OPTIONAL'),
                     style: GoogleFonts.inter(
                       fontSize: 9.5,
                       color: isCaptured
-                          ? const Color(0xFF059669)
-                          : (shot.isMandatory ? const Color(0xFFDC2626) : const Color(0xFF94A3B8)),
+                          ? AppTokens.green
+                          : (shot.isMandatory
+                                ? AppTokens.brandRed
+                                : AppTokens.textTertiary),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -789,14 +980,19 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
     );
   }
 
-  Widget _buildBottomActionBar(BayCaptureState state, BayCaptureController controller) {
+  Widget _buildBottomActionBar(
+    BayCaptureState state,
+    BayCaptureController controller,
+  ) {
     final isNarrow = MediaQuery.of(context).size.width < 600.0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1.0)),
+        color: AppTokens.raised,
+        border: Border(
+          top: BorderSide(color: AppTokens.borderLight, width: 1.0),
+        ),
         boxShadow: [
           BoxShadow(
             color: Color(0x08000000),
@@ -812,23 +1008,34 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
               children: [
                 SharpButton(
                   label: state.canFinalizeCheckIn
-                      ? 'FINALIZE CHECK-IN & OPEN 360° CONDITION MAP'
-                      : 'LOCKED: ${state.mandatoryCompletedCount}/6 SHOTS REQUIRED TO OPEN JOB CARD',
-                  icon: state.canFinalizeCheckIn ? Icons.arrow_forward : Icons.lock_outline,
+                      ? 'Continue to condition report'
+                      : 'Continue to condition report',
+                  icon: Icons.arrow_forward,
                   height: 48.0,
                   onPressed: state.canFinalizeCheckIn
                       ? () async {
                           final ok = await controller.finalizeCheckIn();
                           if (ok && mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Bay Check-in complete. Advancing to 360° Condition Map.'),
-                                backgroundColor: Color(0xFF10B981),
+                              SnackBar(
+                                content: Text(
+                                  state.missingMandatoryShots.isEmpty
+                                      ? 'Check-in saved. Continue with the vehicle condition report.'
+                                      : 'Check-in saved. ${state.missingMandatoryShots.length} photo(s) remain to be captured.',
+                                ),
+                                backgroundColor: AppTokens.green,
                               ),
                             );
                             final router = GoRouter.maybeOf(context);
                             if (router != null) {
-                              router.go('/condition-map');
+                              router.go(
+                                '/condition-map',
+                                extra: {
+                                  'jobCardId': state.jobCardId,
+                                  'registrationNumber':
+                                      state.registrationNumber,
+                                },
+                              );
                             }
                           }
                         }
@@ -836,7 +1043,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 ),
                 const SizedBox(height: 8.0),
                 SharpButton(
-                  label: state.isOverrideActive ? 'VIEW OVERRIDE' : 'MANAGER OVERRIDE',
+                  label: state.isOverrideActive
+                      ? 'VIEW OVERRIDE'
+                      : 'MANAGER OVERRIDE',
                   icon: Icons.admin_panel_settings_outlined,
                   variant: SharpButtonVariant.secondary,
                   height: 42.0,
@@ -848,7 +1057,9 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
               children: [
                 // Manager Override Action Button
                 SharpButton(
-                  label: state.isOverrideActive ? 'VIEW OVERRIDE' : 'MANAGER OVERRIDE',
+                  label: state.isOverrideActive
+                      ? 'VIEW OVERRIDE'
+                      : 'MANAGER OVERRIDE',
                   icon: Icons.admin_panel_settings_outlined,
                   variant: SharpButtonVariant.secondary,
                   height: 46.0,
@@ -859,23 +1070,34 @@ class _BayCaptureScreenState extends ConsumerState<BayCaptureScreen> {
                 Expanded(
                   child: SharpButton(
                     label: state.canFinalizeCheckIn
-                        ? 'FINALIZE CHECK-IN & OPEN 360° CONDITION MAP'
-                        : 'LOCKED: ${state.mandatoryCompletedCount}/6 SHOTS REQUIRED TO OPEN JOB CARD',
-                    icon: state.canFinalizeCheckIn ? Icons.arrow_forward : Icons.lock_outline,
+                        ? 'Continue to condition report'
+                        : 'Continue to condition report',
+                    icon: Icons.arrow_forward,
                     height: 46.0,
                     onPressed: state.canFinalizeCheckIn
                         ? () async {
                             final ok = await controller.finalizeCheckIn();
                             if (ok && mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Bay Check-in complete. Advancing to 360° Condition Map.'),
-                                  backgroundColor: Color(0xFF10B981),
+                                SnackBar(
+                                  content: Text(
+                                    state.missingMandatoryShots.isEmpty
+                                        ? 'Check-in saved. Continue with the vehicle condition report.'
+                                        : 'Check-in saved. ${state.missingMandatoryShots.length} photo(s) remain to be captured.',
+                                  ),
+                                  backgroundColor: AppTokens.green,
                                 ),
                               );
                               final router = GoRouter.maybeOf(context);
                               if (router != null) {
-                                router.go('/condition-map');
+                                router.go(
+                                  '/condition-map',
+                                  extra: {
+                                    'jobCardId': state.jobCardId,
+                                    'registrationNumber':
+                                        state.registrationNumber,
+                                  },
+                                );
                               }
                             }
                           }

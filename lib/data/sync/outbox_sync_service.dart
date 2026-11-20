@@ -1,11 +1,6 @@
 import 'dart:async';
 
-enum OutboxSyncStatus {
-  pending,
-  syncing,
-  synced,
-  failed,
-}
+enum OutboxSyncStatus { pending, syncing, synced, failed }
 
 class OutboxItem {
   final String id;
@@ -31,16 +26,16 @@ class OutboxItem {
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'targetTable': targetTable,
-        'recordId': recordId,
-        'operation': operation,
-        'payload': payload,
-        'status': status.name,
-        'retryCount': retryCount,
-        'lastError': lastError,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'targetTable': targetTable,
+    'recordId': recordId,
+    'operation': operation,
+    'payload': payload,
+    'status': status.name,
+    'retryCount': retryCount,
+    'lastError': lastError,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 abstract class RemoteSyncClient {
@@ -54,11 +49,18 @@ class OutboxSyncService {
   bool _isSyncing = false;
 
   OutboxSyncService({required this.remoteClient, bool initialOnline = true})
-      : _isOnline = initialOnline;
+    : _isOnline = initialOnline;
 
   bool get isOnline => _isOnline;
-  int get pendingCount => _queue.where((i) => i.status == OutboxSyncStatus.pending || i.status == OutboxSyncStatus.failed).length;
-  int get syncedCount => _queue.where((i) => i.status == OutboxSyncStatus.synced).length;
+  int get pendingCount => _queue
+      .where(
+        (i) =>
+            i.status == OutboxSyncStatus.pending ||
+            i.status == OutboxSyncStatus.failed,
+      )
+      .length;
+  int get syncedCount =>
+      _queue.where((i) => i.status == OutboxSyncStatus.synced).length;
   List<OutboxItem> get allItems => List.unmodifiable(_queue);
 
   /// Toggle network connectivity state (for test simulation & connectivity listener)
@@ -99,7 +101,11 @@ class OutboxSyncService {
 
     try {
       final pendingItems = _queue
-          .where((i) => i.status == OutboxSyncStatus.pending || i.status == OutboxSyncStatus.failed)
+          .where(
+            (i) =>
+                i.status == OutboxSyncStatus.pending ||
+                i.status == OutboxSyncStatus.failed,
+          )
           .toList();
 
       for (final item in pendingItems) {

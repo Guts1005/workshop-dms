@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import 'bay_capture_models.dart';
 
 /// Intuitive, CAD-grade vehicle & component alignment guides for Workshop Check-in.
@@ -20,8 +22,12 @@ class BayCameraGuidePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final activeColor = isLocked ? const Color(0xFF00E676) : const Color(0xFFF8A348);
-    final guideColor = isLocked ? const Color(0xFF00E676).withOpacity(0.85) : Colors.white.withOpacity(0.75);
+    final activeColor = isLocked
+        ? const Color(0xFF00E676)
+        : const Color(0xFFF8A348);
+    final guideColor = isLocked
+        ? const Color(0xFF00E676).withOpacity(0.85)
+        : Colors.white.withOpacity(0.75);
 
     final strokePaint = Paint()
       ..color = guideColor
@@ -39,23 +45,67 @@ class BayCameraGuidePainter extends CustomPainter {
 
     switch (shotType) {
       case CheckInShotType.frontLeft45:
-        _drawCornerSilhouette(canvas, size, strokePaint, accentPaint, fillPaint, isFront: true, isLeft: true);
+        _drawCornerSilhouette(
+          canvas,
+          size,
+          strokePaint,
+          accentPaint,
+          fillPaint,
+          isFront: true,
+          isLeft: true,
+        );
         break;
       case CheckInShotType.frontRight45:
-        _drawCornerSilhouette(canvas, size, strokePaint, accentPaint, fillPaint, isFront: true, isLeft: false);
+        _drawCornerSilhouette(
+          canvas,
+          size,
+          strokePaint,
+          accentPaint,
+          fillPaint,
+          isFront: true,
+          isLeft: false,
+        );
         break;
       case CheckInShotType.rearLeft45:
-        _drawCornerSilhouette(canvas, size, strokePaint, accentPaint, fillPaint, isFront: false, isLeft: true);
+        _drawCornerSilhouette(
+          canvas,
+          size,
+          strokePaint,
+          accentPaint,
+          fillPaint,
+          isFront: false,
+          isLeft: true,
+        );
         break;
       case CheckInShotType.rearRight45:
-        _drawCornerSilhouette(canvas, size, strokePaint, accentPaint, fillPaint, isFront: false, isLeft: false);
+        _drawCornerSilhouette(
+          canvas,
+          size,
+          strokePaint,
+          accentPaint,
+          fillPaint,
+          isFront: false,
+          isLeft: false,
+        );
         break;
       case CheckInShotType.plateCloseup:
-        _drawNumberPlateGuide(canvas, size, strokePaint, accentPaint, fillPaint);
+        _drawNumberPlateGuide(
+          canvas,
+          size,
+          strokePaint,
+          accentPaint,
+          fillPaint,
+        );
         break;
       case CheckInShotType.odometerReading:
       case CheckInShotType.dashboardCluster:
-        _drawOdometerClusterGuide(canvas, size, strokePaint, accentPaint, fillPaint);
+        _drawOdometerClusterGuide(
+          canvas,
+          size,
+          strokePaint,
+          accentPaint,
+          fillPaint,
+        );
         break;
       case CheckInShotType.vinPlate:
         _drawVinPlateGuide(canvas, size, strokePaint, accentPaint, fillPaint);
@@ -92,43 +142,127 @@ class BayCameraGuidePainter extends CustomPainter {
     final path = Path();
     if (isFront && isLeft) {
       // Front-Left 45°: Nose on bottom-left, roof center-right, trunk far right
-      path.moveTo(boxRect.left + boxRect.width * 0.08, boxRect.bottom - boxRect.height * 0.22); // Front bumper
-      path.lineTo(boxRect.left + boxRect.width * 0.28, boxRect.bottom - boxRect.height * 0.32); // Hood slope
-      path.lineTo(boxRect.left + boxRect.width * 0.45, boxRect.top + boxRect.height * 0.22);    // Windshield
-      path.lineTo(boxRect.left + boxRect.width * 0.75, boxRect.top + boxRect.height * 0.22);    // Roofline
-      path.lineTo(boxRect.left + boxRect.width * 0.90, boxRect.bottom - boxRect.height * 0.35); // Rear glass & boot
-      path.lineTo(boxRect.left + boxRect.width * 0.82, boxRect.bottom - boxRect.height * 0.18); // Rear bumper
-      path.lineTo(boxRect.left + boxRect.width * 0.40, boxRect.bottom - boxRect.height * 0.18); // Side sill
+      path.moveTo(
+        boxRect.left + boxRect.width * 0.08,
+        boxRect.bottom - boxRect.height * 0.22,
+      ); // Front bumper
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.28,
+        boxRect.bottom - boxRect.height * 0.32,
+      ); // Hood slope
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.45,
+        boxRect.top + boxRect.height * 0.22,
+      ); // Windshield
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.75,
+        boxRect.top + boxRect.height * 0.22,
+      ); // Roofline
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.90,
+        boxRect.bottom - boxRect.height * 0.35,
+      ); // Rear glass & boot
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.82,
+        boxRect.bottom - boxRect.height * 0.18,
+      ); // Rear bumper
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.40,
+        boxRect.bottom - boxRect.height * 0.18,
+      ); // Side sill
       path.close();
     } else if (isFront && !isLeft) {
       // Front-Right 45°: Nose on bottom-right, roof center-left, trunk far left
-      path.moveTo(boxRect.right - boxRect.width * 0.08, boxRect.bottom - boxRect.height * 0.22);
-      path.lineTo(boxRect.right - boxRect.width * 0.28, boxRect.bottom - boxRect.height * 0.32);
-      path.lineTo(boxRect.right - boxRect.width * 0.45, boxRect.top + boxRect.height * 0.22);
-      path.lineTo(boxRect.right - boxRect.width * 0.75, boxRect.top + boxRect.height * 0.22);
-      path.lineTo(boxRect.right - boxRect.width * 0.90, boxRect.bottom - boxRect.height * 0.35);
-      path.lineTo(boxRect.right - boxRect.width * 0.82, boxRect.bottom - boxRect.height * 0.18);
-      path.lineTo(boxRect.right - boxRect.width * 0.40, boxRect.bottom - boxRect.height * 0.18);
+      path.moveTo(
+        boxRect.right - boxRect.width * 0.08,
+        boxRect.bottom - boxRect.height * 0.22,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.28,
+        boxRect.bottom - boxRect.height * 0.32,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.45,
+        boxRect.top + boxRect.height * 0.22,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.75,
+        boxRect.top + boxRect.height * 0.22,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.90,
+        boxRect.bottom - boxRect.height * 0.35,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.82,
+        boxRect.bottom - boxRect.height * 0.18,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.40,
+        boxRect.bottom - boxRect.height * 0.18,
+      );
       path.close();
     } else if (!isFront && isLeft) {
       // Rear-Left 45°: Trunk on bottom-left, roof center-right, hood far right
-      path.moveTo(boxRect.left + boxRect.width * 0.08, boxRect.bottom - boxRect.height * 0.24); // Rear bumper
-      path.lineTo(boxRect.left + boxRect.width * 0.26, boxRect.bottom - boxRect.height * 0.36); // Rear tailgate
-      path.lineTo(boxRect.left + boxRect.width * 0.44, boxRect.top + boxRect.height * 0.22);    // Rear glass
-      path.lineTo(boxRect.left + boxRect.width * 0.72, boxRect.top + boxRect.height * 0.22);    // Roof
-      path.lineTo(boxRect.left + boxRect.width * 0.90, boxRect.bottom - boxRect.height * 0.30); // Front hood
-      path.lineTo(boxRect.left + boxRect.width * 0.80, boxRect.bottom - boxRect.height * 0.18); // Front bumper
-      path.lineTo(boxRect.left + boxRect.width * 0.38, boxRect.bottom - boxRect.height * 0.18); // Side sill
+      path.moveTo(
+        boxRect.left + boxRect.width * 0.08,
+        boxRect.bottom - boxRect.height * 0.24,
+      ); // Rear bumper
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.26,
+        boxRect.bottom - boxRect.height * 0.36,
+      ); // Rear tailgate
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.44,
+        boxRect.top + boxRect.height * 0.22,
+      ); // Rear glass
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.72,
+        boxRect.top + boxRect.height * 0.22,
+      ); // Roof
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.90,
+        boxRect.bottom - boxRect.height * 0.30,
+      ); // Front hood
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.80,
+        boxRect.bottom - boxRect.height * 0.18,
+      ); // Front bumper
+      path.lineTo(
+        boxRect.left + boxRect.width * 0.38,
+        boxRect.bottom - boxRect.height * 0.18,
+      ); // Side sill
       path.close();
     } else {
       // Rear-Right 45°
-      path.moveTo(boxRect.right - boxRect.width * 0.08, boxRect.bottom - boxRect.height * 0.24);
-      path.lineTo(boxRect.right - boxRect.width * 0.26, boxRect.bottom - boxRect.height * 0.36);
-      path.lineTo(boxRect.right - boxRect.width * 0.44, boxRect.top + boxRect.height * 0.22);
-      path.lineTo(boxRect.right - boxRect.width * 0.72, boxRect.top + boxRect.height * 0.22);
-      path.lineTo(boxRect.right - boxRect.width * 0.90, boxRect.bottom - boxRect.height * 0.30);
-      path.lineTo(boxRect.right - boxRect.width * 0.80, boxRect.bottom - boxRect.height * 0.18);
-      path.lineTo(boxRect.right - boxRect.width * 0.38, boxRect.bottom - boxRect.height * 0.18);
+      path.moveTo(
+        boxRect.right - boxRect.width * 0.08,
+        boxRect.bottom - boxRect.height * 0.24,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.26,
+        boxRect.bottom - boxRect.height * 0.36,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.44,
+        boxRect.top + boxRect.height * 0.22,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.72,
+        boxRect.top + boxRect.height * 0.22,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.90,
+        boxRect.bottom - boxRect.height * 0.30,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.80,
+        boxRect.bottom - boxRect.height * 0.18,
+      );
+      path.lineTo(
+        boxRect.right - boxRect.width * 0.38,
+        boxRect.bottom - boxRect.height * 0.18,
+      );
       path.close();
     }
 
@@ -143,33 +277,61 @@ class BayCameraGuidePainter extends CustomPainter {
         ? boxRect.left + boxRect.width * 0.75
         : boxRect.right - boxRect.width * 0.75;
 
-    canvas.drawCircle(Offset(primaryWheelX, wheelY), boxRect.height * 0.09, stroke);
-    canvas.drawCircle(Offset(secondaryWheelX, wheelY), boxRect.height * 0.07, stroke);
+    canvas.drawCircle(
+      Offset(primaryWheelX, wheelY),
+      boxRect.height * 0.09,
+      stroke,
+    );
+    canvas.drawCircle(
+      Offset(secondaryWheelX, wheelY),
+      boxRect.height * 0.07,
+      stroke,
+    );
 
     // Ground Baseline
     canvas.drawLine(
       Offset(boxRect.left, wheelY + boxRect.height * 0.09),
       Offset(boxRect.right, wheelY + boxRect.height * 0.09),
-      Paint()..color = Colors.white.withOpacity(0.35)..strokeWidth = 1.0,
+      Paint()
+        ..color = Colors.white.withOpacity(0.35)
+        ..strokeWidth = 1.0,
     );
 
     // TARGET CORNER FOCUS RETICLE & ARROW
     // Pinpoints the exact corner the owner needs to center in camera
-    final targetX = isLeft ? boxRect.left + boxRect.width * 0.15 : boxRect.right - boxRect.width * 0.15;
+    final targetX = isLeft
+        ? boxRect.left + boxRect.width * 0.15
+        : boxRect.right - boxRect.width * 0.15;
     final targetY = boxRect.bottom - boxRect.height * 0.22;
     final targetOffset = Offset(targetX, targetY);
 
     // Target corner circle with animated pulse
-    final pulseRadius = (boxRect.height * 0.14) + (isLocked ? 4.0 * math.sin(scanProgress * math.pi * 2) : 0);
+    final pulseRadius =
+        (boxRect.height * 0.14) +
+        (isLocked ? 4.0 * math.sin(scanProgress * math.pi * 2) : 0);
     canvas.drawCircle(targetOffset, pulseRadius, accent);
 
     // Crosshair on target corner
-    canvas.drawLine(targetOffset - const Offset(20, 0), targetOffset + const Offset(20, 0), accent);
-    canvas.drawLine(targetOffset - const Offset(0, 20), targetOffset + const Offset(0, 20), accent);
+    canvas.drawLine(
+      targetOffset - const Offset(20, 0),
+      targetOffset + const Offset(20, 0),
+      accent,
+    );
+    canvas.drawLine(
+      targetOffset - const Offset(0, 20),
+      targetOffset + const Offset(0, 20),
+      accent,
+    );
   }
 
   /// Draws a realistic Indian HSRP Number Plate guide with IND band and character slots
-  void _drawNumberPlateGuide(Canvas canvas, Size size, Paint stroke, Paint accent, Paint fill) {
+  void _drawNumberPlateGuide(
+    Canvas canvas,
+    Size size,
+    Paint stroke,
+    Paint accent,
+    Paint fill,
+  ) {
     final w = size.width;
     final h = size.height;
 
@@ -187,10 +349,17 @@ class BayCameraGuidePainter extends CustomPainter {
     canvas.drawRect(plateRect, stroke);
 
     // Blue IND Band on Left (12% of plate width)
-    final indBandRect = Rect.fromLTWH(plateRect.left, plateRect.top, plateW * 0.13, plateH);
+    final indBandRect = Rect.fromLTWH(
+      plateRect.left,
+      plateRect.top,
+      plateW * 0.13,
+      plateH,
+    );
     canvas.drawRect(
       indBandRect,
-      Paint()..color = const Color(0xFF003399).withOpacity(0.4)..style = PaintingStyle.fill,
+      Paint()
+        ..color = const Color(0xFF003399).withOpacity(0.4)
+        ..style = PaintingStyle.fill,
     );
     canvas.drawRect(indBandRect, stroke);
 
@@ -198,17 +367,38 @@ class BayCameraGuidePainter extends CustomPainter {
     canvas.drawCircle(
       Offset(indBandRect.center.dx, plateRect.top + plateH * 0.35),
       plateH * 0.14,
-      Paint()..color = Colors.white.withOpacity(0.7)..style = PaintingStyle.stroke..strokeWidth = 1.5,
+      Paint()
+        ..color = Colors.white.withOpacity(0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
     );
 
     // Corner screw/bolt holes
     const boltRadius = 4.0;
     const inset = 8.0;
-    final boltPaint = Paint()..color = Colors.white.withOpacity(0.6)..style = PaintingStyle.fill;
-    canvas.drawCircle(plateRect.topLeft + const Offset(inset, inset), boltRadius, boltPaint);
-    canvas.drawCircle(plateRect.topRight + const Offset(-inset, inset), boltRadius, boltPaint);
-    canvas.drawCircle(plateRect.bottomLeft + const Offset(inset, -inset), boltRadius, boltPaint);
-    canvas.drawCircle(plateRect.bottomRight + const Offset(-inset, -inset), boltRadius, boltPaint);
+    final boltPaint = Paint()
+      ..color = Colors.white.withOpacity(0.6)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(
+      plateRect.topLeft + const Offset(inset, inset),
+      boltRadius,
+      boltPaint,
+    );
+    canvas.drawCircle(
+      plateRect.topRight + const Offset(-inset, inset),
+      boltRadius,
+      boltPaint,
+    );
+    canvas.drawCircle(
+      plateRect.bottomLeft + const Offset(inset, -inset),
+      boltRadius,
+      boltPaint,
+    );
+    canvas.drawCircle(
+      plateRect.bottomRight + const Offset(-inset, -inset),
+      boltRadius,
+      boltPaint,
+    );
 
     // Ghosted Plate Number Slots (e.g. MH 02 AB 1234)
     final charBoxWidth = (plateW * 0.82) / 10;
@@ -222,14 +412,27 @@ class BayCameraGuidePainter extends CustomPainter {
       ..strokeWidth = 1.0;
 
     for (int i = 0; i < 10; i++) {
-      if (i == 2 || i == 4 || i == 6) continue; // Spaces between RTO code & numbers
-      final charRect = Rect.fromLTWH(startX + (i * charBoxWidth), startY, charBoxWidth * 0.75, charBoxHeight);
+      if (i == 2 || i == 4 || i == 6) {
+        continue; // Spaces between RTO code & numbers
+      }
+      final charRect = Rect.fromLTWH(
+        startX + (i * charBoxWidth),
+        startY,
+        charBoxWidth * 0.75,
+        charBoxHeight,
+      );
       canvas.drawRect(charRect, dashPaint);
     }
   }
 
   /// Draws a clear speedometer gauge and digital odometer counter box
-  void _drawOdometerClusterGuide(Canvas canvas, Size size, Paint stroke, Paint accent, Paint fill) {
+  void _drawOdometerClusterGuide(
+    Canvas canvas,
+    Size size,
+    Paint stroke,
+    Paint accent,
+    Paint fill,
+  ) {
     final w = size.width;
     final h = size.height;
 
@@ -259,7 +462,11 @@ class BayCameraGuidePainter extends CustomPainter {
     // Dial Needle indicator
     canvas.drawLine(
       dialCenter,
-      dialCenter + Offset(math.cos(math.pi * 1.3) * dialRadius * 0.75, math.sin(math.pi * 1.3) * dialRadius * 0.75),
+      dialCenter +
+          Offset(
+            math.cos(math.pi * 1.3) * dialRadius * 0.75,
+            math.sin(math.pi * 1.3) * dialRadius * 0.75,
+          ),
       accent,
     );
 
@@ -286,7 +493,13 @@ class BayCameraGuidePainter extends CustomPainter {
   }
 
   /// Draws a clean VIN chassis barcode plaque guide
-  void _drawVinPlateGuide(Canvas canvas, Size size, Paint stroke, Paint accent, Paint fill) {
+  void _drawVinPlateGuide(
+    Canvas canvas,
+    Size size,
+    Paint stroke,
+    Paint accent,
+    Paint fill,
+  ) {
     final w = size.width;
     final h = size.height;
 
@@ -305,10 +518,16 @@ class BayCameraGuidePainter extends CustomPainter {
     // Barcode simulated lines
     final barcodeY = vinRect.top + vinH * 0.25;
     final barcodeH = vinH * 0.30;
-    final linePaint = Paint()..color = Colors.white.withOpacity(0.5)..strokeWidth = 2.0;
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.5)
+      ..strokeWidth = 2.0;
 
     for (double x = vinRect.left + 16.0; x < vinRect.right - 16.0; x += 8.0) {
-      canvas.drawLine(Offset(x, barcodeY), Offset(x, barcodeY + barcodeH), linePaint);
+      canvas.drawLine(
+        Offset(x, barcodeY),
+        Offset(x, barcodeY + barcodeH),
+        linePaint,
+      );
     }
 
     // 17 Character boxes baseline
@@ -336,32 +555,71 @@ class BayCameraGuidePainter extends CustomPainter {
 
     // 4 Corner Targeting Brackets
     // Top-Left
-    canvas.drawLine(frameRect.topLeft, frameRect.topLeft + const Offset(cornerSize, 0), accent);
-    canvas.drawLine(frameRect.topLeft, frameRect.topLeft + const Offset(0, cornerSize), accent);
+    canvas.drawLine(
+      frameRect.topLeft,
+      frameRect.topLeft + const Offset(cornerSize, 0),
+      accent,
+    );
+    canvas.drawLine(
+      frameRect.topLeft,
+      frameRect.topLeft + const Offset(0, cornerSize),
+      accent,
+    );
     // Top-Right
-    canvas.drawLine(frameRect.topRight, frameRect.topRight + const Offset(-cornerSize, 0), accent);
-    canvas.drawLine(frameRect.topRight, frameRect.topRight + const Offset(0, cornerSize), accent);
+    canvas.drawLine(
+      frameRect.topRight,
+      frameRect.topRight + const Offset(-cornerSize, 0),
+      accent,
+    );
+    canvas.drawLine(
+      frameRect.topRight,
+      frameRect.topRight + const Offset(0, cornerSize),
+      accent,
+    );
     // Bottom-Left
-    canvas.drawLine(frameRect.bottomLeft, frameRect.bottomLeft + const Offset(cornerSize, 0), accent);
-    canvas.drawLine(frameRect.bottomLeft, frameRect.bottomLeft + const Offset(0, -cornerSize), accent);
+    canvas.drawLine(
+      frameRect.bottomLeft,
+      frameRect.bottomLeft + const Offset(cornerSize, 0),
+      accent,
+    );
+    canvas.drawLine(
+      frameRect.bottomLeft,
+      frameRect.bottomLeft + const Offset(0, -cornerSize),
+      accent,
+    );
     // Bottom-Right
-    canvas.drawLine(frameRect.bottomRight, frameRect.bottomRight + const Offset(-cornerSize, 0), accent);
-    canvas.drawLine(frameRect.bottomRight, frameRect.bottomRight + const Offset(0, -cornerSize), accent);
+    canvas.drawLine(
+      frameRect.bottomRight,
+      frameRect.bottomRight + const Offset(-cornerSize, 0),
+      accent,
+    );
+    canvas.drawLine(
+      frameRect.bottomRight,
+      frameRect.bottomRight + const Offset(0, -cornerSize),
+      accent,
+    );
 
     // Active Scanning Laser Beam (Sweeps vertically when searching/aligning)
     if (!isLocked) {
       final scanY = frameRect.top + (frameRect.height * scanProgress);
       final scanPaint = Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFFF8A348).withOpacity(0.0),
-            const Color(0xFFF8A348).withOpacity(0.85),
-            const Color(0xFFF8A348).withOpacity(0.0),
-          ],
-        ).createShader(Rect.fromLTWH(frameRect.left, scanY - 1, frameRect.width, 3))
+        ..shader =
+            LinearGradient(
+              colors: [
+                const Color(0xFFF8A348).withOpacity(0.0),
+                const Color(0xFFF8A348).withOpacity(0.85),
+                const Color(0xFFF8A348).withOpacity(0.0),
+              ],
+            ).createShader(
+              Rect.fromLTWH(frameRect.left, scanY - 1, frameRect.width, 3),
+            )
         ..strokeWidth = 2.0;
 
-      canvas.drawLine(Offset(frameRect.left, scanY), Offset(frameRect.right, scanY), scanPaint);
+      canvas.drawLine(
+        Offset(frameRect.left, scanY),
+        Offset(frameRect.right, scanY),
+        scanPaint,
+      );
     }
   }
 

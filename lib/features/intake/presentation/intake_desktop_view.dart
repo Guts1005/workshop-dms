@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_button.dart';
 import '../../../ui_kit/widgets/sharp_card.dart';
@@ -45,7 +46,8 @@ class IntakeDesktopView extends StatefulWidget {
 }
 
 class _IntakeDesktopViewState extends State<IntakeDesktopView> {
-  int _activeMgTab = 1; // 0: INFO, 1: SERVICES (default for test assertions), 2: KNOW YOUR CAR
+  int _activeMgTab =
+      1; // 0: INFO, 1: SERVICES (default for test assertions), 2: KNOW YOUR CAR
   bool _pickupRequired = true;
 
   void _addServicePreset(String preset) {
@@ -76,20 +78,33 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
 
               if (state.errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(12.0),
-                    border: Border.all(color: const Color(0xFFFCA5A5), width: 1.0),
+                    border: Border.all(
+                      color: const Color(0xFFFCA5A5),
+                      width: 1.0,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 20.0),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Color(0xFFDC2626),
+                        size: 20.0,
+                      ),
                       const SizedBox(width: 10.0),
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Color(0xFFDC2626),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -115,9 +130,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                           bodyType: state.bodyType,
                           odometerKm: state.odometer,
                           isExistingVehicle: state.isExistingVehicle,
-                          onBayCaptureTap: () => GoRouter.maybeOf(context)?.go('/bay-capture'),
-                          onConditionMapTap: () => GoRouter.maybeOf(context)?.go('/condition-map'),
-                          onJobCardTap: () => GoRouter.maybeOf(context)?.go('/job-card'),
+                          showQuickActions: false,
                         ),
                         const SizedBox(height: 16.0),
 
@@ -125,7 +138,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         _buildVehicleIdentityCard(),
 
                         // Bento Pod 3: MG i-SMART Service Passport & Specs (if recognized)
-                        if (state.isExistingVehicle && state.previousHistory.isNotEmpty) ...[
+                        if (state.isExistingVehicle &&
+                            state.previousHistory.isNotEmpty) ...[
                           const SizedBox(height: 16.0),
                           _buildPreviousHistoryCard(),
                         ],
@@ -170,22 +184,15 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     );
   }
 
-  /// Top Sleek Breadcrumb (Satisfies test expectation 'PAGE 1: VEHICLE & CUSTOMER INTAKE')
+  /// Top Sleek Header Bar for New Application
   Widget _buildDesktopHeader() {
     final state = widget.state;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 12.0,
-            offset: Offset(0, 3),
-          ),
-        ],
+        color: AppTokens.surface,
+        borderRadius: AppTokens.cardRadius,
+        border: Border.all(color: AppTokens.borderLight, width: 1.0),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -194,24 +201,21 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9.0, vertical: 4.0),
-                  decoration: BoxDecoration(
+                  padding: const EdgeInsets.all(6.0),
+                  decoration: const BoxDecoration(
                     color: AppTokens.brandRed,
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: AppTokens.inputRadius,
                   ),
-                  child: Text(
-                    '01',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: const Icon(
+                    Icons.note_add_rounded,
+                    color: AppTokens.textOnDark,
+                    size: 16.0,
                   ),
                 ),
                 const SizedBox(width: 10.0),
                 Flexible(
                   child: Text(
-                    'PAGE 1: VEHICLE & CUSTOMER INTAKE',
+                    'NEW APPLICATION: VEHICLE CHECK-IN',
                     style: GoogleFonts.inter(
                       color: AppTokens.textPrimary,
                       fontSize: 13.5,
@@ -220,18 +224,6 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: 14.0),
-                // Modern Stepped Stage Flow Indicators
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildStageStepPill('1. IDENTITY', isActive: true),
-                    _buildStageStepDivider(),
-                    _buildStageStepPill('2. TELEMETRY', isActive: state.odometer.isNotEmpty),
-                    _buildStageStepDivider(),
-                    _buildStageStepPill('3. SCOPE', isActive: state.requestedWork.isNotEmpty),
-                  ],
                 ),
               ],
             ),
@@ -249,38 +241,49 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               icon: Icons.add_circle_outline,
               type: StatusType.neutral,
             ),
+          const SizedBox(width: 10.0),
+          InkWell(
+            borderRadius: BorderRadius.circular(8.0),
+            onTap: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                context.go('/');
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 6.0,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.arrow_back,
+                    size: 14.0,
+                    color: Color(0xFF475569),
+                  ),
+                  const SizedBox(width: 4.0),
+                  Text(
+                    'WORKSHOP HUB',
+                    style: GoogleFonts.inter(
+                      fontSize: 11.0,
+                      fontWeight: FontWeight.w800,
+                      color: AppTokens.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStageStepPill(String label, {required bool isActive}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(
-          color: isActive ? const Color(0xFFBFDBFE) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          fontSize: 9.5,
-          fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-          color: isActive ? const Color(0xFF1D4ED8) : const Color(0xFF94A3B8),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStageStepDivider() {
-    return Container(
-      width: 12.0,
-      height: 1.0,
-      margin: const EdgeInsets.symmetric(horizontal: 4.0),
-      color: const Color(0xFFCBD5E1),
     );
   }
 
@@ -299,7 +302,10 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Registration Plate Input
-          _buildMicroLabel('REGISTRATION NUMBER (RTO FORMAT)', isRequired: true),
+          _buildMicroLabel(
+            'REGISTRATION NUMBER (RTO FORMAT)',
+            isRequired: true,
+          ),
           const SizedBox(height: 5.0),
           TextField(
             key: const Key('input_registration'),
@@ -312,28 +318,56 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               fillColor: Colors.white,
               prefixIcon: Container(
                 margin: const EdgeInsets.only(right: 10.0),
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 12.0,
+                ),
                 decoration: const BoxDecoration(
                   color: Color(0xFF003399),
-                  borderRadius: BorderRadius.horizontal(left: Radius.circular(9.0)),
+                  borderRadius: BorderRadius.horizontal(
+                    left: Radius.circular(9.0),
+                  ),
                 ),
-                child: const Text('IND', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11.0)),
+                child: const Text(
+                  'IND',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11.0,
+                  ),
+                ),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE2E8F0),
+                  width: 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE2E8F0),
+                  width: 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                borderSide: const BorderSide(
+                  color: AppTokens.textPrimary,
+                  width: 1.8,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 13.0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 13.0,
+              ),
             ),
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14.5, color: AppTokens.textPrimary),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              fontSize: 14.5,
+              color: AppTokens.textPrimary,
+            ),
             onChanged: controller.onRegistrationChanged,
           ),
           const SizedBox(height: 12.0),
@@ -350,22 +384,41 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               errorText: state.errors['vin'],
               filled: true,
               fillColor: Colors.white,
-              prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18.0, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(
+                Icons.vpn_key_outlined,
+                size: 18.0,
+                color: Color(0xFF64748B),
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE2E8F0),
+                  width: 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE2E8F0),
+                  width: 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                borderSide: const BorderSide(
+                  color: AppTokens.textPrimary,
+                  width: 1.8,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 13.0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 13.0,
+              ),
             ),
-            style: GoogleFonts.inter(fontSize: 13.5, color: AppTokens.textPrimary),
+            style: GoogleFonts.inter(
+              fontSize: 13.5,
+              color: AppTokens.textPrimary,
+            ),
             onChanged: controller.onVinChanged,
           ),
           const SizedBox(height: 14.0),
@@ -376,22 +429,23 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           Wrap(
             spacing: 6.0,
             runSpacing: 6.0,
-            children: [
-              'MARUTI SUZUKI',
-              'HYUNDAI',
-              'TATA',
-              'MAHINDRA',
-              'MG MOTOR',
-              'TOYOTA',
-              'KIA',
-              'HONDA',
-            ].map((makeName) {
-              return MakeWordmarkChip(
-                make: makeName,
-                isSelected: state.make == makeName,
-                onTap: () => controller.onMakeChanged(makeName),
-              );
-            }).toList(),
+            children:
+                [
+                  'MARUTI SUZUKI',
+                  'HYUNDAI',
+                  'TATA',
+                  'MAHINDRA',
+                  'MG MOTOR',
+                  'TOYOTA',
+                  'KIA',
+                  'HONDA',
+                ].map((makeName) {
+                  return MakeWordmarkChip(
+                    make: makeName,
+                    isSelected: state.make == makeName,
+                    onTap: () => controller.onMakeChanged(makeName),
+                  );
+                }).toList(),
           ),
           const SizedBox(height: 14.0),
 
@@ -415,28 +469,59 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                          borderSide: const BorderSide(
+                            color: AppTokens.textPrimary,
+                            width: 1.8,
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10.0,
+                          vertical: 12.0,
+                        ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'MARUTI SUZUKI', child: Text('MARUTI')),
-                        DropdownMenuItem(value: 'HYUNDAI', child: Text('HYUNDAI')),
+                        DropdownMenuItem(value: '', child: Text('Select make')),
+                        DropdownMenuItem(
+                          value: 'MARUTI SUZUKI',
+                          child: Text('MARUTI'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'HYUNDAI',
+                          child: Text('HYUNDAI'),
+                        ),
                         DropdownMenuItem(value: 'TATA', child: Text('TATA')),
-                        DropdownMenuItem(value: 'MAHINDRA', child: Text('MAHINDRA')),
-                        DropdownMenuItem(value: 'MG MOTOR', child: Text('MG MOTOR')),
-                        DropdownMenuItem(value: 'TOYOTA', child: Text('TOYOTA')),
+                        DropdownMenuItem(
+                          value: 'MAHINDRA',
+                          child: Text('MAHINDRA'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'MG MOTOR',
+                          child: Text('MG MOTOR'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'TOYOTA',
+                          child: Text('TOYOTA'),
+                        ),
                         DropdownMenuItem(value: 'HONDA', child: Text('HONDA')),
                         DropdownMenuItem(value: 'KIA', child: Text('KIA')),
-                        DropdownMenuItem(value: 'VOLKSWAGEN', child: Text('VW')),
+                        DropdownMenuItem(
+                          value: 'VOLKSWAGEN',
+                          child: Text('VW'),
+                        ),
                         DropdownMenuItem(value: 'SKODA', child: Text('SKODA')),
                         DropdownMenuItem(value: 'OTHER', child: Text('OTHER')),
                       ],
@@ -465,17 +550,29 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                          borderSide: const BorderSide(
+                            color: AppTokens.textPrimary,
+                            width: 1.8,
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 12.0,
+                        ),
                       ),
                       onChanged: controller.onModelChanged,
                     ),
@@ -490,6 +587,17 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           _buildMicroLabel('BODY PROFILE SILHOUETTE:'),
           const SizedBox(height: 6.0),
           _buildBodySilhouetteGrid(),
+          if (widget.state.errors.containsKey('bodyType')) ...[
+            const SizedBox(height: 6),
+            Text(
+              widget.state.errors['bodyType']!,
+              style: const TextStyle(
+                color: AppTokens.brandRed,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -511,7 +619,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
       spacing: 6.0,
       runSpacing: 6.0,
       children: types.map((bt) {
-        final isSel = widget.state.bodyType == bt;
+        final isSel =
+            widget.state.bodyTypeConfirmed && widget.state.bodyType == bt;
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -548,7 +657,9 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                       size: const Size(80.0, 32.0),
                       painter: VehicleSilhouettePainter(
                         bodyType: bt,
-                        strokeColor: isSel ? Colors.white : AppTokens.textPrimary,
+                        strokeColor: isSel
+                            ? Colors.white
+                            : AppTokens.textPrimary,
                       ),
                     ),
                   ),
@@ -627,7 +738,10 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               ),
               child: Column(
                 children: [
-                  _buildSpecRow('VIN', state.vin.isNotEmpty ? state.vin : 'MZ7AD1DHG2H002477'),
+                  _buildSpecRow(
+                    'VIN',
+                    state.vin.isNotEmpty ? state.vin : 'MZ7AD1DHG2H002477',
+                  ),
                   _buildSpecRow('Variant', 'SHARP PRO 2.0 DIESEL'),
                   _buildSpecRow('Colour', 'Starry Black'),
                   _buildSpecRow('Fuel', 'Diesel (BS6-II)'),
@@ -646,14 +760,30 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_on_outlined, color: AppTokens.brandRed, size: 20.0),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    color: AppTokens.brandRed,
+                    size: 20.0,
+                  ),
                   const SizedBox(width: 8.0),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('MG Noida Workshop DMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0)),
-                        Text('Sector 8, Noida, Uttar Pradesh, 201301', style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                        Text(
+                          'MG Noida Workshop DMS',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                        Text(
+                          'Sector 8, Noida, Uttar Pradesh, 201301',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -665,7 +795,11 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFFCA5A5)),
                     ),
-                    child: const Icon(Icons.phone, size: 16.0, color: AppTokens.brandRed),
+                    child: const Icon(
+                      Icons.phone,
+                      size: 16.0,
+                      color: AppTokens.brandRed,
+                    ),
                   ),
                 ],
               ),
@@ -675,7 +809,9 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           // Always Render Services to satisfy tests
           ...state.previousHistory.map((item) {
             final dateStr = DateFormat('dd MMM yyyy').format(item.serviceDate);
-            final amountRupees = (item.totalAmountPaise / 100).toStringAsFixed(2);
+            final amountRupees = item.totalAmountPaise == null
+                ? null
+                : (item.totalAmountPaise! / 100).toStringAsFixed(2);
             return Container(
               margin: const EdgeInsets.only(bottom: 10.0),
               padding: const EdgeInsets.all(14.0),
@@ -720,13 +856,18 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 3.0,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCFCE7),
                           borderRadius: BorderRadius.circular(10.0),
                         ),
                         child: Text(
-                          '★ ${item.feedback.toUpperCase()}',
+                          item.feedback == null
+                              ? 'SERVICE RECORD'
+                              : '★ ${item.feedback!.toUpperCase()}',
                           style: GoogleFonts.inter(
                             color: const Color(0xFF15803D),
                             fontWeight: FontWeight.w800,
@@ -742,15 +883,27 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                     children: [
                       Text(
                         'MG MOTORS • $dateStr',
-                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Row(
                         children: [
-                          const Icon(Icons.speed, size: 14.0, color: Color(0xFF64748B)),
+                          const Icon(
+                            Icons.speed,
+                            size: 14.0,
+                            color: Color(0xFF64748B),
+                          ),
                           const SizedBox(width: 4.0),
                           Text(
                             '${item.odometerKm} KM',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12.0, color: AppTokens.textPrimary),
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.0,
+                              color: AppTokens.textPrimary,
+                            ),
                           ),
                         ],
                       ),
@@ -758,7 +911,10 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                   ),
                   const SizedBox(height: 8.0),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0,
+                      vertical: 8.0,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8.0),
@@ -769,7 +925,11 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         const Expanded(
                           child: Text(
                             'PERIODIC SERVICE • BRAKE PADS • LUBRICATING OIL',
-                            style: TextStyle(fontSize: 11.0, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              color: Color(0xFF475569),
+                              fontWeight: FontWeight.w500,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -778,10 +938,18 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                           children: [
                             Text(
                               '₹$amountRupees',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12.5, color: AppTokens.textPrimary),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12.5,
+                                color: AppTokens.textPrimary,
+                              ),
                             ),
                             const SizedBox(width: 6.0),
-                            const Icon(Icons.picture_as_pdf_outlined, size: 16.0, color: AppTokens.brandRed),
+                            const Icon(
+                              Icons.picture_as_pdf_outlined,
+                              size: 16.0,
+                              color: AppTokens.brandRed,
+                            ),
                           ],
                         ),
                       ],
@@ -835,8 +1003,22 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
-          Text(value, style: const TextStyle(fontSize: 11.5, color: AppTokens.textPrimary, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: AppTokens.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -850,7 +1032,11 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     return SharpCard(
       title: '2. CUSTOMER CONTACT & CONCIERGE',
       titleTrailing: state.isExistingCustomer
-          ? const StatusChip(label: 'RETURNING', icon: Icons.person, type: StatusType.ok)
+          ? const StatusChip(
+              label: 'RETURNING',
+              icon: Icons.person,
+              type: StatusType.ok,
+            )
           : null,
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -876,28 +1062,56 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         fillColor: Colors.white,
                         prefixIcon: Container(
                           margin: const EdgeInsets.only(right: 10.0),
-                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10.0,
+                            vertical: 12.0,
+                          ),
                           decoration: const BoxDecoration(
                             color: Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.horizontal(left: Radius.circular(9.0)),
+                            borderRadius: BorderRadius.horizontal(
+                              left: Radius.circular(9.0),
+                            ),
                           ),
-                          child: const Text('+91', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.0, color: AppTokens.textPrimary)),
+                          child: const Text(
+                            '+91',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12.0,
+                              color: AppTokens.textPrimary,
+                            ),
+                          ),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                          borderSide: const BorderSide(
+                            color: AppTokens.textPrimary,
+                            width: 1.8,
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 13.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 13.0,
+                        ),
                       ),
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14.5, color: AppTokens.textPrimary),
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.5,
+                        color: AppTokens.textPrimary,
+                      ),
                       onChanged: controller.onPhoneChanged,
                     ),
                   ],
@@ -918,20 +1132,36 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                         errorText: state.errors['name'],
                         filled: true,
                         fillColor: Colors.white,
-                        prefixIcon: const Icon(Icons.person_outline, size: 18.0, color: Color(0xFF64748B)),
+                        prefixIcon: const Icon(
+                          Icons.person_outline,
+                          size: 18.0,
+                          color: Color(0xFF64748B),
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.0,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                          borderSide: const BorderSide(
+                            color: AppTokens.textPrimary,
+                            width: 1.8,
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 13.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 13.0,
+                        ),
                       ),
                       onChanged: controller.onNameChanged,
                     ),
@@ -948,7 +1178,10 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               // Sub-tile 1: Pickup My Vehicle Toggle
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14.0,
+                    vertical: 10.0,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12.0),
@@ -960,7 +1193,11 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                       const Expanded(
                         child: Row(
                           children: [
-                            Icon(Icons.directions_car_filled, color: AppTokens.brandRed, size: 20.0),
+                            Icon(
+                              Icons.directions_car_filled,
+                              color: AppTokens.brandRed,
+                              size: 20.0,
+                            ),
                             SizedBox(width: 8.0),
                             Expanded(
                               child: Column(
@@ -968,12 +1205,18 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                                 children: [
                                   Text(
                                     'Pickup My Vehicle',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.0),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.0,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     'Doorstep concierge valet',
-                                    style: TextStyle(fontSize: 10.0, color: Color(0xFF64748B)),
+                                    style: TextStyle(
+                                      fontSize: 10.0,
+                                      color: Color(0xFF64748B),
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
@@ -998,7 +1241,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               Expanded(
                 child: _buildDesktopCheckbox(
                   key: const Key('checkbox_whatsapp'),
-                  label: 'WhatsApp & SMS Estimates, Digital Passport & Invoices',
+                  label:
+                      'WhatsApp & SMS Estimates, Digital Passport & Invoices',
                   value: state.whatsappConsent,
                   onChanged: controller.onWhatsappConsentChanged,
                 ),
@@ -1038,10 +1282,17 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: _buildMicroLabel('CURRENT ODOMETER (KM)', isRequired: true),
+                        child: _buildMicroLabel(
+                          'CURRENT ODOMETER (KM)',
+                          isRequired: true,
+                        ),
                       ),
                       const SizedBox(width: 6.0),
-                      const Icon(Icons.speed, size: 16.0, color: AppTokens.brandRed),
+                      const Icon(
+                        Icons.speed,
+                        size: 16.0,
+                        color: AppTokens.brandRed,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6.0),
@@ -1054,23 +1305,43 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                       errorText: state.errors['odometer'],
                       filled: true,
                       fillColor: Colors.white,
-                      prefixIcon: const Icon(Icons.av_timer, size: 18.0, color: Color(0xFF64748B)),
+                      prefixIcon: const Icon(
+                        Icons.av_timer,
+                        size: 18.0,
+                        color: Color(0xFF64748B),
+                      ),
                       suffixText: 'KM',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE2E8F0),
+                          width: 1.0,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE2E8F0),
+                          width: 1.0,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
-                        borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                        borderSide: const BorderSide(
+                          color: AppTokens.textPrimary,
+                          width: 1.8,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 12.0,
+                      ),
                     ),
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 15.0, color: AppTokens.textPrimary),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15.0,
+                      color: AppTokens.textPrimary,
+                    ),
                     onChanged: controller.onOdometerChanged,
                   ),
                 ],
@@ -1095,25 +1366,45 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: _buildMicroLabel('FUEL TANK LEVEL:'),
-                      ),
+                      Expanded(child: _buildMicroLabel('FUEL TANK LEVEL:')),
                       const SizedBox(width: 6.0),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 2.0,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEE2E2),
                           borderRadius: BorderRadius.circular(10.0),
                         ),
                         child: Text(
-                          '${state.fuelLevelPercent}%',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 12.0, color: AppTokens.brandRed),
+                          state.fuelLevelConfirmed
+                              ? '${state.fuelLevelPercent}%'
+                              : 'NOT CHECKED',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12.0,
+                            color: AppTokens.brandRed,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10.0),
                   _buildDesktopFuelMeter(),
+                  Material(
+                    color: Colors.transparent,
+                    child: CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: state.fuelLevelConfirmed,
+                      activeColor: AppTokens.inverse,
+                      title: const Text('Fuel level checked at the vehicle'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (checked) => controller
+                          .onFuelLevelConfirmationChanged(checked ?? false),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1140,7 +1431,9 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
 
             return Expanded(
               child: GestureDetector(
-                onTap: () => controller.onFuelLevelChanged(((i + 1) * 12.5).clamp(0, 100).toInt()),
+                onTap: () => controller.onFuelLevelChanged(
+                  ((i + 1) * 12.5).clamp(0, 100).toInt(),
+                ),
                 child: Container(
                   height: 18.0,
                   margin: EdgeInsets.only(right: i < 7 ? 4.0 : 0.0),
@@ -1157,11 +1450,43 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('E', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11.0, color: const Color(0xFF94A3B8))),
-            Text('1/4', style: GoogleFonts.inter(fontSize: 10.0, color: const Color(0xFF94A3B8))),
-            Text('1/2', style: GoogleFonts.inter(fontSize: 10.0, color: const Color(0xFF94A3B8))),
-            Text('3/4', style: GoogleFonts.inter(fontSize: 10.0, color: const Color(0xFF94A3B8))),
-            Text('F', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11.0, color: const Color(0xFF94A3B8))),
+            Text(
+              'E',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                fontSize: 11.0,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+            Text(
+              '1/4',
+              style: GoogleFonts.inter(
+                fontSize: 10.0,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+            Text(
+              '1/2',
+              style: GoogleFonts.inter(
+                fontSize: 10.0,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+            Text(
+              '3/4',
+              style: GoogleFonts.inter(
+                fontSize: 10.0,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+            Text(
+              'F',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                fontSize: 11.0,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
           ],
         ),
       ],
@@ -1173,7 +1498,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     final state = widget.state;
     final controller = widget.controller;
     final deliveryText = state.expectedDelivery != null
-        ? DateFormat('EEE, dd MMM yyyy - hh:mm a').format(state.expectedDelivery!)
+        ? DateFormat('EEE, dd MMM yyyy - hh:mm a')
+              .format(state.expectedDelivery!)
         : 'SELECT EXPECTED DELIVERY DATE & TIME';
 
     return SharpCard(
@@ -1186,7 +1512,14 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildMicroLabel('CUSTOMER CONCERNS & SERVICE SCOPE:'),
-              const Text('TAP PRESETS TO ADD', style: TextStyle(fontSize: 10.0, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
+              const Text(
+                'TAP PRESETS TO ADD',
+                style: TextStyle(
+                  fontSize: 10.0,
+                  color: Color(0xFF94A3B8),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6.0),
@@ -1195,11 +1528,26 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
             spacing: 6.0,
             runSpacing: 6.0,
             children: [
-              _buildPresetChip('+ PERIODIC SERVICE', () => _addServicePreset('Periodic maintenance')),
-              _buildPresetChip('+ BRAKE VIBRATION', () => _addServicePreset('Brake pad vibration')),
-              _buildPresetChip('+ AC COOLING', () => _addServicePreset('AC cooling check')),
-              _buildPresetChip('+ WHEEL ALIGNMENT', () => _addServicePreset('Wheel alignment & balancing')),
-              _buildPresetChip('+ SUSPENSION NOISE', () => _addServicePreset('Suspension noise')),
+              _buildPresetChip(
+                '+ PERIODIC SERVICE',
+                () => _addServicePreset('Periodic maintenance'),
+              ),
+              _buildPresetChip(
+                '+ BRAKE VIBRATION',
+                () => _addServicePreset('Brake pad vibration'),
+              ),
+              _buildPresetChip(
+                '+ AC COOLING',
+                () => _addServicePreset('AC cooling check'),
+              ),
+              _buildPresetChip(
+                '+ WHEEL ALIGNMENT',
+                () => _addServicePreset('Wheel alignment & balancing'),
+              ),
+              _buildPresetChip(
+                '+ SUSPENSION NOISE',
+                () => _addServicePreset('Suspension noise'),
+              ),
             ],
           ),
           const SizedBox(height: 8.0),
@@ -1213,15 +1561,24 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE2E8F0),
+                  width: 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+                borderSide: const BorderSide(
+                  color: Color(0xFFE2E8F0),
+                  width: 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                borderSide: const BorderSide(color: AppTokens.textPrimary, width: 1.8),
+                borderSide: const BorderSide(
+                  color: AppTokens.textPrimary,
+                  width: 1.8,
+                ),
               ),
               contentPadding: const EdgeInsets.all(12.0),
             ),
@@ -1258,20 +1615,34 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14.0,
+                  vertical: 12.0,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10.0),
-                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1.0,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 16.0, color: Color(0xFF64748B)),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 16.0,
+                      color: Color(0xFF64748B),
+                    ),
                     const SizedBox(width: 8.0),
                     Expanded(
                       child: Text(
                         deliveryText,
-                        style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppTokens.textPrimary),
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppTokens.textPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -1296,7 +1667,11 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+          style: const TextStyle(
+            fontSize: 10.0,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF475569),
+          ),
         ),
       ),
     );
@@ -1318,7 +1693,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                 child: _buildDesktopCheckbox(
                   label: 'Jack & Tool Kit in boot',
                   value: state.belongings.jackAndToolKit,
-                  onChanged: (v) => controller.onBelongingItemToggled('jackAndToolKit', v),
+                  onChanged: (v) =>
+                      controller.onBelongingItemToggled('jackAndToolKit', v),
                 ),
               ),
               const SizedBox(width: 10.0),
@@ -1326,7 +1702,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                 child: _buildDesktopCheckbox(
                   label: 'Spare Tyre / Stepney present',
                   value: state.belongings.spareTyre,
-                  onChanged: (v) => controller.onBelongingItemToggled('spareTyre', v),
+                  onChanged: (v) =>
+                      controller.onBelongingItemToggled('spareTyre', v),
                 ),
               ),
             ],
@@ -1338,7 +1715,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                 child: _buildDesktopCheckbox(
                   label: 'Boot Mat & Interior liners in place',
                   value: state.belongings.bootMat,
-                  onChanged: (v) => controller.onBelongingItemToggled('bootMat', v),
+                  onChanged: (v) =>
+                      controller.onBelongingItemToggled('bootMat', v),
                 ),
               ),
               const SizedBox(width: 10.0),
@@ -1346,7 +1724,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
                 child: _buildDesktopCheckbox(
                   label: 'Valuables removed by owner',
                   value: state.belongings.valuablesRemoved,
-                  onChanged: (v) => controller.onBelongingItemToggled('valuablesRemoved', v),
+                  onChanged: (v) =>
+                      controller.onBelongingItemToggled('valuablesRemoved', v),
                 ),
               ),
             ],
@@ -1355,7 +1734,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
           _buildDesktopCheckbox(
             label: 'Pendrive, Toll Tags & Media accessories logged',
             value: state.belongings.pendriveOrAccessories,
-            onChanged: (v) => controller.onBelongingItemToggled('pendriveOrAccessories', v),
+            onChanged: (v) =>
+                controller.onBelongingItemToggled('pendriveOrAccessories', v),
           ),
         ],
       ),
@@ -1364,7 +1744,9 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
 
   Widget _buildSubmitAction(BuildContext context) {
     return widget.state.status == IntakeStatus.saving
-        ? const Center(child: CircularProgressIndicator(color: AppTokens.textPrimary))
+        ? const Center(
+            child: CircularProgressIndicator(color: AppTokens.textPrimary),
+          )
         : SharpButton(
             label: 'GENERATE INTAKE & PROCEED TO BAY CHECK-IN',
             icon: Icons.arrow_forward,
@@ -1375,9 +1757,8 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
               final ok = await widget.controller.submitIntake();
               if (ok && context.mounted) {
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Vehicle Intake recorded. Proceeding to Bay Capture.')),
+                  const SnackBar(content: Text('Application created.')),
                 );
-                GoRouter.maybeOf(context)?.go('/bay-capture');
               }
             },
           );
@@ -1401,7 +1782,14 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
         ),
         if (isRequired) ...[
           const SizedBox(width: 4.0),
-          const Text('*', style: TextStyle(color: AppTokens.brandRed, fontWeight: FontWeight.bold, fontSize: 12.0)),
+          const Text(
+            '*',
+            style: TextStyle(
+              color: AppTokens.brandRed,
+              fontWeight: FontWeight.bold,
+              fontSize: 12.0,
+            ),
+          ),
         ],
       ],
     );

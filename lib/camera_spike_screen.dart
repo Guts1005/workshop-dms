@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -6,10 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 enum CameraPermissionStatus {
-  prompt,      // Shows the one-line explanation screen first
+  prompt, // Shows the one-line explanation screen first
   checking,
   granted,
-  denied,      // Shows screen with "Open Settings" action
+  denied, // Shows screen with "Open Settings" action
 }
 
 class CameraSpikeScreen extends StatefulWidget {
@@ -19,7 +20,8 @@ class CameraSpikeScreen extends StatefulWidget {
   State<CameraSpikeScreen> createState() => _CameraSpikeScreenState();
 }
 
-class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindingObserver {
+class _CameraSpikeScreenState extends State<CameraSpikeScreen>
+    with WidgetsBindingObserver {
   CameraPermissionStatus _permissionStatus = CameraPermissionStatus.prompt;
   CameraController? _controller;
   List<CameraDescription> _availableCameras = [];
@@ -52,7 +54,8 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
   /// App Lifecycle Handling: Dispose on pause/inactive, re-init on resume
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
       _disposeController();
     } else if (state == AppLifecycleState.resumed) {
       if (_permissionStatus == CameraPermissionStatus.granted) {
@@ -94,7 +97,6 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
     }
   }
 
-
   Future<void> _initCamera() async {
     if (_isCameraInitializing) return;
     _isCameraInitializing = true;
@@ -104,7 +106,10 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
     try {
       _availableCameras = await availableCameras();
       if (_availableCameras.isEmpty) {
-        throw CameraException('NoCamerasFound', 'No connected camera detected on this device.');
+        throw CameraException(
+          'NoCamerasFound',
+          'No connected camera detected on this device.',
+        );
       }
 
       // Prefer rear camera on mobile, or first camera on desktop
@@ -155,7 +160,10 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
       }
 
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String targetPath = p.join(targetDir.path, 'capture_$timestamp.jpg');
+      final String targetPath = p.join(
+        targetDir.path,
+        'capture_$timestamp.jpg',
+      );
 
       // Copy from temporary buffer to permanent sandbox location
       final File savedFile = await File(photo.path).copy(targetPath);
@@ -169,7 +177,10 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Capture error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Capture error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -184,7 +195,11 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
       appBar: AppBar(
         title: const Text(
           'CAMERA CAPTURE SPIKE',
-          style: TextStyle(fontWeight: FontWeight.w800, fontFamily: 'monospace', fontSize: 16.0),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontFamily: 'monospace',
+            fontSize: 16.0,
+          ),
         ),
         backgroundColor: const Color(0xFF1E1E1E),
         foregroundColor: const Color(0xFFE4E2DD),
@@ -194,7 +209,11 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'CAPTURES: $_captureCount',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'monospace', fontSize: 14.0),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                  fontSize: 14.0,
+                ),
               ),
             ),
           ),
@@ -232,12 +251,20 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.camera_alt_outlined, size: 48.0, color: Color(0xFF1E1E1E)),
+            const Icon(
+              Icons.camera_alt_outlined,
+              size: 48.0,
+              color: Color(0xFF1E1E1E),
+            ),
             const SizedBox(height: 16.0),
             const Text(
               'CAMERA ACCESS REQUIRED',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
             ),
             const SizedBox(height: 12.0),
             const Text(
@@ -251,10 +278,15 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
                 backgroundColor: const Color(0xFF1E1E1E),
                 foregroundColor: const Color(0xFFE4E2DD),
                 minimumSize: const Size(double.infinity, 48.0),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
               onPressed: _requestPermission,
-              child: const Text('CONTINUE & ALLOW CAMERA', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text(
+                'CONTINUE & ALLOW CAMERA',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),
@@ -277,12 +309,20 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.no_photography_outlined, size: 48.0, color: Color(0xFFDB4A2B)),
+            const Icon(
+              Icons.no_photography_outlined,
+              size: 48.0,
+              color: Color(0xFFDB4A2B),
+            ),
             const SizedBox(height: 16.0),
             const Text(
               'CAMERA PERMISSION DENIED',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w800, color: Color(0xFFDB4A2B)),
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFDB4A2B),
+              ),
             ),
             const SizedBox(height: 12.0),
             const Text(
@@ -296,20 +336,33 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
                 backgroundColor: const Color(0xFF1E1E1E),
                 foregroundColor: const Color(0xFFE4E2DD),
                 minimumSize: const Size(double.infinity, 48.0),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
               onPressed: () => openAppSettings(),
-              child: const Text('OPEN SETTINGS', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text(
+                'OPEN SETTINGS',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
             const SizedBox(height: 8.0),
             OutlinedButton(
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 48.0),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
                 side: const BorderSide(color: Color(0xFF1E1E1E)),
               ),
               onPressed: _requestPermission,
-              child: const Text('RETRY ACCESS', style: TextStyle(color: Color(0xFF1E1E1E), fontWeight: FontWeight.w700)),
+              child: const Text(
+                'RETRY ACCESS',
+                style: TextStyle(
+                  color: Color(0xFF1E1E1E),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -335,17 +388,30 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48.0, color: Color(0xFFDB4A2B)),
+              const Icon(
+                Icons.error_outline,
+                size: 48.0,
+                color: Color(0xFFDB4A2B),
+              ),
               const SizedBox(height: 12.0),
-              const Text('CAMERA ERROR / DISCONNECTED', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15.0)),
+              const Text(
+                'CAMERA ERROR / DISCONNECTED',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15.0),
+              ),
               const SizedBox(height: 8.0),
-              Text(_cameraErrorMessage!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.0)),
+              Text(
+                _cameraErrorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12.0),
+              ),
               const SizedBox(height: 16.0),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E1E1E),
                   foregroundColor: Colors.white,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
                 ),
                 onPressed: _initCamera,
                 child: const Text('RECONNECT CAMERA'),
@@ -387,16 +453,29 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
                 children: [
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isCapturing ? Colors.grey : const Color(0xFFDB4A2B),
+                      backgroundColor: _isCapturing
+                          ? Colors.grey
+                          : const Color(0xFFDB4A2B),
                       foregroundColor: Colors.white,
                       minimumSize: const Size(200.0, 52.0),
-                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
                     ),
                     onPressed: _isCapturing ? null : _capturePhoto,
                     icon: _isCapturing
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Icon(Icons.camera),
-                    label: Text(_isCapturing ? 'SAVING...' : 'CAPTURE PHOTO (JPEG)'),
+                    label: Text(
+                      _isCapturing ? 'SAVING...' : 'CAPTURE PHOTO (JPEG)',
+                    ),
                   ),
                 ],
               ),
@@ -411,11 +490,19 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 8.0,
+                ),
                 color: const Color(0xFF1E1E1E),
                 child: const Text(
                   'LAST CAPTURED (APP SANDBOX)',
-                  style: TextStyle(color: Color(0xFFE4E2DD), fontWeight: FontWeight.w800, fontSize: 13.0, letterSpacing: 0.8),
+                  style: TextStyle(
+                    color: Color(0xFFE4E2DD),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.0,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
               const SizedBox(height: 8.0),
@@ -424,17 +511,32 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
                     ? Container(
                         decoration: BoxDecoration(
                           color: Colors.black,
-                          border: Border.all(color: const Color(0xFF1E1E1E), width: 1.0),
+                          border: Border.all(
+                            color: const Color(0xFF1E1E1E),
+                            width: 1.0,
+                          ),
                         ),
-                        child: Image.file(_lastCapturedFile!, fit: BoxFit.contain),
+                        child: Image.file(
+                          _lastCapturedFile!,
+                          fit: BoxFit.contain,
+                        ),
                       )
                     : Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(color: const Color(0xFF1E1E1E), width: 1.0),
+                          border: Border.all(
+                            color: const Color(0xFF1E1E1E),
+                            width: 1.0,
+                          ),
                         ),
                         alignment: Alignment.center,
-                        child: const Text('NO PHOTO CAPTURED YET', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey)),
+                        child: const Text(
+                          'NO PHOTO CAPTURED YET',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
               ),
               const SizedBox(height: 8.0),
@@ -445,15 +547,29 @@ class _CameraSpikeScreenState extends State<CameraSpikeScreen> with WidgetsBindi
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('SANDBOX FILE PATH:', style: TextStyle(fontSize: 10.0, fontWeight: FontWeight.w800, color: Color(0xFF444444))),
+                      const Text(
+                        'SANDBOX FILE PATH:',
+                        style: TextStyle(
+                          fontSize: 10.0,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF444444),
+                        ),
+                      ),
                       Text(
                         _lastCapturedFile!.path,
-                        style: const TextStyle(fontSize: 11.0, fontFamily: 'monospace'),
+                        style: const TextStyle(
+                          fontSize: 11.0,
+                          fontFamily: 'monospace',
+                        ),
                       ),
                       const SizedBox(height: 4.0),
                       Text(
                         'SIZE: ${(_lastCapturedSizeBytes! / 1024).toStringAsFixed(1)} KB (${(_lastCapturedSizeBytes! / (1024 * 1024)).toStringAsFixed(2)} MB)',
-                        style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w800, fontFamily: 'monospace'),
+                        style: const TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: 'monospace',
+                        ),
                       ),
                     ],
                   ),

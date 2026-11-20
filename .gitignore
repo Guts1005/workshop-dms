@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+env.json
+/capture_screens.py
 
 # Symbolication related
 app.*.symbols

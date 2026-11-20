@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../tokens/app_tokens.dart';
 
 class SharpBottomSheet {
@@ -44,9 +45,16 @@ class SharpBottomSheet {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.close, color: AppTokens.textOnDark, size: 20.0),
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppTokens.textOnDark,
+                          size: 20.0,
+                        ),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                        constraints: const BoxConstraints(
+                          minWidth: 32.0,
+                          minHeight: 32.0,
+                        ),
                         onPressed: () => Navigator.of(ctx).pop(),
                       ),
                     ],

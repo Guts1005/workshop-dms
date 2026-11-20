@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../ui_kit/widgets/sharp_button.dart';
-import '../../ui_kit/widgets/status_chip.dart';
-import '../../ui_kit/widgets/swipe_to_confirm_slider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../ui_kit/tokens/app_tokens.dart';
 import 'condition_map_controller.dart';
 import 'condition_map_models.dart';
-import 'condition_schematic_painter.dart';
 
 class ConditionMapScreen extends ConsumerStatefulWidget {
   final String? jobCardId;
@@ -24,1323 +26,935 @@ class ConditionMapScreen extends ConsumerStatefulWidget {
 }
 
 class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
+  static const _ink = AppTokens.textPrimary;
+  static const _muted = AppTokens.textSecondary;
+  static const _line = AppTokens.borderLight;
+  static const _green = AppTokens.brandRed;
+  static const _paper = AppTokens.base;
+  final Map<String, Future<String>> _signedPhotoUrls = {};
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.jobCardId != null || widget.registrationNumber != null) {
-        ref.read(conditionMapControllerProvider.notifier).initSession(
-              jobCardId: widget.jobCardId ?? 'JC-${DateTime.now().millisecondsSinceEpoch}',
-              registrationNumber: widget.registrationNumber ?? 'RJ27CA1024',
+      final jobCardId = widget.jobCardId?.trim();
+      final registration = widget.registrationNumber?.trim();
+      if (jobCardId != null &&
+          jobCardId.isNotEmpty &&
+          registration != null &&
+          registration.isNotEmpty) {
+        ref
+            .read(conditionMapControllerProvider.notifier)
+            .initSession(
+              jobCardId: jobCardId,
+              registrationNumber: registration,
             );
       }
     });
-  }
-
-  void _showAddPinDialog(BuildContext context, Offset normalizedPos, ConditionViewDirection view) {
-    final controller = ref.read(conditionMapControllerProvider.notifier);
-    final state = ref.read(conditionMapControllerProvider);
-
-    if (state.isLocked) return;
-
-    DefectType selectedType = DefectType.dent;
-    DefectSeverity selectedSeverity = DefectSeverity.minor;
-    final noteController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (dialogCtx, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-              titlePadding: EdgeInsets.zero,
-              title: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF111827),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: const Icon(Icons.add_location_alt_outlined, color: Color(0xFFEF4444), size: 18.0),
-                    ),
-                    const SizedBox(width: 10.0),
-                    Expanded(
-                      child: Text(
-                        'RECORD DEFECT PIN #${state.totalPinCount + 1}',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13.0,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              content: SizedBox(
-                width: 480.0,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Text(
-                          'VIEW: ${view.label} • COORD: (${(normalizedPos.dx * 100).toStringAsFixed(1)}%, ${(normalizedPos.dy * 100).toStringAsFixed(1)}%)',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10.5,
-                            color: const Color(0xFF475569),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14.0),
-                      Text(
-                        'DEFECT CLASSIFICATION:',
-                        style: GoogleFonts.inter(
-                          fontSize: 11.0,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF334155),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: DefectType.values.map((type) {
-                          final isSel = selectedType == type;
-                          return ChoiceChip(
-                            label: Text(type.label),
-                            selected: isSel,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-                            selectedColor: const Color(0xFF111827),
-                            backgroundColor: const Color(0xFFF1F5F9),
-                            side: BorderSide(
-                              color: isSel ? const Color(0xFF111827) : const Color(0xFFE2E8F0),
-                            ),
-                            labelStyle: GoogleFonts.inter(
-                              color: isSel ? Colors.white : const Color(0xFF1E293B),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11.0,
-                            ),
-                            onSelected: (val) {
-                              if (val) setDialogState(() => selectedType = type);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16.0),
-                      Text(
-                        'SEVERITY LEVEL:',
-                        style: GoogleFonts.inter(
-                          fontSize: 11.0,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF334155),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      Row(
-                        children: DefectSeverity.values.map((sev) {
-                          final isSel = selectedSeverity == sev;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 3.0),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(10.0),
-                                onTap: () => setDialogState(() => selectedSeverity = sev),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
-                                  decoration: BoxDecoration(
-                                    color: isSel ? sev.accentColor : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(10.0),
-                                    border: Border.all(
-                                      color: isSel ? sev.accentColor : const Color(0xFFE2E8F0),
-                                      width: isSel ? 2.0 : 1.0,
-                                    ),
-                                    boxShadow: isSel
-                                        ? [
-                                            BoxShadow(
-                                              color: sev.accentColor.withValues(alpha: 0.3),
-                                              blurRadius: 6.0,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ]
-                                        : null,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    sev.label.replaceAll('LEVEL ', 'L'),
-                                    style: GoogleFonts.inter(
-                                      color: isSel ? Colors.white : const Color(0xFF334155),
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 10.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16.0),
-                      Text(
-                        'INSPECTION NOTES / OBSERVED DAMAGE:',
-                        style: GoogleFonts.inter(
-                          fontSize: 11.0,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF334155),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 6.0),
-                      TextField(
-                        controller: noteController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          hintText: 'e.g. 5cm paint gouge down to primer near lower door crease',
-                          hintStyle: GoogleFonts.inter(fontSize: 12.0, color: const Color(0xFF94A3B8)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.5),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(
-                    'CANCEL',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.0,
-                    ),
-                  ),
-                ),
-                SharpButton(
-                  label: 'SAVE DEFECT PIN',
-                  icon: Icons.check,
-                  height: 42.0,
-                  onPressed: () async {
-                    await controller.addPin(
-                      view: view,
-                      nx: normalizedPos.dx,
-                      ny: normalizedPos.dy,
-                      type: selectedType,
-                      severity: selectedSeverity,
-                      note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
-                    );
-                    if (dialogCtx.mounted) {
-                      Navigator.of(dialogCtx).pop();
-                    }
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showPreWorkSignOffModal(BuildContext context) {
-    final state = ref.read(conditionMapControllerProvider);
-    final controller = ref.read(conditionMapControllerProvider.notifier);
-    final customerNameController = TextEditingController(text: 'Rohan Sharma');
-    final customerPhoneController = TextEditingController(text: '9876543210');
-    final advisorNameController = TextEditingController(text: 'Vikram Joshi (Advisor)');
-    bool consentChecked = true;
-    String? localError;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (modalCtx, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 20.0,
-                  right: 20.0,
-                  top: 16.0,
-                  bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 20.0,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF111827),
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6.0),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              child: const Icon(Icons.verified_outlined, color: Color(0xFF10B981), size: 18.0),
-                            ),
-                            const SizedBox(width: 10.0),
-                            Expanded(
-                              child: Text(
-                                'CUSTOMER PRE-WORK CONDITION SIGN-OFF',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 12.5,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12.0),
-                      Text(
-                        'Review recorded exterior defects before commencing repair work. Confirmation locks this condition map and generates an immutable SHA-256 integrity hash.',
-                        style: GoogleFonts.inter(fontSize: 12.0, color: const Color(0xFF64748B), height: 1.4),
-                      ),
-                      const SizedBox(height: 14.0),
-
-                      // Defect Summary Chips
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12.0),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Text(
-                              'TOTAL: ${state.totalPinCount}',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFF0F172A)),
-                            ),
-                            Text(
-                              'SEVERE: ${state.severeCount}',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFFDC2626)),
-                            ),
-                            Text(
-                              'MODERATE: ${state.moderateCount}',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFFEA580C)),
-                            ),
-                            Text(
-                              'MINOR: ${state.minorCount}',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 11.5, color: const Color(0xFF16A34A)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16.0),
-
-                      // Customer Details
-                      Text(
-                        'CUSTOMER FULL NAME *',
-                        style: GoogleFonts.inter(fontSize: 11.0, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 4.0),
-                      TextField(
-                        controller: customerNameController,
-                        decoration: InputDecoration(
-                          hintText: 'Customer Name',
-                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12.0),
-
-                      Text(
-                        'CUSTOMER MOBILE (+91) *',
-                        style: GoogleFonts.inter(fontSize: 11.0, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 4.0),
-                      TextField(
-                        controller: customerPhoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          hintText: '10-digit mobile number',
-                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12.0),
-
-                      Text(
-                        'SERVICE ADVISOR SIGNING *',
-                        style: GoogleFonts.inter(fontSize: 11.0, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 4.0),
-                      TextField(
-                        controller: advisorNameController,
-                        decoration: InputDecoration(
-                          hintText: 'Service Advisor Name / ID',
-                          hintStyle: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF94A3B8)),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14.0),
-
-                      // Customer Consent Checkbox
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: consentChecked,
-                            activeColor: const Color(0xFF111827),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
-                            onChanged: (val) => setModalState(() => consentChecked = val ?? false),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                'Customer acknowledges that all pre-existing damages noted above were present prior to workshop handover.',
-                                style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, height: 1.35, color: const Color(0xFF1E293B)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      if (localError != null) ...[
-                        const SizedBox(height: 10.0),
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF2F2),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: Text(
-                            localError!,
-                            style: GoogleFonts.inter(color: const Color(0xFFDC2626), fontSize: 11.5, fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 18.0),
-
-                      // Swipe-to-Confirm Slider (Irreversible Action Gate)
-                      SwipeToConfirmSlider(
-                        label: 'SWIPE TO CONFIRM PRE-WORK SIGN-OFF',
-                        onConfirmed: () async {
-                          if (!consentChecked) {
-                            setModalState(() => localError = 'Customer consent acknowledgement is required');
-                            return;
-                          }
-                          final err = controller.validateSignOffInput(
-                            customerName: customerNameController.text,
-                            customerPhone: customerPhoneController.text,
-                            advisorName: advisorNameController.text,
-                          );
-                          if (err != null) {
-                            setModalState(() => localError = err);
-                            return;
-                          }
-
-                          final ok = await controller.confirmPreWorkSignOff(
-                            customerName: customerNameController.text,
-                            customerPhone: customerPhoneController.text,
-                            advisorName: advisorNameController.text,
-                          );
-
-                          if (ok && modalCtx.mounted) {
-                            Navigator.of(modalCtx).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Pre-work condition map signed off and locked.'),
-                                backgroundColor: Color(0xFF10B981),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(conditionMapControllerProvider);
     final controller = ref.read(conditionMapControllerProvider.notifier);
-    final isNarrow = MediaQuery.of(context).size.width < 960.0;
+    final hasJob =
+        state.jobCardId.isNotEmpty && state.registrationNumber.isNotEmpty;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Stage Header & Telemetry Bar
-            _buildHeaderBar(state),
-
-            // Error Notice Banner
-            if (state.errorMessage != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                color: const Color(0xFFDC2626),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.white, size: 16.0),
-                    const SizedBox(width: 8.0),
-                    Expanded(
-                      child: Text(
-                        state.errorMessage!,
-                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12.0),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Main Content Zone (Responsive, zero horizontal overflow)
-            Expanded(
-              child: isNarrow ? _buildNarrowLayout(state, controller) : _buildWideLayout(state, controller),
-            ),
-
-            // Bottom Action Bar
-            _buildBottomActionBar(state),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderBar(ConditionMapState state) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1.0)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 8.0,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCC0000),
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                  child: Text(
-                    '03',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'PAGE 3: 360° CONDITION MAP & PRE-WORK SIGN-OFF',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF0F172A),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2.0),
-                      Text(
-                        'JOB: ${state.jobCardId} • VEHICLE: ${state.registrationNumber}',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF64748B),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8.0),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (state.isLocked)
-                const Padding(
-                  padding: EdgeInsets.only(right: 8.0),
-                  child: StatusChip(
-                    label: 'PRE-WORK SIGNED OFF',
-                    icon: Icons.lock,
-                    type: StatusType.ok,
-                  ),
-                ),
-              StatusChip(
-                label: '${state.totalPinCount} DEFECTS LOGGED',
-                icon: Icons.pin_drop,
-                type: state.severeCount > 0 ? StatusType.critical : (state.totalPinCount > 0 ? StatusType.dueSoon : StatusType.ok),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNarrowLayout(ConditionMapState state, ConditionMapController controller) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildViewTabs(state, controller),
-          const SizedBox(height: 12.0),
-          _buildInteractiveCanvas(state, controller, height: 340.0),
-          const SizedBox(height: 14.0),
-          _buildPinInspector(state, controller),
-          const SizedBox(height: 14.0),
-          _buildPinsSummaryCard(state, controller),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWideLayout(ConditionMapState state, ConditionMapController controller) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left Area: View Tabs & Interactive Schematic Canvas
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildViewTabs(state, controller),
-                const SizedBox(height: 12.0),
-                Expanded(
-                  child: _buildInteractiveCanvas(state, controller, height: double.infinity),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16.0),
-          // Right Sidebar: Pin Inspector & Defect Ledger
-          SizedBox(
-            width: 380.0,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildPinInspector(state, controller),
-                  const SizedBox(height: 14.0),
-                  _buildPinsSummaryCard(state, controller),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildViewTabs(ConditionMapState state, ConditionMapController controller) {
-    final isMobile = MediaQuery.of(context).size.width < 700.0;
-
-    if (isMobile) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Container(
-          padding: const EdgeInsets.all(4.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(16.0),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: ConditionViewDirection.values.map((v) {
-              final isSel = state.activeView == v;
-              final pinCountInView = state.pins.where((p) => p.view == v).length;
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12.0),
-                  onTap: () => controller.switchView(v),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    height: 40.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14.0),
-                    decoration: BoxDecoration(
-                      color: isSel ? const Color(0xFF111827) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: isSel
-                          ? [
-                              const BoxShadow(
-                                color: Color(0x18000000),
-                                blurRadius: 6.0,
-                                offset: Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          v.label,
-                          style: GoogleFonts.inter(
-                            color: isSel ? Colors.white : const Color(0xFF475569),
-                            fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                            fontSize: 11.0,
-                          ),
-                        ),
-                        if (pinCountInView > 0) ...[
-                          const SizedBox(width: 6.0),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                            decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFFDC2626) : const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                            child: Text(
-                              '$pinCountInView',
-                              style: GoogleFonts.inter(
-                                color: isSel ? Colors.white : const Color(0xFF1E293B),
-                                fontSize: 10.0,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      );
+    if (!hasJob) {
+      return _missingJob();
     }
 
-    return Container(
-      padding: const EdgeInsets.all(4.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: ConditionViewDirection.values.map((v) {
-          final isSel = state.activeView == v;
-          final pinCountInView = state.pins.where((p) => p.view == v).length;
+    final width = MediaQuery.sizeOf(context).width;
+    final maxWidth = width >= 1100 ? 1020.0 : 760.0;
+    final remaining =
+        ConditionViewDirection.values.length - state.reviewedCount;
 
-          return Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12.0),
-              onTap: () => controller.switchView(v),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                height: 42.0,
-                decoration: BoxDecoration(
-                  color: isSel ? const Color(0xFF111827) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12.0),
-                  boxShadow: isSel
-                      ? [
-                          const BoxShadow(
-                            color: Color(0x18000000),
-                            blurRadius: 6.0,
-                            offset: Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      backgroundColor: _paper,
+      appBar: AppBar(
+        backgroundColor: _paper,
+        foregroundColor: _ink,
+        elevation: 0,
+        title: const Text(
+          'Vehicle condition',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/applications'),
+        ),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                   children: [
-                    Text(
-                      v.label,
-                      style: GoogleFonts.inter(
-                        color: isSel ? Colors.white : const Color(0xFF475569),
-                        fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
-                        fontSize: 11.0,
+                    _vehicleHeader(state),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Exterior check',
+                            style: TextStyle(
+                              color: _ink,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${state.reviewedCount}/5 checked',
+                          style: const TextStyle(
+                            color: _muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      'Check each area. Record anything the workshop should know before work begins.',
+                      style: TextStyle(
+                        color: _muted,
+                        height: 1.45,
+                        fontSize: 14,
                       ),
                     ),
-                    if (pinCountInView > 0) ...[
-                      const SizedBox(width: 6.0),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                        decoration: BoxDecoration(
-                          color: isSel ? const Color(0xFFDC2626) : const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(10.0),
+                    const SizedBox(height: 14),
+                    _progressBar(
+                      state.reviewedCount /
+                          ConditionViewDirection.values.length,
+                    ),
+                    const SizedBox(height: 18),
+                    for (final view in ConditionViewDirection.values) ...[
+                      _areaCard(state, controller, view),
+                      const SizedBox(height: 10),
+                    ],
+                    if (state.pins.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Recorded findings',
+                        style: TextStyle(
+                          color: _ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
                         ),
-                        child: Text(
-                          '$pinCountInView',
-                          style: GoogleFonts.inter(
-                            color: isSel ? Colors.white : const Color(0xFF1E293B),
-                            fontSize: 10.0,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final pin in state.pins)
+                        _findingCard(pin, controller, state.isLocked),
+                    ],
+                    if (state.errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        state.errorMessage!,
+                        style: const TextStyle(color: AppTokens.brandRed),
                       ),
                     ],
                   ],
                 ),
               ),
-            ),
-          );
-        }).toList(),
+              _footer(state, controller, remaining),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildInteractiveCanvas(
+  Widget _missingJob() => Scaffold(
+    backgroundColor: _paper,
+    appBar: AppBar(
+      backgroundColor: _paper,
+      title: const Text('Vehicle condition'),
+    ),
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.assignment_late_outlined, size: 42, color: _muted),
+            const SizedBox(height: 12),
+            const Text(
+              'This inspection needs an application',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: _ink,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Open an existing application or create one first so this report is saved against the right vehicle.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: _muted, height: 1.4),
+            ),
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: () => context.go('/applications'),
+              child: const Text('Go to applications'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _vehicleHeader(ConditionMapState state) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: AppTokens.raised,
+      borderRadius: AppTokens.cardRadius,
+      border: Border.all(color: _line),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: const BoxDecoration(
+            color: AppTokens.surfaceSubtle,
+            borderRadius: AppTokens.cardRadius,
+          ),
+          child: const Icon(
+            Icons.directions_car_filled_outlined,
+            color: _green,
+          ),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                state.registrationNumber,
+                style: const TextStyle(
+                  color: _ink,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                  letterSpacing: .5,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Application ${state.jobCardId}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _muted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        if (state.isLocked) const Icon(Icons.verified_rounded, color: _green),
+      ],
+    ),
+  );
+
+  Widget _progressBar(double value) => ClipRRect(
+    borderRadius: AppTokens.cardRadius,
+    child: LinearProgressIndicator(
+      value: value,
+      minHeight: 7,
+      backgroundColor: AppTokens.surfaceSubtle,
+      color: _green,
+    ),
+  );
+
+  Widget _areaCard(
     ConditionMapState state,
-    ConditionMapController controller, {
-    required double height,
-  }) {
-    final activePins = state.activeViewPins;
-
+    ConditionMapController controller,
+    ConditionViewDirection view,
+  ) {
+    final findings = state.pins.where((pin) => pin.view == view).toList();
+    final checked = state.reviewedViews.contains(view);
     return Container(
-      height: height == double.infinity ? null : height,
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10.0,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapUp: (details) {
-              if (state.isLocked) return;
-              final localOffset = details.localPosition;
-              final nx = (localOffset.dx / constraints.maxWidth).clamp(0.0, 1.0);
-              final ny = (localOffset.dy / constraints.maxHeight).clamp(0.0, 1.0);
-              _showAddPinDialog(context, Offset(nx, ny), state.activeView);
-            },
-            child: Stack(
-              children: [
-                // 1. Vector Schematic Drawing for Active View Angle
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: ConditionSchematicPainter(
-                      view: state.activeView,
-                      isLocked: state.isLocked,
-                    ),
-                  ),
-                ),
-
-                // 2. Numbered Condition Pin Overlays
-                for (final pin in activePins)
-                  Positioned(
-                    left: (pin.normalizedX * constraints.maxWidth) - 14.0,
-                    top: (pin.normalizedY * constraints.maxHeight) - 14.0,
-                    child: GestureDetector(
-                      onTap: () => controller.selectPin(pin),
-                      child: Container(
-                        width: 28.0,
-                        height: 28.0,
-                        decoration: BoxDecoration(
-                          color: pin.severity.accentColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: state.selectedPin?.id == pin.id ? Colors.white : const Color(0xFF0F172A),
-                            width: state.selectedPin?.id == pin.id ? 2.5 : 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: pin.severity.accentColor.withValues(alpha: 0.5),
-                              blurRadius: state.selectedPin?.id == pin.id ? 8.0 : 4.0,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${pin.id}',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // 3. Instruction Pill Indicator in corner
-                Positioned(
-                  bottom: 12.0,
-                  left: 12.0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A).withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(20.0),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x20000000),
-                          blurRadius: 6.0,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      state.isLocked
-                          ? 'MAP LOCKED: PRE-WORK SIGN-OFF RECORDED'
-                          : 'TAP SCHEMATIC TO DROP DEFECT PIN [${state.activeView.label}]',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPinInspector(ConditionMapState state, ConditionMapController controller) {
-    final sel = state.selectedPin;
-
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 8.0,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: sel == null
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'DEFECT INSPECTOR',
-                  style: GoogleFonts.inter(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 6.0),
-                Text(
-                  'Tap any numbered pin on the vehicle schematic to inspect or delete.',
-                  style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B), height: 1.35),
-                ),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 26.0,
-                          height: 26.0,
-                          decoration: BoxDecoration(
-                            color: sel.severity.accentColor,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${sel.id}',
-                            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12.0),
-                          ),
-                        ),
-                        const SizedBox(width: 10.0),
-                        Text(
-                          'PIN #${sel.id}: ${sel.type.label}',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 13.0, color: const Color(0xFF0F172A)),
-                        ),
-                      ],
-                    ),
-                    StatusChip(
-                      label: sel.severity.label.replaceAll('LEVEL ', 'L'),
-                      icon: sel.severity == DefectSeverity.severe ? Icons.priority_high : Icons.warning_amber,
-                      type: sel.severity == DefectSeverity.severe
-                          ? StatusType.critical
-                          : (sel.severity == DefectSeverity.moderate ? StatusType.dueSoon : StatusType.ok),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8.0),
-                Text(
-                  'VIEW: ${sel.view.label}',
-                  style: GoogleFonts.inter(fontSize: 11.0, color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
-                ),
-                if (sel.note != null && sel.note!.isNotEmpty) ...[
-                  const SizedBox(height: 8.0),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10.0),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Text(
-                      'OBSERVATION: ${sel.note}',
-                      style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF334155)),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14.0),
-                if (!state.isLocked)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SharpButton(
-                          label: 'DELETE PIN',
-                          icon: Icons.delete_outline,
-                          variant: SharpButtonVariant.secondary,
-                          onPressed: () => controller.deletePin(sel.id),
-                          height: 40.0,
-                        ),
-                      ),
-                      const SizedBox(width: 8.0),
-                      Expanded(
-                        child: SharpButton(
-                          label: 'DESELECT',
-                          variant: SharpButtonVariant.secondary,
-                          onPressed: () => controller.selectPin(null),
-                          height: 40.0,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildPinsSummaryCard(ConditionMapState state, ConditionMapController controller) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 8.0,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: AppTokens.raised,
+        borderRadius: AppTokens.cardRadius,
+        border: Border.all(color: _line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'DEFECT LEDGER (${state.totalPinCount})',
-                style: GoogleFonts.inter(
-                  fontSize: 12.0,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0F172A),
-                  letterSpacing: 0.3,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: checked ? AppTokens.surfaceSubtle : _paper,
+                  borderRadius: AppTokens.cardRadius,
+                ),
+                child: Icon(
+                  _iconFor(view),
+                  color: checked ? _green : _muted,
+                  size: 20,
                 ),
               ),
-              Text(
-                '${state.severeCount} S • ${state.moderateCount} M • ${state.minorCount} L',
-                style: GoogleFonts.inter(
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10.0),
-          if (state.pins.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(14.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10.0),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'No defects logged. Tap on the vehicle schematic to drop pins.',
-                style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B)),
-              ),
-            )
-          else
-            Column(
-              children: state.pins.map((pin) {
-                final isSelected = state.selectedPin?.id == pin.id;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(10.0),
-                  onTap: () {
-                    controller.switchView(pin.view);
-                    controller.selectPin(pin);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 120),
-                    margin: const EdgeInsets.only(bottom: 6.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10.0),
-                      border: Border.all(
-                        color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
-                        width: isSelected ? 1.5 : 1.0,
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _titleFor(view),
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 22.0,
-                          height: 22.0,
-                          decoration: BoxDecoration(
-                            color: pin.severity.accentColor,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${pin.id}',
-                            style: GoogleFonts.inter(color: Colors.white, fontSize: 11.0, fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                        const SizedBox(width: 10.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${pin.type.label} (${pin.view.label})',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              if (pin.note != null)
-                                Text(
-                                  pin.note!,
-                                  style: GoogleFonts.inter(fontSize: 10.0, color: const Color(0xFF64748B)),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          pin.severity.label.replaceAll('LEVEL ', 'L'),
-                          style: GoogleFonts.inter(
-                            fontSize: 10.0,
-                            fontWeight: FontWeight.w800,
-                            color: pin.severity.accentColor,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 3),
+                    Text(
+                      findings.isEmpty
+                          ? (checked
+                                ? 'Checked - no findings'
+                                : 'Not checked yet')
+                          : '${findings.length} ${findings.length == 1 ? 'finding' : 'findings'}',
+                      style: const TextStyle(color: _muted, fontSize: 12),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomActionBar(ConditionMapState state) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1.0)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 10.0,
-            offset: Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          if (state.isLocked) ...[
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: const BoxDecoration(
-                color: Color(0xFFECFDF5),
-                shape: BoxShape.circle,
+                  ],
+                ),
               ),
-              child: const Icon(Icons.check, color: Color(0xFF10B981), size: 18.0),
-            ),
-            const SizedBox(width: 10.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'SIGNED OFF BY ${state.signOff!.customerName.toUpperCase()}',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF0F172A),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12.0,
+              if (checked)
+                const Icon(Icons.check_circle, color: _green, size: 20),
+            ],
+          ),
+          if (findings.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            for (final finding in findings.take(2))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'â€¢ ${finding.type.label.toLowerCase()}${finding.note?.isNotEmpty == true ? ' â€” ${finding.note}' : ''}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            if (findings.length > 2)
+              Text(
+                '+ ${findings.length - 2} more',
+                style: const TextStyle(color: _muted, fontSize: 12),
+              ),
+          ],
+          if (!state.isLocked) ...[
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _showFindingDialog(view),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(findings.isEmpty ? 'Add finding' : 'Add another'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _ink,
+                    side: const BorderSide(color: _line),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
                     ),
                   ),
-                  Text(
-                    'HASH: ${state.signOff!.sha256Checksum.substring(0, 20)}...',
-                    style: GoogleFonts.jetBrainsMono(
-                      color: const Color(0xFF047857),
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+                ),
+                if (!checked) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => controller.markViewReviewed(view),
+                    icon: const Icon(Icons.check, size: 17),
+                    label: const Text('No issue'),
+                    style: TextButton.styleFrom(foregroundColor: _green),
                   ),
                 ],
-              ),
-            ),
-            SharpButton(
-              label: 'ADVANCE TO MECHANICAL INSPECTION',
-              icon: Icons.arrow_forward,
-              height: 46.0,
-              onPressed: () {
-                final router = GoRouter.maybeOf(context);
-                if (router != null) {
-                  router.go('/mechanical-inspection');
-                }
-              },
-            ),
-          ] else ...[
-            Expanded(
-              child: SharpButton(
-                label: 'INITIATE CUSTOMER PRE-WORK SIGN-OFF (${state.totalPinCount} DEFECTS LOGGED)',
-                icon: Icons.verified_user_outlined,
-                height: 46.0,
-                onPressed: () => _showPreWorkSignOffModal(context),
-              ),
+              ],
             ),
           ],
         ],
       ),
     );
   }
+
+  Widget _findingCard(
+    ConditionPin pin,
+    ConditionMapController controller,
+    bool locked,
+  ) => Container(
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: AppTokens.raised,
+      borderRadius: AppTokens.cardRadius,
+      border: Border.all(color: _line),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 9,
+          height: 38,
+          decoration: BoxDecoration(
+            color: pin.severity.accentColor,
+            borderRadius: AppTokens.cardRadius,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_pretty(pin.type.label)} - ${_titleFor(pin.view)}',
+                style: const TextStyle(
+                  color: _ink,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                pin.note?.isNotEmpty == true
+                    ? pin.note!
+                    : pin.severity.label.replaceAll('LEVEL ', ''),
+                style: const TextStyle(color: _muted, fontSize: 12),
+              ),
+              if (pin.photoPath != null) ...[
+                const SizedBox(height: 9),
+                FutureBuilder<String>(
+                  future: _signedPhotoUrls.putIfAbsent(
+                    pin.photoPath!,
+                    () => Supabase.instance.client.storage
+                        .from('workshop-checkin')
+                        .createSignedUrl(pin.photoPath!, 3600),
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Text(
+                        'Photo unavailable',
+                        style: TextStyle(color: _muted, fontSize: 12),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Row(
+                        children: [
+                          Icon(Icons.photo_outlined, size: 16, color: _muted),
+                          SizedBox(width: 5),
+                          Text(
+                            'Photo attached',
+                            style: TextStyle(color: _muted, fontSize: 12),
+                          ),
+                        ],
+                      );
+                    }
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => showDialog<void>(
+                        context: context,
+                        builder: (context) => Dialog(
+                          child: InteractiveViewer(
+                            child: Image.network(snapshot.data!),
+                          ),
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          snapshot.data!,
+                          width: 112,
+                          height: 76,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (!locked)
+          IconButton(
+            tooltip: 'Remove finding',
+            onPressed: () => controller.deletePin(pin.id),
+            icon: const Icon(Icons.delete_outline, color: _muted),
+          ),
+      ],
+    ),
+  );
+
+  Widget _footer(
+    ConditionMapState state,
+    ConditionMapController controller,
+    int remaining,
+  ) => Container(
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+    decoration: const BoxDecoration(
+      color: AppTokens.raised,
+      border: Border(top: BorderSide(color: _line)),
+    ),
+    child: SafeArea(
+      top: false,
+      child: SizedBox(
+        width: double.infinity,
+        child: state.isLocked
+            ? FilledButton.icon(
+                onPressed: () => context.go('/applications'),
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Report saved - back to applications'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _green,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+              )
+            : FilledButton.icon(
+                onPressed: remaining == 0
+                    ? () => _showSignOffDialog(state, controller)
+                    : null,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(
+                  remaining == 0
+                      ? 'Review and save report'
+                      : 'Check $remaining more ${remaining == 1 ? 'area' : 'areas'}',
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _green,
+                  disabledBackgroundColor: AppTokens.borderLight,
+                  disabledForegroundColor: _muted,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+              ),
+      ),
+    ),
+  );
+
+  Future<void> _showFindingDialog(ConditionViewDirection view) async {
+    final note = TextEditingController();
+    var type = DefectType.surfaceScuff;
+    var severity = DefectSeverity.minor;
+    Uint8List? photoBytes;
+    String? photoContentType;
+    String? photoError;
+    var isPickingPhoto = false;
+    final controller = ref.read(conditionMapControllerProvider.notifier);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTokens.raised,
+          title: Text(
+            'Finding: ${_titleFor(view)}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'What did you notice?',
+                    style: TextStyle(color: _muted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 9),
+                  DropdownButtonFormField<DefectType>(
+                    value: type,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: DefectType.values
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item,
+                            child: Text(_pretty(item.label)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setDialogState(() => type = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<DefectSeverity>(
+                    value: severity,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Severity',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: DefectSeverity.values
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item,
+                            child: Text(
+                              _pretty(
+                                item.label.replaceAll(
+                                  RegExp(r'^LEVEL [0-9] - '),
+                                  '',
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setDialogState(() => severity = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: note,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Note (optional)',
+                      hintText: 'Describe where it is or what you noticed',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (photoBytes == null)
+                    OutlinedButton.icon(
+                      onPressed: isPickingPhoto
+                          ? null
+                          : () async {
+                              final source =
+                                  await showModalBottomSheet<ImageSource>(
+                                    context: context,
+                                    builder: (sheetContext) => SafeArea(
+                                      child: Wrap(
+                                        children: [
+                                          ListTile(
+                                            leading: const Icon(
+                                              Icons.camera_alt_outlined,
+                                            ),
+                                            title: const Text('Take a photo'),
+                                            onTap: () => Navigator.pop(
+                                              sheetContext,
+                                              ImageSource.camera,
+                                            ),
+                                          ),
+                                          ListTile(
+                                            leading: const Icon(
+                                              Icons.photo_library_outlined,
+                                            ),
+                                            title: const Text(
+                                              'Choose from photos',
+                                            ),
+                                            onTap: () => Navigator.pop(
+                                              sheetContext,
+                                              ImageSource.gallery,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                              if (source == null || !context.mounted) return;
+                              setDialogState(() {
+                                isPickingPhoto = true;
+                                photoError = null;
+                              });
+                              try {
+                                final picked = await ImagePicker().pickImage(
+                                  source: source,
+                                  imageQuality: 85,
+                                  maxWidth: 1800,
+                                  maxHeight: 1800,
+                                );
+                                if (picked != null) {
+                                  final bytes = await picked.readAsBytes();
+                                  if (context.mounted) {
+                                    setDialogState(() {
+                                      final contentType = _imageMimeType(
+                                        picked.name,
+                                        picked.mimeType,
+                                      );
+                                      if (contentType == null) {
+                                        photoError = 'Choose a JPEG, PNG, or WebP photo.';
+                                        return;
+                                      }
+                                      photoBytes = bytes;
+                                      photoContentType = contentType;
+                                    });
+                                  }
+                                }
+                              } catch (_) {
+                                if (context.mounted) {
+                                  setDialogState(
+                                    () => photoError = 'Could not add photo. Please try again.',
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setDialogState(() => isPickingPhoto = false);
+                                }
+                              }
+                            },
+                      icon: isPickingPhoto
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_a_photo_outlined),
+                      label: Text(
+                        isPickingPhoto
+                            ? 'Opening photos...'
+                            : 'Add a photo (optional)',
+                      ),
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            photoBytes!,
+                            width: 104,
+                            height: 76,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        TextButton.icon(
+                          onPressed: () => setDialogState(() {
+                            photoBytes = null;
+                            photoContentType = null;
+                            photoError = null;
+                          }),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Remove photo'),
+                        ),
+                      ],
+                    ),
+                  if (photoError != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      photoError!,
+                      style: const TextStyle(
+                        color: AppTokens.brandRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isPickingPhoto
+                  ? null
+                  : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: isPickingPhoto
+                  ? null
+                  : () async {
+                      try {
+                        await controller.addPin(
+                          view: view,
+                          nx: .5,
+                          ny: .5,
+                          type: type,
+                          severity: severity,
+                          note: note.text.trim().isEmpty
+                              ? null
+                              : note.text.trim(),
+                          photoBytes: photoBytes,
+                          photoContentType: photoContentType,
+                        );
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      } catch (_) {
+                        if (context.mounted) {
+                          setDialogState(
+                            () => photoError = 'Finding could not be saved. Check your connection and try again.',
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Save finding'),
+            ),
+          ],
+        ),
+      ),
+    );
+    note.dispose();
+  }
+
+  static String? _imageMimeType(String name, String? mimeType) {
+    const supportedTypes = {'image/jpeg', 'image/png', 'image/webp'};
+    if (supportedTypes.contains(mimeType)) return mimeType;
+    final extension = name.split('.').last.toLowerCase();
+    return switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      _ => null,
+    };
+  }
+
+  Future<void> _showSignOffDialog(
+    ConditionMapState state,
+    ConditionMapController controller,
+  ) async {
+    final customer = TextEditingController();
+    final phone = TextEditingController();
+    final advisor = TextEditingController();
+    var acknowledged = false;
+    String? error;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTokens.raised,
+          title: const Text(
+            'Save condition report',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'This report will be saved to ${state.registrationNumber} for future reference.',
+                    style: const TextStyle(color: _muted, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: customer,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Customer name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Customer mobile',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: advisor,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Advisor name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: acknowledged,
+                    onChanged: (value) =>
+                        setDialogState(() => acknowledged = value ?? false),
+                    title: const Text(
+                      'Customer reviewed this report',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  if (error != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        error!,
+                        style: const TextStyle(
+                          color: AppTokens.brandRed,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!acknowledged) {
+                  setDialogState(
+                    () => error =
+                        'Ask the customer to review and confirm before saving.',
+                  );
+                  return;
+                }
+                final validation = controller.validateSignOffInput(
+                  customerName: customer.text,
+                  customerPhone: phone.text,
+                  advisorName: advisor.text,
+                );
+                if (validation != null) {
+                  setDialogState(() => error = validation);
+                  return;
+                }
+                final saved = await controller.confirmPreWorkSignOff(
+                  customerName: customer.text,
+                  customerPhone: phone.text,
+                  advisorName: advisor.text,
+                );
+                if (saved && dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('Confirm and save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    customer.dispose();
+    phone.dispose();
+    advisor.dispose();
+  }
+
+  static String _titleFor(ConditionViewDirection view) => switch (view) {
+    ConditionViewDirection.sideLeft => 'Left side',
+    ConditionViewDirection.sideRight => 'Right side',
+    ConditionViewDirection.front => 'Front',
+    ConditionViewDirection.rear => 'Rear',
+    ConditionViewDirection.top => 'Roof and glass',
+  };
+
+  static IconData _iconFor(ConditionViewDirection view) => switch (view) {
+    ConditionViewDirection.sideLeft ||
+    ConditionViewDirection.sideRight => Icons.directions_car_outlined,
+    ConditionViewDirection.front => Icons.car_crash_outlined,
+    ConditionViewDirection.rear => Icons.car_repair_outlined,
+    ConditionViewDirection.top => Icons.grid_view_rounded,
+  };
+
+  static String _pretty(String value) => value
+      .toLowerCase()
+      .split(' ')
+      .map(
+        (word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}',
+      )
+      .join(' ');
 }

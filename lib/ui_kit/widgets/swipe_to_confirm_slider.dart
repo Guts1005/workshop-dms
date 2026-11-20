@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../tokens/app_tokens.dart';
 
 class SwipeToConfirmSlider extends StatefulWidget {
@@ -23,7 +24,8 @@ class SwipeToConfirmSlider extends StatefulWidget {
   State<SwipeToConfirmSlider> createState() => _SwipeToConfirmSliderState();
 }
 
-class _SwipeToConfirmSliderState extends State<SwipeToConfirmSlider> with SingleTickerProviderStateMixin {
+class _SwipeToConfirmSliderState extends State<SwipeToConfirmSlider>
+    with SingleTickerProviderStateMixin {
   double _dragPosition = 0.0;
   bool _isConfirmed = false;
   late AnimationController _springController;
@@ -64,11 +66,12 @@ class _SwipeToConfirmSliderState extends State<SwipeToConfirmSlider> with Single
       widget.onConfirmed();
     } else {
       // Spring back within 140ms
-      _springAnimation = Tween<double>(begin: _dragPosition, end: 0.0).animate(
-        CurvedAnimation(parent: _springController, curve: Curves.easeOut),
-      )..addListener(() {
-          setState(() => _dragPosition = _springAnimation.value);
-        });
+      _springAnimation =
+          Tween<double>(begin: _dragPosition, end: 0.0).animate(
+            CurvedAnimation(parent: _springController, curve: Curves.easeOut),
+          )..addListener(() {
+            setState(() => _dragPosition = _springAnimation.value);
+          });
       _springController.forward(from: 0.0);
     }
   }
@@ -103,9 +106,7 @@ class _SwipeToConfirmSliderState extends State<SwipeToConfirmSlider> with Single
                 top: 0,
                 bottom: 0,
                 width: _dragPosition + (thumbWidth / 2),
-                child: Container(
-                  color: widget.progressColor,
-                ),
+                child: Container(color: widget.progressColor),
               ),
 
               // 2. Track Instruction Text
@@ -130,7 +131,8 @@ class _SwipeToConfirmSliderState extends State<SwipeToConfirmSlider> with Single
                 bottom: 0,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onHorizontalDragUpdate: (d) => _onHorizontalDragUpdate(d, maxDrag),
+                  onHorizontalDragUpdate: (d) =>
+                      _onHorizontalDragUpdate(d, maxDrag),
                   onHorizontalDragEnd: (d) => _onHorizontalDragEnd(d, maxDrag),
                   child: Container(
                     width: thumbWidth,
@@ -138,7 +140,10 @@ class _SwipeToConfirmSliderState extends State<SwipeToConfirmSlider> with Single
                     decoration: BoxDecoration(
                       color: _isConfirmed ? AppTokens.green : widget.thumbColor,
                       borderRadius: AppTokens.zeroRadius,
-                      border: Border.all(color: AppTokens.borderSolid, width: 1.0),
+                      border: Border.all(
+                        color: AppTokens.borderSolid,
+                        width: 1.0,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Icon(

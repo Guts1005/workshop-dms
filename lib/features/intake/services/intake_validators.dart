@@ -38,7 +38,8 @@ class IntakeValidators {
     // Bharat (BH) series format: 2-digit year + 'BH' + 4 digits + 1-2 letters
     final bhSeriesRegex = RegExp(r'^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$');
 
-    if (!standardRegex.hasMatch(normalized) && !bhSeriesRegex.hasMatch(normalized)) {
+    if (!standardRegex.hasMatch(normalized) &&
+        !bhSeriesRegex.hasMatch(normalized)) {
       return 'Invalid Indian registration plate format (e.g. RJ27CA1024 or 22BH1234AA)';
     }
 
@@ -132,7 +133,9 @@ class IntakeValidators {
     if (delivery == null) {
       return 'Expected delivery date and time is required';
     }
-    if (delivery.isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
+    if (delivery.isBefore(
+      DateTime.now().subtract(const Duration(minutes: 5)),
+    )) {
       return 'Expected delivery time cannot be in the past';
     }
     return null;

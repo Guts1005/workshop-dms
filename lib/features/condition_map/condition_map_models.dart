@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 
@@ -91,30 +92,34 @@ class ConditionPin {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'view': view.name,
-        'normalizedX': normalizedX,
-        'normalizedY': normalizedY,
-        'type': type.name,
-        'severity': severity.name,
-        'note': note,
-        'photoPath': photoPath,
-        'photoHash': photoHash,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'view': view.name,
+    'normalizedX': normalizedX,
+    'normalizedY': normalizedY,
+    'type': type.name,
+    'severity': severity.name,
+    'note': note,
+    'photoPath': photoPath,
+    'photoHash': photoHash,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory ConditionPin.fromJson(Map<String, dynamic> json) => ConditionPin(
-        id: json['id'] as int,
-        view: ConditionViewDirection.values.firstWhere((v) => v.name == json['view']),
-        normalizedX: (json['normalizedX'] as num).toDouble(),
-        normalizedY: (json['normalizedY'] as num).toDouble(),
-        type: DefectType.values.firstWhere((t) => t.name == json['type']),
-        severity: DefectSeverity.values.firstWhere((s) => s.name == json['severity']),
-        note: json['note'] as String?,
-        photoPath: json['photoPath'] as String?,
-        photoHash: json['photoHash'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+    id: json['id'] as int,
+    view: ConditionViewDirection.values.firstWhere(
+      (v) => v.name == json['view'],
+    ),
+    normalizedX: (json['normalizedX'] as num).toDouble(),
+    normalizedY: (json['normalizedY'] as num).toDouble(),
+    type: DefectType.values.firstWhere((t) => t.name == json['type']),
+    severity: DefectSeverity.values.firstWhere(
+      (s) => s.name == json['severity'],
+    ),
+    note: json['note'] as String?,
+    photoPath: json['photoPath'] as String?,
+    photoHash: json['photoHash'] as String?,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
 }
 
 class PreWorkSignOff {
@@ -148,7 +153,9 @@ class PreWorkSignOff {
       ..write('PINS:');
 
     for (final p in pins) {
-      payload.write('${p.id}-${p.view.name}-${p.type.name}-${p.severity.name}-(${p.normalizedX.toStringAsFixed(3)},${p.normalizedY.toStringAsFixed(3)})|');
+      payload.write(
+        '${p.id}-${p.view.name}-${p.type.name}-${p.severity.name}-(${p.normalizedX.toStringAsFixed(3)},${p.normalizedY.toStringAsFixed(3)})|',
+      );
     }
     payload.write('TIME:${timestamp.toIso8601String()}');
 
@@ -156,22 +163,22 @@ class PreWorkSignOff {
   }
 
   Map<String, dynamic> toJson() => {
-        'customerName': customerName,
-        'customerPhone': customerPhone,
-        'advisorName': advisorName,
-        'signedAt': signedAt.toIso8601String(),
-        'customerAcknowledged': customerAcknowledged,
-        'sha256Checksum': sha256Checksum,
-      };
+    'customerName': customerName,
+    'customerPhone': customerPhone,
+    'advisorName': advisorName,
+    'signedAt': signedAt.toIso8601String(),
+    'customerAcknowledged': customerAcknowledged,
+    'sha256Checksum': sha256Checksum,
+  };
 
   factory PreWorkSignOff.fromJson(Map<String, dynamic> json) => PreWorkSignOff(
-        customerName: json['customerName'] as String,
-        customerPhone: json['customerPhone'] as String,
-        advisorName: json['advisorName'] as String,
-        signedAt: DateTime.parse(json['signedAt'] as String),
-        customerAcknowledged: json['customerAcknowledged'] as bool,
-        sha256Checksum: json['sha256Checksum'] as String,
-      );
+    customerName: json['customerName'] as String,
+    customerPhone: json['customerPhone'] as String,
+    advisorName: json['advisorName'] as String,
+    signedAt: DateTime.parse(json['signedAt'] as String),
+    customerAcknowledged: json['customerAcknowledged'] as bool,
+    sha256Checksum: json['sha256Checksum'] as String,
+  );
 }
 
 enum ConditionMapStatus { idle, saving, completed, error }
@@ -181,6 +188,7 @@ class ConditionMapState {
   final String registrationNumber;
   final ConditionViewDirection activeView;
   final List<ConditionPin> pins;
+  final Set<ConditionViewDirection> reviewedViews;
   final ConditionPin? selectedPin;
   final PreWorkSignOff? signOff;
   final ConditionMapStatus status;
@@ -191,6 +199,7 @@ class ConditionMapState {
     required this.registrationNumber,
     this.activeView = ConditionViewDirection.sideLeft,
     this.pins = const [],
+    this.reviewedViews = const {},
     this.selectedPin,
     this.signOff,
     this.status = ConditionMapStatus.idle,
@@ -199,18 +208,24 @@ class ConditionMapState {
 
   bool get isLocked => signOff != null;
   int get totalPinCount => pins.length;
+  int get reviewedCount => reviewedViews.length;
 
-  int get severeCount => pins.where((p) => p.severity == DefectSeverity.severe).length;
-  int get moderateCount => pins.where((p) => p.severity == DefectSeverity.moderate).length;
-  int get minorCount => pins.where((p) => p.severity == DefectSeverity.minor).length;
+  int get severeCount =>
+      pins.where((p) => p.severity == DefectSeverity.severe).length;
+  int get moderateCount =>
+      pins.where((p) => p.severity == DefectSeverity.moderate).length;
+  int get minorCount =>
+      pins.where((p) => p.severity == DefectSeverity.minor).length;
 
-  List<ConditionPin> get activeViewPins => pins.where((p) => p.view == activeView).toList();
+  List<ConditionPin> get activeViewPins =>
+      pins.where((p) => p.view == activeView).toList();
 
   ConditionMapState copyWith({
     String? jobCardId,
     String? registrationNumber,
     ConditionViewDirection? activeView,
     List<ConditionPin>? pins,
+    Set<ConditionViewDirection>? reviewedViews,
     ConditionPin? selectedPin,
     bool clearSelectedPin = false,
     PreWorkSignOff? signOff,
@@ -223,6 +238,7 @@ class ConditionMapState {
       registrationNumber: registrationNumber ?? this.registrationNumber,
       activeView: activeView ?? this.activeView,
       pins: pins ?? this.pins,
+      reviewedViews: reviewedViews ?? this.reviewedViews,
       selectedPin: clearSelectedPin ? null : (selectedPin ?? this.selectedPin),
       signOff: signOff ?? this.signOff,
       status: status ?? this.status,

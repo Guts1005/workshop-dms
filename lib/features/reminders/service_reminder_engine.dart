@@ -34,16 +34,22 @@ class ServiceReminderResult {
     required String workshopAddress,
   }) {
     final cleanPhone = mobileNumber.replaceAll(RegExp(r'[^0-9]'), '');
-    final phoneWithCountry = cleanPhone.startsWith('91') ? cleanPhone : '91$cleanPhone';
+    final phoneWithCountry = cleanPhone.startsWith('91')
+        ? cleanPhone
+        : '91$cleanPhone';
 
     final text = StringBuffer();
     text.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     text.writeln('🔧 *$workshopName — SERVICE DUE ALERT*');
     text.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     text.writeln('Namaste *$customerName ji*,\n');
-    text.writeln('Your *$vehicleModel ($registrationNumber)* is now due for scheduled maintenance.\n');
+    text.writeln(
+      'Your *$vehicleModel ($registrationNumber)* is now due for scheduled maintenance.\n',
+    );
     text.writeln('📊 *Vehicle Snapshot:*');
-    text.writeln('• Last Serviced: ${_formatDate(lastServiceDate)} (@ $lastServiceOdometerKm KM)');
+    text.writeln(
+      '• Last Serviced: ${_formatDate(lastServiceDate)} (@ $lastServiceOdometerKm KM)',
+    );
     text.writeln('• Current Est. Odometer: ~$projectedCurrentKm KM');
     text.writeln('• Trigger: $triggerReason\n');
     text.writeln('🛠️ *Recommended for this Visit:*');
@@ -52,7 +58,9 @@ class ServiceReminderResult {
     text.writeln('✓ Complete 360° Safety & Suspension Scan\n');
     text.writeln('📄 *View Your Car\'s Live Health Passport:*');
     text.writeln('https://workshop.app/passport/$registrationNumber\n');
-    text.writeln('To reserve your bay slot or arrange a doorstep pickup, simply reply to this message or call us at $workshopPhone.\n');
+    text.writeln(
+      'To reserve your bay slot or arrange a doorstep pickup, simply reply to this message or call us at $workshopPhone.\n',
+    );
     text.writeln('*Work Done Right, Priced Fair.*');
     text.writeln('📍 $workshopAddress');
     text.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -62,7 +70,20 @@ class ServiceReminderResult {
   }
 
   static String _formatDate(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
 }
@@ -85,9 +106,12 @@ class ServiceReminderEngine {
     final currentNow = now ?? DateTime.now();
 
     // 1. Calculate Daily Driving Average
-    double dailyAverageKm = 40.0; // Sane automotive default in India if no previous visit exists
+    double dailyAverageKm =
+        40.0; // Sane automotive default in India if no previous visit exists
     if (previousServiceDate != null && previousServiceOdometerKm != null) {
-      final daysBetween = lastServiceDate.difference(previousServiceDate).inDays;
+      final daysBetween = lastServiceDate
+          .difference(previousServiceDate)
+          .inDays;
       final kmBetween = lastServiceOdometerKm - previousServiceOdometerKm;
       if (daysBetween > 0 && kmBetween > 0) {
         dailyAverageKm = kmBetween / daysBetween;
@@ -96,16 +120,23 @@ class ServiceReminderEngine {
 
     // 2. Project Current KM today
     final daysSinceLastService = currentNow.difference(lastServiceDate).inDays;
-    final projectedCurrentKm = lastServiceOdometerKm + (dailyAverageKm * daysSinceLastService).round();
+    final projectedCurrentKm =
+        lastServiceOdometerKm + (dailyAverageKm * daysSinceLastService).round();
 
     // 3. Target dates
     final targetKm = lastServiceOdometerKm + intervalKm;
-    final daysToTargetKm = dailyAverageKm > 0 ? ((targetKm - lastServiceOdometerKm) / dailyAverageKm).round() : intervalDays;
-    final projectedKmDueDate = lastServiceDate.add(Duration(days: daysToTargetKm));
+    final daysToTargetKm = dailyAverageKm > 0
+        ? ((targetKm - lastServiceOdometerKm) / dailyAverageKm).round()
+        : intervalDays;
+    final projectedKmDueDate = lastServiceDate.add(
+      Duration(days: daysToTargetKm),
+    );
     final calendarDueDate = lastServiceDate.add(Duration(days: intervalDays));
 
     // Whichever trigger happens first
-    final earliestDueDate = projectedKmDueDate.isBefore(calendarDueDate) ? projectedKmDueDate : calendarDueDate;
+    final earliestDueDate = projectedKmDueDate.isBefore(calendarDueDate)
+        ? projectedKmDueDate
+        : calendarDueDate;
     final isKmFirst = projectedKmDueDate.isBefore(calendarDueDate);
 
     final daysRemaining = earliestDueDate.difference(currentNow).inDays;

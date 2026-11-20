@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:crypto/crypto.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import '../features/bay_capture/bay_camera_guides.dart';
 import '../features/bay_capture/bay_capture_models.dart';
 import '../ui_kit/tokens/app_tokens.dart';
@@ -21,7 +22,13 @@ class CameraCaptureModule extends StatefulWidget {
   final String title;
   final String instruction;
   final CheckInShotType shotType;
-  final Function(String photoPath, String sha256Hash, int fileSizeBytes) onPhotoConfirmed;
+  final Function(
+    String photoPath,
+    String sha256Hash,
+    int fileSizeBytes,
+    Uint8List bytes,
+  )
+  onPhotoConfirmed;
   final QualityCheckCallback? onQualityCheck;
 
   const CameraCaptureModule({
@@ -90,7 +97,8 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
   @override
   void didUpdateWidget(CameraCaptureModule oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title || oldWidget.shotType != widget.shotType) {
+    if (oldWidget.title != widget.title ||
+        oldWidget.shotType != widget.shotType) {
       // Clear staged capture so the previous slot's photo is NEVER carried over
       setState(() {
         _stagedBytes = null;
@@ -115,10 +123,12 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
       _disposeController();
     } else if (state == AppLifecycleState.resumed) {
-      if (_permissionState == _ModulePermissionState.granted && _stagedBytes == null) {
+      if (_permissionState == _ModulePermissionState.granted &&
+          _stagedBytes == null) {
         _initCamera();
       }
     }
@@ -143,7 +153,9 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
   Future<void> _requestPermission() async {
     setState(() => _permissionState = _ModulePermissionState.checking);
 
-    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)) {
       try {
         final status = await Permission.camera.request();
         if (status.isGranted) {
@@ -180,7 +192,10 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
-        throw CameraException('NoCamerasFound', 'No physical camera hardware detected on device.');
+        throw CameraException(
+          'NoCamerasFound',
+          'No physical camera hardware detected on device.',
+        );
       }
 
       final camera = _cameras.firstWhere(
@@ -219,7 +234,10 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
   void _startFramingStabilization() {
     _isFramingLocked = false;
     Future.delayed(const Duration(milliseconds: 750), () {
-      if (mounted && _controller != null && _controller!.value.isInitialized && _stagedBytes == null) {
+      if (mounted &&
+          _controller != null &&
+          _controller!.value.isInitialized &&
+          _stagedBytes == null) {
         setState(() => _isFramingLocked = true);
         HapticFeedback.selectionClick();
       }
@@ -243,7 +261,8 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
       // 2. Optical Quality & Lighting Check
       String? warning;
       if (bytes.length < 10000) {
-        warning = 'Captured file size is abnormally small. Check lens visibility.';
+        warning =
+            'Captured file size is abnormally small. Check lens visibility.';
       } else if (widget.onQualityCheck != null) {
         final passed = await widget.onQualityCheck!(bytes);
         if (!passed) {
@@ -260,7 +279,10 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Camera capture error: $e'), backgroundColor: AppTokens.redOrange),
+          SnackBar(
+            content: Text('Camera capture error: $e'),
+            backgroundColor: AppTokens.redOrange,
+          ),
         );
       }
     } finally {
@@ -293,7 +315,7 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
         _isFramingLocked = false;
       });
 
-      widget.onPhotoConfirmed(path, hash, bytesLen);
+      widget.onPhotoConfirmed(path, hash, bytesLen, _stagedBytes!);
     }
   }
 
@@ -334,7 +356,10 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF111827),
                   borderRadius: BorderRadius.circular(12.0),
@@ -346,7 +371,11 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                     SizedBox(width: 10.0),
                     Text(
                       'BAY CHECK-IN CAMERA ACCESS',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13.0),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13.0,
+                      ),
                     ),
                   ],
                 ),
@@ -355,13 +384,20 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
               Text(
                 widget.title.toUpperCase(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 12.0),
               const Text(
                 'Camera access is required once to capture mandatory 4-corner condition photos and odometer reading for this Job Card.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13.0, color: AppTokens.textSecondary, height: 1.4),
+                style: TextStyle(
+                  fontSize: 13.0,
+                  color: AppTokens.textSecondary,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 20.0),
               SharpButton(
@@ -399,12 +435,20 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.no_photography_outlined, size: 44.0, color: Color(0xFFDC2626)),
+              const Icon(
+                Icons.no_photography_outlined,
+                size: 44.0,
+                color: Color(0xFFDC2626),
+              ),
               const SizedBox(height: 12.0),
               const Text(
                 'CAMERA PERMISSION BLOCKED',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
+                style: TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFDC2626),
+                ),
               ),
               const SizedBox(height: 10.0),
               const Text(
@@ -433,7 +477,9 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
   }
 
   Widget _buildLiveView() {
-    if (_isInitializing) return const Center(child: CircularProgressIndicator());
+    if (_isInitializing) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     if (_errorMessage != null) {
       return Center(
@@ -447,11 +493,22 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 44.0, color: AppTokens.redOrange),
+              const Icon(
+                Icons.error_outline,
+                size: 44.0,
+                color: AppTokens.redOrange,
+              ),
               const SizedBox(height: 8.0),
-              const Text('CAMERA HARDWARE DISCONNECTED', style: TextStyle(fontWeight: FontWeight.w900)),
+              const Text(
+                'CAMERA HARDWARE DISCONNECTED',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 8.0),
-              Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.0)),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12.0),
+              ),
               const SizedBox(height: 16.0),
               SharpButton(label: 'RETRY CAMERA', onPressed: _initCamera),
             ],
@@ -509,12 +566,17 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
               left: 14.0,
               right: 14.0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14.0,
+                  vertical: 10.0,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0F172A).withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(14.0),
                   border: Border.all(
-                    color: _isFramingLocked ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                    color: _isFramingLocked
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFF59E0B),
                     width: 1.5,
                   ),
                   boxShadow: const [
@@ -530,7 +592,9 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                     Container(
                       padding: const EdgeInsets.all(6.0),
                       decoration: BoxDecoration(
-                        color: _isFramingLocked ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        color: _isFramingLocked
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: Icon(
@@ -555,14 +619,20 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                           const SizedBox(height: 2.0),
                           Text(
                             widget.instruction,
-                            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 11.5),
+                            style: const TextStyle(
+                              color: Color(0xFFE2E8F0),
+                              fontSize: 11.5,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8.0),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 4.0,
+                      ),
                       decoration: BoxDecoration(
                         color: _isFramingLocked
                             ? const Color(0xFF10B981).withValues(alpha: 0.2)
@@ -572,7 +642,9 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                       child: Text(
                         _isFramingLocked ? 'IN FRAME ✓' : 'ALIGNING...',
                         style: TextStyle(
-                          color: _isFramingLocked ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                          color: _isFramingLocked
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFFFBBF24),
                           fontSize: 10.5,
                           fontWeight: FontWeight.w900,
                           fontFamily: 'monospace',
@@ -591,7 +663,10 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
               right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F172A).withValues(alpha: 0.88),
                     borderRadius: BorderRadius.circular(28.0),
@@ -606,7 +681,9 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                   child: SharpButton(
                     label: _isProcessing
                         ? 'CAPTURING...'
-                        : (_isFramingLocked ? 'CAPTURE PHOTO (READY ✓)' : 'CAPTURE PHOTO'),
+                        : (_isFramingLocked
+                              ? 'CAPTURE PHOTO (READY ✓)'
+                              : 'CAPTURE PHOTO'),
                     icon: Icons.camera_alt,
                     onPressed: _isProcessing ? null : _takeShutter,
                     width: 260.0,
@@ -629,30 +706,48 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFF111827),
               borderRadius: BorderRadius.circular(14.0),
             ),
             child: Row(
               children: [
-                const Icon(Icons.verified_outlined, color: Color(0xFF10B981), size: 18.0),
+                const Icon(
+                  Icons.verified_outlined,
+                  color: Color(0xFF10B981),
+                  size: 18.0,
+                ),
                 const SizedBox(width: 8.0),
                 Expanded(
                   child: Text(
                     'VERIFY EVIDENCE: ${widget.title.toUpperCase()}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13.0),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13.0,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 3.0,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981),
                     borderRadius: BorderRadius.circular(6.0),
                   ),
                   child: const Text(
-                    'SHA-256 SECURED',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10.0, fontFamily: 'monospace'),
+                    'PHOTO ATTACHED',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10.0,
+                    ),
                   ),
                 ),
               ],
@@ -691,24 +786,52 @@ class _CameraCaptureModuleState extends State<CameraCaptureModule>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('HASH (SHA-256):', style: AppTokens.fontMonospace(fontSize: 10.0, fontWeight: FontWeight.bold)),
+                    Text(
+                      'EVIDENCE ID:',
+                      style: AppTokens.fontMonospace(
+                        fontSize: 10.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppTokens.textSecondary,
+                      ),
+                    ),
                     Text(
                       '${(_stagedBytes!.length / 1024).toStringAsFixed(1)} KB',
-                      style: AppTokens.fontMonospace(fontSize: 10.0, color: AppTokens.textSecondary),
+                      style: AppTokens.fontMonospace(
+                        fontSize: 10.0,
+                        color: AppTokens.textSecondary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4.0),
                 Text(
                   _stagedHash!,
-                  style: AppTokens.fontMonospace(fontSize: 9.5, color: const Color(0xFF047857), fontWeight: FontWeight.w800),
+                  style: AppTokens.fontMonospace(
+                    fontSize: 9.5,
+                    color: const Color(0xFF047857),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 if (_qualityWarning != null) ...[
                   const SizedBox(height: 6.0),
-                  Text('⚠️ $_qualityWarning', style: const TextStyle(fontSize: 11.5, color: Color(0xFFDC2626), fontWeight: FontWeight.w700)),
+                  Text(
+                    '⚠️ $_qualityWarning',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFFDC2626),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ] else ...[
                   const SizedBox(height: 4.0),
-                  const Text('✓ LIGHTING & FOCUS: OPTIMAL', style: TextStyle(fontSize: 11.0, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                  const Text(
+                    '✓ LIGHTING & FOCUS: OPTIMAL',
+                    style: TextStyle(
+                      fontSize: 11.0,
+                      color: Color(0xFF10B981),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ],
             ),

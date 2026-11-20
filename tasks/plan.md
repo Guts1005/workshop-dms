@@ -1,4 +1,6 @@
-# Implementation Plan: Automotive Workshop Management System (Flutter)
+# Historical Implementation Plan: Automotive Workshop Management System (Flutter)
+
+> This is the initial planning document and contains requirements that have since been implemented, changed, or superseded. Do not use its unchecked boxes as the current project status. See [`../BUILD_PROGRESS.md`](../BUILD_PROGRESS.md) and [`../docs/DEVELOPER_HANDOFF.md`](../docs/DEVELOPER_HANDOFF.md).
 
 ## Phased Vertical Delivery Roadmap
 

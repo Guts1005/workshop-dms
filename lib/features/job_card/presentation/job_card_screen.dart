@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_button.dart';
 import '../../../ui_kit/widgets/sharp_card.dart';
@@ -11,17 +14,13 @@ import '../../vehicle/indian_number_plate.dart';
 
 /// Complete, Production-Grade Job Card & Estimate Builder Screen (Page 5)
 /// Matches luxury Rivian + MG i-SMART automotive styling:
-/// Luminous canvas, modular Bento grid, SAC 998729 labour billing, HSN automotive parts,
+/// Luminous canvas, modular Bento grid, SAC 998714 labour billing, HSN automotive parts,
 /// integer-paise GST computation, and WhatsApp digital dispatch.
 class JobCardScreen extends StatefulWidget {
   final String? jobCardId;
   final String? registrationNumber;
 
-  const JobCardScreen({
-    super.key,
-    this.jobCardId,
-    this.registrationNumber,
-  });
+  const JobCardScreen({super.key, this.jobCardId, this.registrationNumber});
 
   @override
   State<JobCardScreen> createState() => _JobCardScreenState();
@@ -30,103 +29,238 @@ class JobCardScreen extends StatefulWidget {
 class _JobCardScreenState extends State<JobCardScreen> {
   late String _regNumber;
   late String _jobCardId;
-  bool _isDispatched = false;
   bool _isApproved = false;
+  String _vehicleDetails = 'Loading vehicle detailsâ€¦';
+  String _customerDetails = 'Loading customer detailsâ€¦';
+  String _odometerDetails = 'Loading odometerâ€¦';
+  String _deliveryDetails = 'Not set';
+  bool _loading = true;
+  String? _loadError;
 
-  // Pre-loaded realistic automotive labour lines (SAC 998729 - 18% GST)
-  final List<InvoiceLineItem> _labourItems = [
-    const InvoiceLineItem(
-      id: 'L-01',
-      type: LineItemType.labour,
-      description: 'Comprehensive Periodic Maintenance Service (General Check-up & Fluids)',
-      code: 'SAC 998729',
-      quantity: 1,
-      unitRatePaise: 120000, // ₹1,200.00
-      gstRatePercent: 18,
-    ),
-    const InvoiceLineItem(
-      id: 'L-02',
-      type: LineItemType.labour,
-      description: 'Front Brake Caliper Overhaul & Disc Pad Replacement',
-      code: 'SAC 998729',
-      quantity: 1,
-      unitRatePaise: 65000, // ₹650.00
-      gstRatePercent: 18,
-    ),
-    const InvoiceLineItem(
-      id: 'L-03',
-      type: LineItemType.labour,
-      description: 'Air Conditioning System Inspection, Evaporator Disinfection & Filter Clean',
-      code: 'SAC 998729',
-      quantity: 1,
-      unitRatePaise: 55000, // ₹550.00
-      gstRatePercent: 18,
-    ),
-    const InvoiceLineItem(
-      id: 'L-04',
-      type: LineItemType.labour,
-      description: '4-Wheel Computerized Laser Alignment & Dynamic Wheel Balancing',
-      code: 'SAC 998729',
-      quantity: 1,
-      unitRatePaise: 80000, // ₹800.00
-      gstRatePercent: 18,
-    ),
-  ];
+  // Pre-loaded realistic automotive labour lines (SAC 998714 - 18% GST)
+  final List<InvoiceLineItem> _labourItems = [];
 
-  // Pre-loaded realistic automotive OEM parts lines (HSN Codes - 18% / 28% GST)
-  final List<InvoiceLineItem> _partsItems = [
-    const InvoiceLineItem(
-      id: 'P-01',
-      type: LineItemType.part,
-      description: 'Mobil 1 ESP 5W-30 Fully Synthetic Engine Oil (3.5 Litres Pack)',
-      code: 'HSN 2710',
-      quantity: 1,
-      unitRatePaise: 285000, // ₹2,850.00
-      gstRatePercent: 18,
-    ),
-    const InvoiceLineItem(
-      id: 'P-02',
-      type: LineItemType.part,
-      description: 'OEM Spin-on High Efficiency Lubricating Oil Filter',
-      code: 'HSN 8421',
-      quantity: 1,
-      unitRatePaise: 48000, // ₹480.00
-      gstRatePercent: 18,
-    ),
-    const InvoiceLineItem(
-      id: 'P-03',
-      type: LineItemType.part,
-      description: 'MG OEM Heavy-Duty Front Ceramic Brake Pads Set',
-      code: 'HSN 8708',
-      quantity: 1,
-      unitRatePaise: 320000, // ₹3,200.00
-      gstRatePercent: 28, // 28% GST on brake friction components
-    ),
-    const InvoiceLineItem(
-      id: 'P-04',
-      type: LineItemType.part,
-      description: 'Engine Air Intake Filter Cartridge (Multi-Layer Pleated)',
-      code: 'HSN 8421',
-      quantity: 1,
-      unitRatePaise: 62000, // ₹620.00
-      gstRatePercent: 18,
-    ),
-    const InvoiceLineItem(
-      id: 'P-05',
-      type: LineItemType.part,
-      description: 'Pre-mixed OAT Long-Life Engine Coolant (1 Litre)',
-      code: 'HSN 3820',
-      quantity: 1,
-      unitRatePaise: 32000, // ₹320.00
-      gstRatePercent: 18,
-    ),
-  ];
+  // Pre-loaded realistic automotive OEM parts lines (HSN Codes - uniform 18% GST effective Sept 2025)
+  final List<InvoiceLineItem> _partsItems = [];
 
   @override
   void initState() {
     super.initState();
-    _regNumber = widget.registrationNumber ?? 'RJ27CA1024';
-    _jobCardId = widget.jobCardId ?? 'JC-2026-0849';
+    _regNumber = widget.registrationNumber ?? '';
+    _jobCardId = widget.jobCardId ?? '';
+    if (_jobCardId.isNotEmpty) {
+      _loadJobCard();
+    } else {
+      _loading = false;
+      _loadError = 'Open this estimate from an existing application.';
+    }
+  }
+
+  Future<void> _loadJobCard() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+      });
+    }
+    try {
+      final client = Supabase.instance.client;
+      final job = await client
+          .from('job_cards')
+          .select(
+            'id, vehicle_id, customer_id, expected_delivery, intake_odometer_km, customer_approved_at',
+          )
+          .eq('id', _jobCardId)
+          .single();
+      final vehicle = await client
+          .from('vehicles')
+          .select('registration_number, make, model')
+          .eq('id', job['vehicle_id'])
+          .single();
+      final customer = await client
+          .from('customers')
+          .select('name, phone')
+          .eq('id', job['customer_id'])
+          .single();
+      final rows = await client
+          .from('job_line_items')
+          .select(
+            'id, item_type, description, code, quantity, unit_rate_paise, gst_rate_percent',
+          )
+          .eq('job_card_id', _jobCardId)
+          .order('created_at');
+      final items = rows
+          .map(
+            (row) => InvoiceLineItem(
+              id: row['id'] as String,
+              type: row['item_type'] == 'labour'
+                  ? LineItemType.labour
+                  : LineItemType.part,
+              description: row['description'] as String,
+              code: row['code'] as String,
+              quantity: (row['quantity'] as num).round(),
+              unitRatePaise: row['unit_rate_paise'] as int,
+              gstRatePercent: (row['gst_rate_percent'] as num).round(),
+            ),
+          )
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _regNumber = vehicle['registration_number'] as String;
+        _vehicleDetails = '${vehicle['make']} ${vehicle['model']}';
+        _customerDetails = '${customer['name']} Â· ${customer['phone']}';
+        _odometerDetails = '${job['intake_odometer_km']} km';
+        final date = DateTime.tryParse(
+          job['expected_delivery'] as String? ?? '',
+        )?.toLocal();
+        _deliveryDetails = date == null
+            ? 'Not set'
+            : DateFormat('dd MMM yyyy, hh:mm a').format(date);
+        _isApproved = job['customer_approved_at'] != null;
+        _labourItems
+          ..clear()
+          ..addAll(items.where((item) => item.type == LineItemType.labour));
+        _partsItems
+          ..clear()
+          ..addAll(items.where((item) => item.type == LineItemType.part));
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadError = 'This application could not load. Check your connection and retry.';
+        });
+      }
+    }
+  }
+
+  Future<void> _addLineItem(LineItemType type) async {
+    if (_isApproved) return;
+    final description = TextEditingController();
+    final code = TextEditingController(
+      text: type == LineItemType.labour ? '998714' : '',
+    );
+    final quantity = TextEditingController(text: '1');
+    final rate = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(type == LineItemType.labour ? 'Add labour' : 'Add part'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: description,
+                decoration: const InputDecoration(labelText: 'Description'),
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Enter a description'
+                    : null,
+              ),
+              TextFormField(
+                controller: code,
+                decoration: InputDecoration(
+                  labelText: type == LineItemType.labour
+                      ? 'SAC code'
+                      : 'HSN code',
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Enter the code' : null,
+              ),
+              TextFormField(
+                controller: quantity,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Quantity'),
+                validator: (v) => (int.tryParse(v ?? '') ?? 0) <= 0
+                    ? 'Enter a positive quantity'
+                    : null,
+              ),
+              TextFormField(
+                controller: rate,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Unit price (â‚¹)',
+                ),
+                validator: (v) => (double.tryParse(v ?? '') ?? 0) <= 0
+                    ? 'Enter a positive price'
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(dialogContext, true);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    if (save != true || !mounted) return;
+    try {
+      final rupees = double.parse(rate.text.trim());
+      await Supabase.instance.client.from('job_line_items').insert({
+        'workshop_id': await _workshopId(),
+        'job_card_id': _jobCardId,
+        'item_type': type == LineItemType.labour ? 'labour' : 'part',
+        'description': description.text.trim(),
+        'code': code.text.trim(),
+        'quantity': int.parse(quantity.text),
+        'unit_rate_paise': (rupees * 100).round(),
+        'gst_rate_percent': 18,
+      });
+      await _loadJobCard();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save this estimate item: $error')),
+        );
+      }
+    }
+  }
+
+  Future<String> _workshopId() async =>
+      (await Supabase.instance.client
+              .from('workshop_memberships')
+              .select('workshop_id')
+              .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
+              .single())['workshop_id']
+          as String;
+
+  Future<void> _recordApproval() async {
+    if (_computeSummary().grandTotalPaise <= 0 || _isApproved) return;
+    try {
+      final client = Supabase.instance.client;
+      await client
+          .from('job_cards')
+          .update({
+            'customer_approved_at': DateTime.now().toUtc().toIso8601String(),
+            'customer_approved_by':
+                client.auth.currentUser?.email ?? 'Workshop user',
+            'status': 'WAITING_APPROVAL',
+          })
+          .eq('id', _jobCardId);
+      if (mounted) setState(() => _isApproved = true);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not record approval: $error')),
+        );
+      }
+    }
   }
 
   InvoiceTaxSummary _computeSummary() {
@@ -143,11 +277,15 @@ class _JobCardScreenState extends State<JobCardScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 900.0;
     final summary = _computeSummary();
     final grandTotalRupees = (summary.grandTotalPaise / 100).toStringAsFixed(2);
-    final taxableLabourRupees = (summary.totalLabourTaxablePaise / 100).toStringAsFixed(2);
-    final taxablePartsRupees = (summary.totalPartsTaxablePaise / 100).toStringAsFixed(2);
+    final taxableLabourRupees = (summary.totalLabourTaxablePaise / 100)
+        .toStringAsFixed(2);
+    final taxablePartsRupees = (summary.totalPartsTaxablePaise / 100)
+        .toStringAsFixed(2);
     final cgstRupees = (summary.cgstAmountPaise / 100).toStringAsFixed(2);
     final sgstRupees = (summary.sgstAmountPaise / 100).toStringAsFixed(2);
-    final totalGstRupees = ((summary.cgstAmountPaise + summary.sgstAmountPaise) / 100).toStringAsFixed(2);
+    final totalGstRupees =
+        ((summary.cgstAmountPaise + summary.sgstAmountPaise) / 100)
+            .toStringAsFixed(2);
 
     return Scaffold(
       backgroundColor: AppTokens.base,
@@ -157,84 +295,106 @@ class _JobCardScreenState extends State<JobCardScreen> {
             // Top Stage Header
             _buildStageHeader(),
 
-            // Scrollable Content Zone (Zero Horizontal Scroll)
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isDesktop ? 24.0 : 14.0,
-                  vertical: 14.0,
-                ),
+            if (_loading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (_loadError != null)
+              Expanded(
                 child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1400.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Vehicle & Customer Hero Banner (Rivian + MG Aesthetic)
-                        _buildVehicleCustomerHeroCard(),
-                        const SizedBox(height: 14.0),
-
-                        // Main Bento Workspace: 2-Column Split on Desktop, Stack on Mobile
-                        if (isDesktop)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Left Column: Labour Operations & Parts Catalogue (Flex 7)
-                              Expanded(
-                                flex: 7,
-                                child: Column(
-                                  children: [
-                                    _buildLabourModule(),
-                                    const SizedBox(height: 14.0),
-                                    _buildPartsModule(),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16.0),
-
-                              // Right Column: GST Calculation Summary & Actions (Flex 5)
-                              Expanded(
-                                flex: 5,
-                                child: Column(
-                                  children: [
-                                    _buildGstSummaryBentoCard(
-                                      taxableLabour: taxableLabourRupees,
-                                      taxableParts: taxablePartsRupees,
-                                      cgst: cgstRupees,
-                                      sgst: sgstRupees,
-                                      totalGst: totalGstRupees,
-                                      grandTotal: grandTotalRupees,
-                                    ),
-                                    const SizedBox(height: 14.0),
-                                    _buildQuickActionsCard(grandTotalRupees),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        else ...[
-                          _buildLabourModule(),
-                          const SizedBox(height: 14.0),
-                          _buildPartsModule(),
-                          const SizedBox(height: 14.0),
-                          _buildGstSummaryBentoCard(
-                            taxableLabour: taxableLabourRupees,
-                            taxableParts: taxablePartsRupees,
-                            cgst: cgstRupees,
-                            sgst: sgstRupees,
-                            totalGst: totalGstRupees,
-                            grandTotal: grandTotalRupees,
-                          ),
-                          const SizedBox(height: 14.0),
-                          _buildQuickActionsCard(grandTotalRupees),
-                          const SizedBox(height: 20.0),
-                        ],
+                        Text(_loadError!),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: _jobCardId.isEmpty ? null : _loadJobCard,
+                          child: const Text('Retry'),
+                        ),
                       ],
                     ),
                   ),
                 ),
+              )
+            else
+              // Scrollable Content Zone (Zero Horizontal Scroll)
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 24.0 : 14.0,
+                    vertical: 14.0,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1400.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Vehicle & Customer Hero Banner (Rivian + MG Aesthetic)
+                          _buildVehicleCustomerHeroCard(),
+                          const SizedBox(height: 14.0),
+
+                          // Main Bento Workspace: 2-Column Split on Desktop, Stack on Mobile
+                          if (isDesktop)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Left Column: Labour Operations & Parts Catalogue (Flex 7)
+                                Expanded(
+                                  flex: 7,
+                                  child: Column(
+                                    children: [
+                                      _buildLabourModule(),
+                                      const SizedBox(height: 14.0),
+                                      _buildPartsModule(),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16.0),
+
+                                // Right Column: GST Calculation Summary & Actions (Flex 5)
+                                Expanded(
+                                  flex: 5,
+                                  child: Column(
+                                    children: [
+                                      _buildGstSummaryBentoCard(
+                                        taxableLabour: taxableLabourRupees,
+                                        taxableParts: taxablePartsRupees,
+                                        cgst: cgstRupees,
+                                        sgst: sgstRupees,
+                                        totalGst: totalGstRupees,
+                                        grandTotal: grandTotalRupees,
+                                      ),
+                                      const SizedBox(height: 14.0),
+                                      _buildQuickActionsCard(grandTotalRupees),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          else ...[
+                            _buildLabourModule(),
+                            const SizedBox(height: 14.0),
+                            _buildPartsModule(),
+                            const SizedBox(height: 14.0),
+                            _buildGstSummaryBentoCard(
+                              taxableLabour: taxableLabourRupees,
+                              taxableParts: taxablePartsRupees,
+                              cgst: cgstRupees,
+                              sgst: sgstRupees,
+                              totalGst: totalGstRupees,
+                              grandTotal: grandTotalRupees,
+                            ),
+                            const SizedBox(height: 14.0),
+                            _buildQuickActionsCard(grandTotalRupees),
+                            const SizedBox(height: 20.0),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -246,8 +406,10 @@ class _JobCardScreenState extends State<JobCardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
+        color: AppTokens.raised,
+        border: Border(
+          bottom: BorderSide(color: AppTokens.borderLight, width: 1.0),
+        ),
         boxShadow: [
           BoxShadow(
             color: Color(0x06000000),
@@ -261,24 +423,42 @@ class _JobCardScreenState extends State<JobCardScreen> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
-                decoration: BoxDecoration(
-                  color: AppTokens.brandRed,
-                  borderRadius: BorderRadius.circular(6.0),
-                ),
-                child: Text(
-                  '05',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w900,
+              InkWell(
+                borderRadius: AppTokens.cardRadius,
+                onTap: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    context.go('/bays');
+                  }
+                },
+                child: const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(
+                    Icons.arrow_back,
+                    size: 20.0,
+                    color: AppTokens.inverse,
                   ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7.0,
+                  vertical: 3.0,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppTokens.brandRed,
+                  borderRadius: AppTokens.inputRadius,
+                ),
+                child: const Icon(
+                  Icons.receipt_long_rounded,
+                  color: AppTokens.raised,
+                  size: 14.0,
                 ),
               ),
               const SizedBox(width: 8.0),
               Text(
-                'PAGE 5: JOB CARD & ESTIMATE BUILDER',
+                'JOB CARD & ESTIMATE',
                 style: GoogleFonts.inter(
                   color: AppTokens.textPrimary,
                   fontSize: 12.0,
@@ -289,9 +469,13 @@ class _JobCardScreenState extends State<JobCardScreen> {
             ],
           ),
           StatusChip(
-            label: _isApproved ? 'APPROVED BY OWNER' : (_isDispatched ? 'DISPATCHED VIA WHATSAPP' : 'DRAFT ESTIMATE'),
-            icon: _isApproved ? Icons.verified : (_isDispatched ? Icons.send_rounded : Icons.pending_outlined),
-            type: _isApproved ? StatusType.ok : (_isDispatched ? StatusType.dueSoon : StatusType.neutral),
+            label: _isApproved
+                ? 'APPROVAL RECORDED'
+                : (_labourItems.isEmpty && _partsItems.isEmpty
+                      ? 'NO ESTIMATE ITEMS'
+                      : 'DRAFT ESTIMATE'),
+            icon: _isApproved ? Icons.verified : Icons.pending_outlined,
+            type: _isApproved ? StatusType.ok : StatusType.neutral,
           ),
         ],
       ),
@@ -300,38 +484,50 @@ class _JobCardScreenState extends State<JobCardScreen> {
 
   /// Vehicle & Customer Hero Card
   Widget _buildVehicleCustomerHeroCard() {
+    final isNarrow = MediaQuery.of(context).size.width < 700.0;
+    final registrationPlate = IndianNumberPlate(
+      registrationNumber: _regNumber,
+      height: 44.0,
+    );
+    final contextDetails = Wrap(
+      spacing: 20.0,
+      runSpacing: 12.0,
+      children: [
+        _buildInfoColumn('MAKE / MODEL', _vehicleDetails),
+        _buildInfoColumn('CUSTOMER', _customerDetails),
+        _buildInfoColumn('INTAKE ODOMETER', _odometerDetails),
+        _buildInfoColumn('TARGET DELIVERY', _deliveryDetails),
+      ],
+    );
+
     return SharpCard(
-      title: 'VEHICLE DOSSIER & INTAKE CONTEXT',
+      title: 'VEHICLE & CUSTOMER',
       titleTrailing: Text(
         _jobCardId,
-        style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 11.5, color: AppTokens.brandRed),
+        style: GoogleFonts.inter(
+          fontWeight: FontWeight.w900,
+          fontSize: 11.5,
+          color: AppTokens.brandRed,
+        ),
       ),
       padding: const EdgeInsets.all(16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Registration Plate
-          IndianNumberPlate(
-            registrationNumber: _regNumber,
-            height: 44.0,
-          ),
-          const SizedBox(width: 16.0),
-
-          // Context Details
-          Expanded(
-            child: Wrap(
-              spacing: 20.0,
-              runSpacing: 10.0,
+      child: isNarrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoColumn('MAKE / MODEL', 'MG HECTOR SHARP PRO (DIESEL)'),
-                _buildInfoColumn('CUSTOMER', 'Rohan Sharma (+91 9829012345)'),
-                _buildInfoColumn('INTAKE ODOMETER', '27,227 KM'),
-                _buildInfoColumn('TARGET DELIVERY', DateFormat('dd MMM yyyy, 05:00 PM').format(DateTime.now().add(const Duration(days: 1)))),
+                registrationPlate,
+                const SizedBox(height: 16.0),
+                contextDetails,
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                registrationPlate,
+                const SizedBox(width: 16.0),
+                Expanded(child: contextDetails),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -341,12 +537,20 @@ class _JobCardScreenState extends State<JobCardScreen> {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 10.0, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
+          style: GoogleFonts.inter(
+            fontSize: 14.0,
+            fontWeight: FontWeight.bold,
+            color: AppTokens.textSecondary,
+          ),
         ),
         const SizedBox(height: 2.0),
         Text(
           value,
-          style: GoogleFonts.inter(fontSize: 12.0, fontWeight: FontWeight.w700, color: AppTokens.textPrimary),
+          style: GoogleFonts.inter(
+            fontSize: 16.0,
+            fontWeight: FontWeight.w700,
+            color: AppTokens.textPrimary,
+          ),
         ),
       ],
     );
@@ -355,56 +559,87 @@ class _JobCardScreenState extends State<JobCardScreen> {
   /// Labour Charges Bento Module
   Widget _buildLabourModule() {
     return SharpCard(
-      title: '1. LABOUR OPERATIONS & DIAGNOSTICS (SAC 998729 • 18% GST)',
+      title: 'LABOUR & DIAGNOSTICS',
       padding: const EdgeInsets.all(14.0),
       child: Column(
-        children: _labourItems.map((item) {
-          final amt = (item.taxableAmountPaise / 100).toStringAsFixed(2);
-          final gstAmt = (item.gstAmountPaise / 100).toStringAsFixed(2);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8.0),
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10.0),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 32.0,
-                  height: 32.0,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8.0),
+        children: <Widget>[
+          ..._labourItems.map((item) {
+            final amt = (item.taxableAmountPaise / 100).toStringAsFixed(2);
+            final gstAmt = (item.gstAmountPaise / 100).toStringAsFixed(2);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: AppTokens.surface,
+                borderRadius: AppTokens.cardRadius,
+                border: Border.all(color: AppTokens.borderLight),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32.0,
+                    height: 32.0,
+                    decoration: const BoxDecoration(
+                      color: AppTokens.surfaceSubtle,
+                      borderRadius: AppTokens.cardRadius,
+                    ),
+                    child: const Icon(
+                      Icons.build_outlined,
+                      color: AppTokens.brandRed,
+                      size: 16.0,
+                    ),
                   ),
-                  child: const Icon(Icons.build_outlined, color: Color(0xFF1D4ED8), size: 16.0),
-                ),
-                const SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.description,
-                        style: GoogleFonts.inter(fontSize: 12.0, fontWeight: FontWeight.bold, color: AppTokens.textPrimary),
-                      ),
-                      Text(
-                        '${item.code} • Qty: ${item.quantity} hr • GST Rate: ${item.gstRatePercent}% (+₹$gstAmt)',
-                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
-                      ),
-                    ],
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppTokens.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          '${item.code} â€¢ Qty: ${item.quantity} hr â€¢ GST Rate: ${item.gstRatePercent}% (+â‚¹$gstAmt)',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: AppTokens.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10.0),
-                Text(
-                  '₹$amt',
-                  style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.textPrimary),
-                ),
-              ],
+                  const SizedBox(width: 10.0),
+                  Text(
+                    'â‚¹$amt',
+                    style: GoogleFonts.inter(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w800,
+                      color: AppTokens.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (_labourItems.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No labour has been added to this estimate.'),
             ),
-          );
-        }).toList(),
+          if (!_isApproved)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _addLineItem(LineItemType.labour),
+                icon: const Icon(Icons.add),
+                label: const Text('Add labour'),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -412,56 +647,87 @@ class _JobCardScreenState extends State<JobCardScreen> {
   /// Spare Parts & Consumables Bento Module
   Widget _buildPartsModule() {
     return SharpCard(
-      title: '2. OEM SPARE PARTS & CONSUMABLES (HSN SPECIFIED)',
+      title: 'PARTS & CONSUMABLES',
       padding: const EdgeInsets.all(14.0),
       child: Column(
-        children: _partsItems.map((item) {
-          final amt = (item.taxableAmountPaise / 100).toStringAsFixed(2);
-          final gstAmt = (item.gstAmountPaise / 100).toStringAsFixed(2);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8.0),
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10.0),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 32.0,
-                  height: 32.0,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(8.0),
+        children: <Widget>[
+          ..._partsItems.map((item) {
+            final amt = (item.taxableAmountPaise / 100).toStringAsFixed(2);
+            final gstAmt = (item.gstAmountPaise / 100).toStringAsFixed(2);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8.0),
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: AppTokens.surface,
+                borderRadius: AppTokens.cardRadius,
+                border: Border.all(color: AppTokens.borderLight),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32.0,
+                    height: 32.0,
+                    decoration: const BoxDecoration(
+                      color: AppTokens.surfaceSubtle,
+                      borderRadius: AppTokens.cardRadius,
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppTokens.brandRed,
+                      size: 16.0,
+                    ),
                   ),
-                  child: const Icon(Icons.inventory_2_outlined, color: Color(0xFFD97706), size: 16.0),
-                ),
-                const SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.description,
-                        style: GoogleFonts.inter(fontSize: 12.0, fontWeight: FontWeight.bold, color: AppTokens.textPrimary),
-                      ),
-                      Text(
-                        '${item.code} • Units: ${item.quantity} • GST Rate: ${item.gstRatePercent}% (+₹$gstAmt)',
-                        style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
-                      ),
-                    ],
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: AppTokens.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          '${item.code} â€¢ Units: ${item.quantity} â€¢ GST Rate: ${item.gstRatePercent}% (+â‚¹$gstAmt)',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: AppTokens.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10.0),
-                Text(
-                  '₹$amt',
-                  style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppTokens.textPrimary),
-                ),
-              ],
+                  const SizedBox(width: 10.0),
+                  Text(
+                    'â‚¹$amt',
+                    style: GoogleFonts.inter(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w800,
+                      color: AppTokens.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (_partsItems.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('No parts have been added to this estimate.'),
             ),
-          );
-        }).toList(),
+          if (!_isApproved)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _addLineItem(LineItemType.part),
+                icon: const Icon(Icons.add),
+                label: const Text('Add part'),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -476,27 +742,43 @@ class _JobCardScreenState extends State<JobCardScreen> {
     required String grandTotal,
   }) {
     return SharpCard(
-      title: '3. AUTOMOTIVE GST COMPUTATION BREAKDOWN',
+      title: 'TAXES & TOTAL',
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          _buildSummaryRow('Taxable Labour (SAC 998729)', '₹$taxableLabour'),
-          _buildSummaryRow('Taxable Spare Parts (HSN)', '₹$taxableParts'),
-          const Divider(height: 16.0, color: Color(0xFFE2E8F0)),
-          _buildSummaryRow('Central GST (CGST)', '₹$cgst'),
-          _buildSummaryRow('State GST (SGST / UTGST)', '₹$sgst'),
-          _buildSummaryRow('Total Automotive GST', '₹$totalGst', isEmphasized: true),
-          const Divider(height: 20.0, color: Color(0xFFCBD5E1), thickness: 1.2),
+          _buildSummaryRow('Taxable Labour (SAC 998714)', 'â‚¹$taxableLabour'),
+          _buildSummaryRow('Taxable Spare Parts (HSN)', 'â‚¹$taxableParts'),
+          const Divider(height: 16.0, color: AppTokens.borderLight),
+          _buildSummaryRow('Central GST (CGST)', 'â‚¹$cgst'),
+          _buildSummaryRow('State GST (SGST / UTGST)', 'â‚¹$sgst'),
+          _buildSummaryRow(
+            'Total Automotive GST',
+            'â‚¹$totalGst',
+            isEmphasized: true,
+          ),
+          const Divider(
+            height: 20.0,
+            color: AppTokens.borderLight,
+            thickness: 1.2,
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'ESTIMATE TOTAL (INCL. GST)',
-                style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w900, color: AppTokens.textPrimary),
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w900,
+                  color: AppTokens.textPrimary,
+                ),
               ),
               Text(
-                '₹$grandTotal',
-                style: GoogleFonts.inter(fontSize: 22.0, fontWeight: FontWeight.w900, color: AppTokens.brandRed),
+                'â‚¹$grandTotal',
+                style: GoogleFonts.inter(
+                  fontSize: 22.0,
+                  fontWeight: FontWeight.w900,
+                  color: AppTokens.brandRed,
+                ),
               ),
             ],
           ),
@@ -505,7 +787,11 @@ class _JobCardScreenState extends State<JobCardScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isEmphasized = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isEmphasized = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -514,17 +800,21 @@ class _JobCardScreenState extends State<JobCardScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: 14.0,
               fontWeight: isEmphasized ? FontWeight.bold : FontWeight.w500,
-              color: isEmphasized ? AppTokens.textPrimary : const Color(0xFF64748B),
+              color: isEmphasized
+                  ? AppTokens.textPrimary
+                  : AppTokens.textSecondary,
             ),
           ),
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 12.0,
+              fontSize: 16.0,
               fontWeight: isEmphasized ? FontWeight.w800 : FontWeight.w700,
-              color: isEmphasized ? AppTokens.textPrimary : const Color(0xFF334155),
+              color: isEmphasized
+                  ? AppTokens.textPrimary
+                  : AppTokens.textSecondary,
             ),
           ),
         ],
@@ -535,62 +825,78 @@ class _JobCardScreenState extends State<JobCardScreen> {
   /// Quick Action Buttons Card
   Widget _buildQuickActionsCard(String grandTotalRupees) {
     return SharpCard(
-      title: '4. ESTIMATE DISPATCH & AUTHORIZATION GATE',
+      title: 'CUSTOMER APPROVAL',
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Dispatch via WhatsApp button
+          // Copy the summary so the user chooses where to share it.
           SharpButton(
-            label: _isDispatched ? 'RESEND ESTIMATE ON WHATSAPP' : 'DISPATCH ESTIMATE VIA WHATSAPP (₹$grandTotalRupees)',
-            icon: Icons.send_rounded,
-            borderRadius: BorderRadius.circular(20.0),
-            onPressed: () {
-              setState(() => _isDispatched = true);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  backgroundColor: Color(0xFF15803D),
-                  content: Text('Digital Estimate link sent to +91 9829012345 with per-line approval consent.'),
-                ),
-              );
-            },
+            label: 'COPY ESTIMATE SUMMARY',
+            icon: Icons.copy_rounded,
+            borderRadius: AppTokens.cardRadius,
+            onPressed: grandTotalRupees == '0.00'
+                ? null
+                : () async {
+                    await Clipboard.setData(
+                      ClipboardData(
+                        text:
+                            'Workshop estimate for $_regNumber\n'
+                            'Vehicle: $_vehicleDetails\n'
+                            'Total including GST: â‚¹$grandTotalRupees\n'
+                            'Please review and reply with approval or questions.',
+                      ),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: AppTokens.green,
+                        content: Text(
+                          'Estimate summary copied. Paste it into your customer message.',
+                        ),
+                      ),
+                    );
+                  },
           ),
           const SizedBox(height: 10.0),
 
-          // Simulate Owner Customer Approval
+          // Record approval after receiving it from the customer.
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 13.0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-              side: const BorderSide(color: Color(0xFF16A34A), width: 1.2),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppTokens.cardRadius,
+              ),
+              side: const BorderSide(color: AppTokens.green, width: 1.2),
             ),
-            icon: const Icon(Icons.verified_user, color: Color(0xFF16A34A), size: 18.0),
+            icon: const Icon(
+              Icons.verified_user,
+              color: AppTokens.green,
+              size: 18.0,
+            ),
             label: Text(
-              _isApproved ? 'CUSTOMER APPROVAL VERIFIED (SMS / OTP)' : 'SIMULATE CUSTOMER APPROVAL SIGN-OFF',
-              style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+              _isApproved
+                  ? 'CUSTOMER APPROVAL VERIFIED'
+                  : 'RECORD CUSTOMER APPROVAL',
+              style: GoogleFonts.inter(
+                fontSize: 14.0,
+                fontWeight: FontWeight.bold,
+                color: AppTokens.green,
+              ),
             ),
-            onPressed: () {
-              setState(() {
-                _isApproved = true;
-                _isDispatched = true;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  backgroundColor: Color(0xFF15803D),
-                  content: Text('Customer digitally approved all 9 estimate items via WhatsApp link.'),
-                ),
-              );
-            },
+            onPressed: _isApproved || _computeSummary().grandTotalPaise == 0
+                ? null
+                : _recordApproval,
           ),
           const SizedBox(height: 10.0),
 
-          // Proceed to WIP Floor button
+          // Proceed to Applications button
           SharpButton(
-            label: 'ADVANCE VEHICLE TO WIP BOARD (STAGE 7)',
+            label: 'RETURN TO APPLICATIONS',
             icon: Icons.arrow_forward,
-            borderRadius: BorderRadius.circular(20.0),
+            borderRadius: AppTokens.buttonRadius,
             onPressed: () {
-              GoRouter.maybeOf(context)?.go('/wip-board');
+              GoRouter.maybeOf(context)?.go('/applications');
             },
           ),
         ],

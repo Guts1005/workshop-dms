@@ -1,14 +1,9 @@
 import 'package:flutter/foundation.dart';
+
 import '../../vehicle/vehicle_silhouettes.dart';
 export '../../vehicle/vehicle_silhouettes.dart' show VehicleBodyType;
 
-enum IntakeStatus {
-  idle,
-  lookingUp,
-  saving,
-  success,
-  error,
-}
+enum IntakeStatus { idle, lookingUp, saving, success, error }
 
 @immutable
 class BelongingsChecklist {
@@ -19,10 +14,10 @@ class BelongingsChecklist {
   final bool pendriveOrAccessories;
 
   const BelongingsChecklist({
-    this.jackAndToolKit = true,
-    this.spareTyre = true,
-    this.bootMat = true,
-    this.valuablesRemoved = true,
+    this.jackAndToolKit = false,
+    this.spareTyre = false,
+    this.bootMat = false,
+    this.valuablesRemoved = false,
     this.pendriveOrAccessories = false,
   });
 
@@ -38,17 +33,18 @@ class BelongingsChecklist {
       spareTyre: spareTyre ?? this.spareTyre,
       bootMat: bootMat ?? this.bootMat,
       valuablesRemoved: valuablesRemoved ?? this.valuablesRemoved,
-      pendriveOrAccessories: pendriveOrAccessories ?? this.pendriveOrAccessories,
+      pendriveOrAccessories:
+          pendriveOrAccessories ?? this.pendriveOrAccessories,
     );
   }
 
   Map<String, bool> toMap() => {
-        'jackAndToolKit': jackAndToolKit,
-        'spareTyre': spareTyre,
-        'bootMat': bootMat,
-        'valuablesRemoved': valuablesRemoved,
-        'pendriveOrAccessories': pendriveOrAccessories,
-      };
+    'jackAndToolKit': jackAndToolKit,
+    'spareTyre': spareTyre,
+    'bootMat': bootMat,
+    'valuablesRemoved': valuablesRemoved,
+    'pendriveOrAccessories': pendriveOrAccessories,
+  };
 }
 
 @immutable
@@ -56,9 +52,10 @@ class PreviousServiceSummary {
   final String jobCardId;
   final DateTime serviceDate;
   final int odometerKm;
-  final int totalAmountPaise;
+  final int? totalAmountPaise;
   final String orderId;
-  final String feedback;
+  final String? feedback;
+  final String requestedWork;
 
   const PreviousServiceSummary({
     required this.jobCardId,
@@ -66,7 +63,8 @@ class PreviousServiceSummary {
     required this.odometerKm,
     required this.totalAmountPaise,
     required this.orderId,
-    this.feedback = 'Exceptional',
+    this.feedback,
+    this.requestedWork = '',
   });
 }
 
@@ -82,10 +80,12 @@ class IntakeFormState {
   final String make;
   final String model;
   final VehicleBodyType bodyType;
+  final bool bodyTypeConfirmed;
   final String customerName;
   final String customerPhone;
   final String odometer;
   final int fuelLevelPercent;
+  final bool fuelLevelConfirmed;
   final String requestedWork;
   final DateTime? expectedDelivery;
   final bool whatsappConsent;
@@ -106,16 +106,18 @@ class IntakeFormState {
     this.createdJobCardId,
     this.registrationNumber = '',
     this.vin = '',
-    this.make = 'MARUTI SUZUKI',
+    this.make = '',
     this.model = '',
     this.bodyType = VehicleBodyType.hatchback,
+    this.bodyTypeConfirmed = false,
     this.customerName = '',
     this.customerPhone = '',
     this.odometer = '',
     this.fuelLevelPercent = 50,
+    this.fuelLevelConfirmed = false,
     this.requestedWork = '',
     this.expectedDelivery,
-    this.whatsappConsent = true,
+    this.whatsappConsent = false,
     this.belongings = const BelongingsChecklist(),
     this.isExistingCustomer = false,
     this.isExistingVehicle = false,
@@ -133,10 +135,12 @@ class IntakeFormState {
     String? make,
     String? model,
     VehicleBodyType? bodyType,
+    bool? bodyTypeConfirmed,
     String? customerName,
     String? customerPhone,
     String? odometer,
     int? fuelLevelPercent,
+    bool? fuelLevelConfirmed,
     String? requestedWork,
     DateTime? expectedDelivery,
     bool? whatsappConsent,
@@ -156,10 +160,12 @@ class IntakeFormState {
       make: make ?? this.make,
       model: model ?? this.model,
       bodyType: bodyType ?? this.bodyType,
+      bodyTypeConfirmed: bodyTypeConfirmed ?? this.bodyTypeConfirmed,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       odometer: odometer ?? this.odometer,
       fuelLevelPercent: fuelLevelPercent ?? this.fuelLevelPercent,
+      fuelLevelConfirmed: fuelLevelConfirmed ?? this.fuelLevelConfirmed,
       requestedWork: requestedWork ?? this.requestedWork,
       expectedDelivery: expectedDelivery ?? this.expectedDelivery,
       whatsappConsent: whatsappConsent ?? this.whatsappConsent,

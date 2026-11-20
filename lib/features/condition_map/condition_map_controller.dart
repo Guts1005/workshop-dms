@@ -1,28 +1,38 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'condition_map_models.dart';
 import 'condition_map_repository.dart';
 
 final conditionMapRepositoryProvider = Provider<ConditionMapRepository>((ref) {
-  return LocalConditionMapRepository();
+  return SupabaseConditionMapRepository(Supabase.instance.client);
 });
 
 final conditionMapControllerProvider =
-    StateNotifierProvider.autoDispose<ConditionMapController, ConditionMapState>((ref) {
-  final repo = ref.watch(conditionMapRepositoryProvider);
-  return ConditionMapController(repository: repo);
-});
+    StateNotifierProvider.autoDispose<
+      ConditionMapController,
+      ConditionMapState
+    >((ref) {
+      final repo = ref.watch(conditionMapRepositoryProvider);
+      return ConditionMapController(repository: repo);
+    });
 
 class ConditionMapController extends StateNotifier<ConditionMapState> {
+  static int _lastPinId = 0;
   final ConditionMapRepository repository;
 
   ConditionMapController({
     required this.repository,
     String? initialJobCardId,
     String? initialRegistration,
-  }) : super(ConditionMapState(
-          jobCardId: initialJobCardId ?? 'JC-TEMP-${DateTime.now().millisecondsSinceEpoch}',
-          registrationNumber: initialRegistration ?? 'MH02CL8899',
-        ));
+  }) : super(
+         ConditionMapState(
+           jobCardId: initialJobCardId ?? '',
+           registrationNumber: initialRegistration ?? '',
+         ),
+       );
 
   Future<void> initSession({
     required String jobCardId,
@@ -37,9 +47,11 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     try {
       final pins = await repository.getPinsForJobCard(jobCardId);
       final signOff = await repository.getSignOff(jobCardId);
+      final reviewedViews = await repository.getReviewedViews(jobCardId);
       state = state.copyWith(
         pins: pins,
         signOff: signOff,
+        reviewedViews: reviewedViews,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to load condition map: $e');
@@ -52,6 +64,13 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
       clearSelectedPin: true,
       clearError: true,
     );
+  }
+
+  Future<void> markViewReviewed(ConditionViewDirection view) async {
+    final reviewed = Set<ConditionViewDirection>.from(state.reviewedViews)
+      ..add(view);
+    await repository.saveReviewedViews(state.jobCardId, reviewed);
+    state = state.copyWith(reviewedViews: reviewed, clearError: true);
   }
 
   void selectPin(ConditionPin? pin) {
@@ -71,12 +90,18 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     String? note,
     String? photoPath,
     String? photoHash,
+    Uint8List? photoBytes,
+    String? photoContentType,
   }) async {
     if (state.isLocked) {
-      throw StateError('Condition map is signed off and locked against modifications.');
+      throw StateError(
+        'Condition map is signed off and locked against modifications.',
+      );
     }
 
-    final newId = state.pins.isEmpty ? 1 : (state.pins.map((p) => p.id).reduce((a, b) => a > b ? a : b) + 1);
+    final nowId = DateTime.now().microsecondsSinceEpoch;
+    final newId = nowId > _lastPinId ? nowId : _lastPinId + 1;
+    _lastPinId = newId;
     final pin = ConditionPin(
       id: newId,
       view: view,
@@ -90,16 +115,25 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
       createdAt: DateTime.now(),
     );
 
-    await repository.savePin(jobCardId: state.jobCardId, pin: pin);
+    final savedPin = await repository.savePin(
+      jobCardId: state.jobCardId,
+      pin: pin,
+      photoBytes: photoBytes,
+      photoContentType: photoContentType,
+    );
+    final reviewed = Set<ConditionViewDirection>.from(state.reviewedViews)
+      ..add(view);
+    await repository.saveReviewedViews(state.jobCardId, reviewed);
 
-    final updatedPins = List<ConditionPin>.from(state.pins)..add(pin);
+    final updatedPins = List<ConditionPin>.from(state.pins)..add(savedPin);
     state = state.copyWith(
       pins: updatedPins,
-      selectedPin: pin,
+      reviewedViews: reviewed,
+      selectedPin: savedPin,
       clearError: true,
     );
 
-    return pin;
+    return savedPin;
   }
 
   Future<void> updatePin(ConditionPin updatedPin) async {
@@ -107,12 +141,17 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
       throw StateError('Condition map is locked. Cannot edit pins.');
     }
 
-    await repository.savePin(jobCardId: state.jobCardId, pin: updatedPin);
+    final savedPin = await repository.savePin(
+      jobCardId: state.jobCardId,
+      pin: updatedPin,
+    );
 
-    final updatedPins = state.pins.map((p) => p.id == updatedPin.id ? updatedPin : p).toList();
+    final updatedPins = state.pins
+        .map((p) => p.id == savedPin.id ? savedPin : p)
+        .toList();
     state = state.copyWith(
       pins: updatedPins,
-      selectedPin: updatedPin,
+      selectedPin: savedPin,
       clearError: true,
     );
   }
@@ -137,6 +176,9 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     required String customerPhone,
     required String advisorName,
   }) {
+    if (state.reviewedViews.length != ConditionViewDirection.values.length) {
+      return 'Review all five vehicle views before saving this report';
+    }
     if (customerName.trim().length < 2) {
       return 'Customer name must be at least 2 characters';
     }
@@ -186,7 +228,10 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
         sha256Checksum: checksum,
       );
 
-      await repository.saveSignOff(jobCardId: state.jobCardId, signOff: signOff);
+      await repository.saveSignOff(
+        jobCardId: state.jobCardId,
+        signOff: signOff,
+      );
 
       state = state.copyWith(
         signOff: signOff,

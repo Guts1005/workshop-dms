@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../ui_kit/tokens/app_tokens.dart';
 import 'indian_number_plate.dart';
 import 'vehicle_silhouettes.dart';
@@ -17,6 +18,7 @@ class VehicleHeroStage extends StatelessWidget {
   final VoidCallback? onBayCaptureTap;
   final VoidCallback? onConditionMapTap;
   final VoidCallback? onJobCardTap;
+  final bool showQuickActions;
 
   const VehicleHeroStage({
     super.key,
@@ -29,17 +31,18 @@ class VehicleHeroStage extends StatelessWidget {
     this.onBayCaptureTap,
     this.onConditionMapTap,
     this.onJobCardTap,
+    this.showQuickActions = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final displayOdo = odometerKm.trim().isNotEmpty
         ? '$odometerKm KM'
-        : (isExistingVehicle ? '27,227 KM' : '0 KM');
+        : 'Not recorded';
 
     final displayModel = model.trim().isNotEmpty
         ? '$make ${model.toUpperCase()}'
-        : (make.trim().isNotEmpty ? make : 'MG HECTOR SHARP PRO');
+        : (make.trim().isNotEmpty ? make : 'Vehicle details unavailable');
 
     return Container(
       decoration: BoxDecoration(
@@ -83,7 +86,9 @@ class VehicleHeroStage extends StatelessWidget {
                           width: 6.0,
                           height: 6.0,
                           decoration: BoxDecoration(
-                            color: isExistingVehicle ? AppTokens.green : AppTokens.blue,
+                            color: isExistingVehicle
+                                ? AppTokens.green
+                                : AppTokens.blue,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -106,12 +111,19 @@ class VehicleHeroStage extends StatelessWidget {
               ),
               // Status Pill Tag
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 4.0,
+                ),
                 decoration: BoxDecoration(
-                  color: isExistingVehicle ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+                  color: isExistingVehicle
+                      ? const Color(0xFFDCFCE7)
+                      : const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(20.0),
                   border: Border.all(
-                    color: isExistingVehicle ? const Color(0xFF86EFAC) : const Color(0xFFBFDBFE),
+                    color: isExistingVehicle
+                        ? const Color(0xFF86EFAC)
+                        : const Color(0xFFBFDBFE),
                     width: 1.0,
                   ),
                 ),
@@ -119,15 +131,21 @@ class VehicleHeroStage extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isExistingVehicle ? Icons.verified : Icons.cloud_done_outlined,
+                      isExistingVehicle
+                          ? Icons.verified
+                          : Icons.cloud_done_outlined,
                       size: 13.0,
-                      color: isExistingVehicle ? const Color(0xFF15803D) : const Color(0xFF1D4ED8),
+                      color: isExistingVehicle
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF1D4ED8),
                     ),
                     const SizedBox(width: 5.0),
                     Text(
                       isExistingVehicle ? 'VERIFIED' : 'ONLINE',
                       style: TextStyle(
-                        color: isExistingVehicle ? const Color(0xFF15803D) : const Color(0xFF1D4ED8),
+                        color: isExistingVehicle
+                            ? const Color(0xFF15803D)
+                            : const Color(0xFF1D4ED8),
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
@@ -168,7 +186,9 @@ class VehicleHeroStage extends StatelessWidget {
                       width: 250.0,
                       height: 12.0,
                       decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.all(Radius.elliptical(250, 12)),
+                        borderRadius: BorderRadius.all(
+                          Radius.elliptical(250, 12),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Color(0x35000000),
@@ -199,61 +219,54 @@ class VehicleHeroStage extends StatelessWidget {
           const SizedBox(height: 16.0),
 
           // 4. Rivian Quick-Action Pill Controls
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildPillAction(
-                icon: Icons.camera_alt_outlined,
-                label: '6-PT CAPTURE',
-                onTap: onBayCaptureTap,
-              ),
-              const SizedBox(width: 8.0),
-              _buildPillAction(
-                icon: Icons.crop_rotate,
-                label: '360° MAP',
-                onTap: onConditionMapTap,
-              ),
-              const SizedBox(width: 8.0),
-              _buildPillAction(
-                icon: Icons.assignment_outlined,
-                label: 'JOB CARD',
-                onTap: onJobCardTap,
-              ),
-            ],
-          ),
+          if (showQuickActions)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildPillAction(
+                  icon: Icons.camera_alt_outlined,
+                  label: '6-PT CAPTURE',
+                  onTap: onBayCaptureTap,
+                ),
+                const SizedBox(width: 8.0),
+                _buildPillAction(
+                  icon: Icons.crop_rotate,
+                  label: 'CONDITION REPORT',
+                  onTap: onConditionMapTap,
+                ),
+                const SizedBox(width: 8.0),
+                _buildPillAction(
+                  icon: Icons.assignment_outlined,
+                  label: 'JOB CARD',
+                  onTap: onJobCardTap,
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 
   Widget _buildCarRender(BuildContext context) {
-    final cleanReg = registrationNumber.toUpperCase().replaceAll(RegExp(r'[\s\-]'), '');
     final cleanMake = make.toUpperCase();
     final cleanModel = model.toUpperCase();
 
-    String assetPath;
-    if (cleanMake.contains('MG') || cleanReg.contains('RJ27CA1024') || cleanModel.contains('HECTOR')) {
-      assetPath = 'assets/images/mg_hector_red.png';
-    } else {
-      assetPath = 'assets/images/rivian_side.png';
+    if (cleanMake.contains('MG') || cleanModel.contains('HECTOR')) {
+      return Image.asset(
+        'assets/images/mg_hector_red.png',
+        height: 125.0,
+        fit: BoxFit.contain,
+      );
     }
-
-    return Image.asset(
-      assetPath,
-      height: 125.0,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return SizedBox(
-          width: 220.0,
-          height: 90.0,
-          child: CustomPaint(
-            painter: VehicleSilhouettePainter(
-              bodyType: bodyType,
-              strokeColor: AppTokens.textPrimary,
-            ),
-          ),
-        );
-      },
+    return SizedBox(
+      width: 220.0,
+      height: 90.0,
+      child: CustomPaint(
+        painter: VehicleSilhouettePainter(
+          bodyType: bodyType,
+          strokeColor: AppTokens.textPrimary,
+        ),
+      ),
     );
   }
 

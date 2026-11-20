@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../ui_kit/tokens/app_tokens.dart';
 
 enum VehicleBodyType {
@@ -148,7 +149,8 @@ class VehicleSilhouettePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant VehicleSilhouettePainter oldDelegate) {
-    return oldDelegate.bodyType != bodyType || oldDelegate.strokeColor != strokeColor;
+    return oldDelegate.bodyType != bodyType ||
+        oldDelegate.strokeColor != strokeColor;
   }
 }
 

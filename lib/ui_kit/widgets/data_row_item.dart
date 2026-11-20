@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../tokens/app_tokens.dart';
 
 class DataRowItem extends StatefulWidget {
@@ -116,7 +117,9 @@ class _DataRowItemState extends State<DataRowItem> {
         if (widget.showDivider)
           Container(
             height: 1.0,
-            color: isTappable ? AppTokens.borderSolid : AppTokens.dividerPassive,
+            color: isTappable
+                ? AppTokens.borderSolid
+                : AppTokens.dividerPassive,
           ),
       ],
     );

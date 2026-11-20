@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../ui_kit/tokens/app_tokens.dart';
 import 'condition_map_models.dart';
 
@@ -13,10 +14,7 @@ class ConditionSchematicPainter extends CustomPainter {
   final ConditionViewDirection view;
   final bool isLocked;
 
-  const ConditionSchematicPainter({
-    required this.view,
-    this.isLocked = false,
-  });
+  const ConditionSchematicPainter({required this.view, this.isLocked = false});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -39,10 +37,24 @@ class ConditionSchematicPainter extends CustomPainter {
 
     switch (view) {
       case ConditionViewDirection.sideLeft:
-        _drawSideProfile(canvas, size, linePaint, seamPaint, fillPaint, isLeft: true);
+        _drawSideProfile(
+          canvas,
+          size,
+          linePaint,
+          seamPaint,
+          fillPaint,
+          isLeft: true,
+        );
         break;
       case ConditionViewDirection.sideRight:
-        _drawSideProfile(canvas, size, linePaint, seamPaint, fillPaint, isLeft: false);
+        _drawSideProfile(
+          canvas,
+          size,
+          linePaint,
+          seamPaint,
+          fillPaint,
+          isLeft: false,
+        );
         break;
       case ConditionViewDirection.front:
         _drawFrontView(canvas, size, linePaint, seamPaint, fillPaint);
@@ -82,7 +94,11 @@ class ConditionSchematicPainter extends CustomPainter {
     final h = size.height;
 
     // Ground reference baseline
-    canvas.drawLine(Offset(w * 0.04, h * 0.82), Offset(w * 0.96, h * 0.82), seam);
+    canvas.drawLine(
+      Offset(w * 0.04, h * 0.82),
+      Offset(w * 0.96, h * 0.82),
+      seam,
+    );
 
     final bodyPath = Path();
     if (isLeft) {
@@ -150,11 +166,23 @@ class ConditionSchematicPainter extends CustomPainter {
     // Window DLO & Door Cutlines
     if (isLeft) {
       // B-Pillar seam
-      canvas.drawLine(Offset(w * 0.48, h * 0.26), Offset(w * 0.48, h * 0.70), seam);
+      canvas.drawLine(
+        Offset(w * 0.48, h * 0.26),
+        Offset(w * 0.48, h * 0.70),
+        seam,
+      );
       // Front door seam
-      canvas.drawLine(Offset(w * 0.65, h * 0.48), Offset(w * 0.65, h * 0.70), seam);
+      canvas.drawLine(
+        Offset(w * 0.65, h * 0.48),
+        Offset(w * 0.65, h * 0.70),
+        seam,
+      );
       // Rear door seam
-      canvas.drawLine(Offset(w * 0.33, h * 0.45), Offset(w * 0.33, h * 0.70), seam);
+      canvas.drawLine(
+        Offset(w * 0.33, h * 0.45),
+        Offset(w * 0.33, h * 0.70),
+        seam,
+      );
       // Window frame
       final winPath = Path()
         ..moveTo(w * 0.34, h * 0.30)
@@ -173,9 +201,21 @@ class ConditionSchematicPainter extends CustomPainter {
       canvas.drawPath(frontWinPath, seam);
     } else {
       // Right side mirrors seams
-      canvas.drawLine(Offset(w * 0.52, h * 0.26), Offset(w * 0.52, h * 0.70), seam);
-      canvas.drawLine(Offset(w * 0.35, h * 0.48), Offset(w * 0.35, h * 0.70), seam);
-      canvas.drawLine(Offset(w * 0.67, h * 0.45), Offset(w * 0.67, h * 0.70), seam);
+      canvas.drawLine(
+        Offset(w * 0.52, h * 0.26),
+        Offset(w * 0.52, h * 0.70),
+        seam,
+      );
+      canvas.drawLine(
+        Offset(w * 0.35, h * 0.48),
+        Offset(w * 0.35, h * 0.70),
+        seam,
+      );
+      canvas.drawLine(
+        Offset(w * 0.67, h * 0.45),
+        Offset(w * 0.67, h * 0.70),
+        seam,
+      );
 
       final frontWinPath = Path()
         ..moveTo(w * 0.51, h * 0.30)
@@ -187,7 +227,13 @@ class ConditionSchematicPainter extends CustomPainter {
     }
   }
 
-  void _drawFrontView(Canvas canvas, Size size, Paint line, Paint seam, Paint fill) {
+  void _drawFrontView(
+    Canvas canvas,
+    Size size,
+    Paint line,
+    Paint seam,
+    Paint fill,
+  ) {
     final w = size.width;
     final h = size.height;
 
@@ -221,15 +267,35 @@ class ConditionSchematicPainter extends CustomPainter {
     canvas.drawRect(lowerDam, seam);
 
     // Tyres contact patches visible from front
-    canvas.drawRect(Rect.fromLTWH(w * 0.13, h * 0.70, w * 0.07, h * 0.12), line);
-    canvas.drawRect(Rect.fromLTWH(w * 0.80, h * 0.70, w * 0.07, h * 0.12), line);
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.13, h * 0.70, w * 0.07, h * 0.12),
+      line,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.80, h * 0.70, w * 0.07, h * 0.12),
+      line,
+    );
 
     // Bonnet crease lines
-    canvas.drawLine(Offset(w * 0.38, h * 0.44), Offset(w * 0.36, h * 0.25), seam);
-    canvas.drawLine(Offset(w * 0.62, h * 0.44), Offset(w * 0.64, h * 0.25), seam);
+    canvas.drawLine(
+      Offset(w * 0.38, h * 0.44),
+      Offset(w * 0.36, h * 0.25),
+      seam,
+    );
+    canvas.drawLine(
+      Offset(w * 0.62, h * 0.44),
+      Offset(w * 0.64, h * 0.25),
+      seam,
+    );
   }
 
-  void _drawRearView(Canvas canvas, Size size, Paint line, Paint seam, Paint fill) {
+  void _drawRearView(
+    Canvas canvas,
+    Size size,
+    Paint line,
+    Paint seam,
+    Paint fill,
+  ) {
     final w = size.width;
     final h = size.height;
 
@@ -259,16 +325,40 @@ class ConditionSchematicPainter extends CustomPainter {
     canvas.drawRect(plateRecess, seam);
 
     // Boot Lid Seam
-    canvas.drawLine(Offset(w * 0.22, h * 0.44), Offset(w * 0.22, h * 0.72), seam);
-    canvas.drawLine(Offset(w * 0.78, h * 0.44), Offset(w * 0.78, h * 0.72), seam);
-    canvas.drawLine(Offset(w * 0.22, h * 0.72), Offset(w * 0.78, h * 0.72), seam);
+    canvas.drawLine(
+      Offset(w * 0.22, h * 0.44),
+      Offset(w * 0.22, h * 0.72),
+      seam,
+    );
+    canvas.drawLine(
+      Offset(w * 0.78, h * 0.44),
+      Offset(w * 0.78, h * 0.72),
+      seam,
+    );
+    canvas.drawLine(
+      Offset(w * 0.22, h * 0.72),
+      Offset(w * 0.78, h * 0.72),
+      seam,
+    );
 
     // Tyres contact patches
-    canvas.drawRect(Rect.fromLTWH(w * 0.13, h * 0.70, w * 0.07, h * 0.12), line);
-    canvas.drawRect(Rect.fromLTWH(w * 0.80, h * 0.70, w * 0.07, h * 0.12), line);
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.13, h * 0.70, w * 0.07, h * 0.12),
+      line,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.80, h * 0.70, w * 0.07, h * 0.12),
+      line,
+    );
   }
 
-  void _drawTopView(Canvas canvas, Size size, Paint line, Paint seam, Paint fill) {
+  void _drawTopView(
+    Canvas canvas,
+    Size size,
+    Paint line,
+    Paint seam,
+    Paint fill,
+  ) {
     final w = size.width;
     final h = size.height;
 
@@ -288,22 +378,42 @@ class ConditionSchematicPainter extends CustomPainter {
     canvas.drawPath(topContour, line);
 
     // Windshield (Front Glass)
-    canvas.drawRect(Rect.fromLTWH(w * 0.30, h * 0.28, w * 0.40, h * 0.14), seam);
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.30, h * 0.28, w * 0.40, h * 0.14),
+      seam,
+    );
 
     // Roof & Sunroof Panel
     final roof = Rect.fromLTWH(w * 0.30, h * 0.42, w * 0.40, h * 0.28);
     canvas.drawRect(roof, seam);
 
     // Rear Windshield
-    canvas.drawRect(Rect.fromLTWH(w * 0.30, h * 0.70, w * 0.40, h * 0.12), seam);
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.30, h * 0.70, w * 0.40, h * 0.12),
+      seam,
+    );
 
     // Bonnet Seams
-    canvas.drawLine(Offset(w * 0.36, h * 0.08), Offset(w * 0.30, h * 0.28), seam);
-    canvas.drawLine(Offset(w * 0.64, h * 0.08), Offset(w * 0.70, h * 0.28), seam);
+    canvas.drawLine(
+      Offset(w * 0.36, h * 0.08),
+      Offset(w * 0.30, h * 0.28),
+      seam,
+    );
+    canvas.drawLine(
+      Offset(w * 0.64, h * 0.08),
+      Offset(w * 0.70, h * 0.28),
+      seam,
+    );
 
     // Wing Mirrors
-    canvas.drawRect(Rect.fromLTWH(w * 0.21, h * 0.29, w * 0.05, h * 0.04), line);
-    canvas.drawRect(Rect.fromLTWH(w * 0.74, h * 0.29, w * 0.05, h * 0.04), line);
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.21, h * 0.29, w * 0.05, h * 0.04),
+      line,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(w * 0.74, h * 0.29, w * 0.05, h * 0.04),
+      line,
+    );
   }
 
   @override

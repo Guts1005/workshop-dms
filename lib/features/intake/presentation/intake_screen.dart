@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_button.dart';
 import '../../../ui_kit/widgets/status_chip.dart';
@@ -39,10 +40,13 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
   }
 
   void _syncControllersWithState(IntakeFormState state) {
-    if (_regController.text != state.registrationNumber && state.registrationNumber.isNotEmpty) {
+    if (_regController.text != state.registrationNumber &&
+        state.registrationNumber.isNotEmpty) {
       _regController.value = TextEditingValue(
         text: state.registrationNumber,
-        selection: TextSelection.collapsed(offset: state.registrationNumber.length),
+        selection: TextSelection.collapsed(
+          offset: state.registrationNumber.length,
+        ),
       );
     }
     if (_vinController.text != state.vin && state.vin.isNotEmpty) {
@@ -57,7 +61,8 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         selection: TextSelection.collapsed(offset: state.model.length),
       );
     }
-    if (_nameController.text != state.customerName && state.customerName.isNotEmpty) {
+    if (_nameController.text != state.customerName &&
+        state.customerName.isNotEmpty) {
       _nameController.value = TextEditingValue(
         text: state.customerName,
         selection: TextSelection.collapsed(offset: state.customerName.length),
@@ -146,7 +151,10 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
               Text(
                 'JOB CARD CREATED',
                 textAlign: TextAlign.center,
-                style: AppTokens.fontMonospace(fontSize: 15.0, fontWeight: FontWeight.bold),
+                style: AppTokens.fontMonospace(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8.0),
               Container(
@@ -155,21 +163,30 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
                 child: SelectableText(
                   state.createdJobCardId ?? 'N/A',
                   textAlign: TextAlign.center,
-                  style: AppTokens.fontMonospace(fontSize: 14.0, fontWeight: FontWeight.bold),
+                  style: AppTokens.fontMonospace(
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 16.0),
               Text(
-                'Vehicle: ${state.make} ${state.model}\nCustomer: ${state.customerName} (${state.customerPhone})\nStatus: RECEIVED (Awaiting Mandatory 6-Shot Bay Capture)',
+                'Vehicle: ${state.make} ${state.model}\nCustomer: ${state.customerName} (${state.customerPhone})\nNext: take check-in photos and record the vehicle condition.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13.0, height: 1.5),
               ),
               const SizedBox(height: 24.0),
               SharpButton(
                 key: const Key('btn_advance_capture'),
-                label: 'PROCEED TO BAY CAPTURE (6 MANDATORY SHOTS)',
+                label: 'Continue check-in',
                 onPressed: () {
-                  context.go('/bay-capture');
+                  context.go(
+                    '/bay-capture',
+                    extra: {
+                      'jobCardId': state.createdJobCardId,
+                      'registrationNumber': state.registrationNumber,
+                    },
+                  );
                 },
               ),
             ],

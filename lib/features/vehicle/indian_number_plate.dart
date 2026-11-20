@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../ui_kit/tokens/app_tokens.dart';
 
 /// Authentic Indian High Security Registration Plate (HSRP) widget
@@ -20,7 +21,9 @@ class IndianNumberPlate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final plateBg = isCommercial ? const Color(0xFFFFD54F) : Colors.white;
-    final plateText = registrationNumber.trim().isEmpty ? 'MH 01 AB 1234' : _formatPlate(registrationNumber);
+    final plateText = registrationNumber.trim().isEmpty
+        ? 'MH 01 AB 1234'
+        : _formatPlate(registrationNumber);
 
     return Container(
       height: height,
@@ -50,7 +53,11 @@ class IndianNumberPlate extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.circle, size: 7.0, color: Color(0xFFFFCC00)), // Chakra representation
+                const Icon(
+                  Icons.circle,
+                  size: 7.0,
+                  color: Color(0xFFFFCC00),
+                ), // Chakra representation
                 const SizedBox(height: 2.0),
                 Text(
                   'IND',
@@ -89,10 +96,20 @@ class IndianNumberPlate extends StatelessWidget {
 
   String _formatPlate(String raw) {
     final clean = raw.toUpperCase().replaceAll(RegExp(r'[\s\-]'), '');
+    final match = RegExp(r'^([A-Z]{2})(\d{1,2})([A-Z]{0,3})(\d{1,4})$')
+        .firstMatch(clean);
+    if (match != null) {
+      final state = match.group(1)!;
+      final rto = match.group(2)!.padLeft(2, '0');
+      final series = match.group(3) ?? '';
+      final num = match.group(4) ?? '';
+      return '$state $rto $series $num'.replaceAll(RegExp(r'\s+'), ' ').trim();
+    }
     if (clean.length >= 8) {
-      // Standard format: RJ 27 CA 1024
       final state = clean.substring(0, 2);
-      final rto = clean.length >= 4 ? clean.substring(2, 4) : clean.substring(2);
+      final rto = clean.length >= 4
+          ? clean.substring(2, 4)
+          : clean.substring(2);
       final rest = clean.length >= 4 ? clean.substring(4) : '';
       return '$state $rto $rest'.trim();
     }

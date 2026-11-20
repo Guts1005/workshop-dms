@@ -1,52 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../ui_kit/tokens/app_tokens.dart';
 import '../../../ui_kit/widgets/sharp_card.dart';
-import '../../../ui_kit/widgets/status_chip.dart';
+import '../../../data/supabase/workshop_database.dart';
 
-/// Complete, Production-Grade Workshop Floor & Shop Overview Dashboard (Page 13)
-/// Matches luxury Rivian + MG i-SMART automotive styling:
-/// Luminous canvas, modular Bento grid, live bay occupancy cards, and shop analytics.
-class DashboardScreen extends StatelessWidget {
+/// Production-Grade Home Command Hub (Destination 1 of 3)
+/// Stays short, focused, and operational:
+/// - One clear "Start New Application" primary action button
+/// - A small "Needs attention" list (plain status + what remains)
+/// - Recent applications with plain status and remaining items
+/// - Fast plate search bar with bounded quick chips
+/// - Strictly zero stage numbers, levels, or steppers
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  List<Map<String, dynamic>> _applications = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadApplications();
+  }
+
+  Future<void> _loadApplications() async {
+    try {
+      final apps = await WorkshopDatabase(Supabase.instance.client)
+          .applications();
+      if (mounted) setState(() => _applications = apps);
+    } catch (_) {
+      if (mounted) setState(() => _applications = []);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 900.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900.0;
 
     return Scaffold(
       backgroundColor: AppTokens.base,
       body: SafeArea(
         child: Column(
           children: [
-            // Stage Header Bar
-            _buildStageHeader(),
-
-            // Scrollable Content
+            // Short, Focused Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isDesktop ? 24.0 : 14.0,
-                  vertical: 14.0,
+                  horizontal: isDesktop ? 24.0 : 16.0,
+                  vertical: 16.0,
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1400.0),
+                    constraints: const BoxConstraints(maxWidth: 1100.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // KPI Metric Bento Cards Row
-                        _buildKpiMetricsRow(isDesktop),
+                        // 1. One Clear Primary Action: Start New Application
+                        _buildStartApplicationBanner(context, isDesktop),
                         const SizedBox(height: 16.0),
 
-                        // Active Bay Floor Live Board (Rivian Cockpit Grid)
-                        _buildBayFloorSection(context, isDesktop),
+                        // Actionable items are shown before recent work.
                         const SizedBox(height: 16.0),
+                        if (_isLoading)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else ...[
+                          _buildNeedsAttentionSection(context, isDesktop),
+                          const SizedBox(height: 16.0),
 
-                        // Quick Workflow Launchers
-                        _buildQuickWorkflowLaunchers(context),
-                        const SizedBox(height: 20.0),
+                          // Recent applications show plain status and what's left.
+                          _buildRecentApplicationsSection(context, isDesktop),
+                        ],
+                        const SizedBox(height: 24.0),
                       ],
                     ),
                   ),
@@ -59,302 +97,458 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStageHeader() {
+  /// One Clear Primary Action: Start New Application
+  Widget _buildStartApplicationBanner(BuildContext context, bool isDesktop) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10.0,
-            offset: Offset(0, 2),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: AppTokens.inverse,
+        borderRadius: AppTokens.cardRadius,
+        border: Border.all(color: AppTokens.borderSolid, width: 1.0),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
-                decoration: BoxDecoration(
-                  color: AppTokens.brandRed,
-                  borderRadius: BorderRadius.circular(6.0),
-                ),
-                child: Text(
-                  '13',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8.0),
-              Text(
-                'PAGE 13: WORKSHOP LIVE SHOP FLOOR & METRICS',
-                style: GoogleFonts.inter(
-                  color: AppTokens.textPrimary,
-                  fontSize: 12.0,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-          const StatusChip(
-            label: '6 / 8 BAYS ACTIVE',
-            icon: Icons.garage_outlined,
-            type: StatusType.ok,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKpiMetricsRow(bool isDesktop) {
-    final kpis = [
-      {'title': "TODAY'S REVENUE", 'val': '₹1,48,250', 'sub': '+14.2% vs yesterday', 'color': const Color(0xFF16A34A)},
-      {'title': 'IN WORKSHOP BAYS', 'val': '6 VEHICLES', 'sub': '2 waiting for parts', 'color': AppTokens.brandRed},
-      {'title': 'COMPLETED TODAY', 'val': '14 CHECK-INS', 'sub': '100% QC sign-off', 'color': const Color(0xFF2563EB)},
-      {'title': 'AVG TURNAROUND', 'val': '2H 45M', 'sub': 'Under 3h service SLA', 'color': const Color(0xFFD97706)},
-    ];
-
-    if (isDesktop) {
-      return Row(
-        children: kpis.map((kpi) {
-          return Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4.0),
-              padding: const EdgeInsets.all(14.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14.0),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x04000000), blurRadius: 8.0, offset: Offset(0, 2)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    kpi['title'] as String,
-                    style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 6.0),
-                  Text(
-                    kpi['val'] as String,
-                    style: GoogleFonts.inter(fontSize: 20.0, fontWeight: FontWeight.w900, color: AppTokens.textPrimary),
-                  ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    kpi['sub'] as String,
-                    style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w700, color: kpi['color'] as Color),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      );
-    } else {
-      return Wrap(
-        spacing: 8.0,
-        runSpacing: 8.0,
-        children: kpis.map((kpi) {
-          return SizedBox(
-            width: 170.0,
-            child: Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    kpi['title'] as String,
-                    style: GoogleFonts.inter(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 4.0),
-                  Text(
-                    kpi['val'] as String,
-                    style: GoogleFonts.inter(fontSize: 16.0, fontWeight: FontWeight.w900, color: AppTokens.textPrimary),
-                  ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    kpi['sub'] as String,
-                    style: GoogleFonts.inter(fontSize: 10.0, fontWeight: FontWeight.bold, color: kpi['color'] as Color),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      );
-    }
-  }
-
-  Widget _buildBayFloorSection(BuildContext context, bool isDesktop) {
-    final bays = [
-      {'bay': 'BAY 01', 'reg': 'RJ27CA1024', 'model': 'MG HECTOR SHARP PRO', 'task': 'Periodic Maintenance & Brake Overhaul', 'status': 'STAGE 05: JOB CARD', 'pct': 0.85, 'route': '/job-card'},
-      {'bay': 'BAY 02', 'reg': 'DL01AB1234', 'model': 'MARUTI SWIFT VXI', 'task': '6-Point Inspection Photo Capture', 'status': 'STAGE 02: BAY CAPTURE', 'pct': 0.50, 'route': '/bay-capture'},
-      {'bay': 'BAY 03', 'reg': 'MH02CD5678', 'model': 'HYUNDAI CRETA SX', 'task': 'Front Bumper Dent & 360° Mapping', 'status': 'STAGE 03: 360° MAP', 'pct': 0.35, 'route': '/condition-map'},
-      {'bay': 'BAY 04', 'reg': 'KA05EF9012', 'model': 'MAHINDRA THAR 4X4', 'task': 'Suspension Alignment & QC Road Test', 'status': 'STAGE 08: QC GATE', 'pct': 0.95, 'route': '/intake'},
-      {'bay': 'BAY 05', 'reg': 'DL08GH3456', 'model': 'TATA NEXON EV MAX', 'task': 'High-Voltage Battery Diagnostics', 'status': 'STAGE 04: INSPECTION', 'pct': 0.20, 'route': '/passport'},
-      {'bay': 'BAY 06', 'reg': 'HR26IJ7890', 'model': 'TATA HARRIER XZA+', 'task': 'Final Wash, Digital Invoice & Release', 'status': 'STAGE 10: PAYMENT', 'pct': 1.0, 'route': '/intake'},
-    ];
-
-    return SharpCard(
-      title: 'ACTIVE SHOP FLOOR BAYS (LIVE DISPATCH & PROGRESS)',
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: bays.map((bay) {
-          final pct = bay['pct'] as double;
-          final pctInt = (pct * 100).toInt();
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10.0),
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/intake'),
+          child: Padding(
+            padding: EdgeInsets.all(isDesktop ? 20.0 : 16.0),
             child: Row(
               children: [
+                // Prominent Red Plus Icon Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(6.0),
+                  width: isDesktop ? 50.0 : AppTokens.minTouchTarget,
+                  height: isDesktop ? 50.0 : AppTokens.minTouchTarget,
+                  decoration: const BoxDecoration(
+                    color: AppTokens.brandRed,
+                    borderRadius: AppTokens.buttonRadius,
                   ),
-                  child: Text(
-                    bay['bay'] as String,
-                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11.0),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: AppTokens.textOnDark,
+                    size: 28.0,
                   ),
                 ),
-                const SizedBox(width: 12.0),
+                const SizedBox(width: 16.0),
+
+                // Main CTA Text Block
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            bay['reg'] as String,
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 12.5, color: AppTokens.textPrimary),
-                          ),
-                          const SizedBox(width: 8.0),
-                          Flexible(
-                            child: Text(
-                              '• ${bay['model']}',
-                              style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2.0),
                       Text(
-                        bay['task'] as String,
-                        style: const TextStyle(fontSize: 11.0, color: Color(0xFF475569)),
+                        'START NEW APPLICATION',
+                        style: GoogleFonts.inter(
+                          color: AppTokens.textOnDark,
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 3.0),
+                      Text(
+                        'Fast check-in for vehicle identity, customer contact, and requested service scope',
+                        style: GoogleFonts.inter(
+                          color: AppTokens.textOnDark,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10.0),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      bay['status'] as String,
-                      style: GoogleFonts.inter(fontSize: 10.0, fontWeight: FontWeight.w800, color: AppTokens.brandRed),
-                    ),
-                    const SizedBox(height: 4.0),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 60.0,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4.0),
-                            child: LinearProgressIndicator(
-                              value: pct,
-                              backgroundColor: const Color(0xFFE2E8F0),
-                              color: pct == 1.0 ? const Color(0xFF16A34A) : AppTokens.brandRed,
-                              minHeight: 6.0,
-                            ),
-                          ),
+                const SizedBox(width: 12.0),
+
+                // Action Pill
+                Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 96.0,
+                    minHeight: AppTokens.minTouchTarget,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14.0,
+                    vertical: 10.0,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppTokens.brandRed,
+                    borderRadius: AppTokens.inputRadius,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isDesktop ? 'START APPLICATION' : 'START',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(width: 6.0),
-                        Text('$pctInt%', style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8.0),
-                IconButton(
-                  icon: const Icon(Icons.arrow_forward_ios, size: 14.0, color: Color(0xFF94A3B8)),
-                  onPressed: () => GoRouter.maybeOf(context)?.go(bay['route'] as String),
+                      ),
+                      const SizedBox(width: 4.0),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 20.0,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildQuickWorkflowLaunchers(BuildContext context) {
-    return SharpCard(
-      title: 'ONE-TOUCH WORKSHOP WORKFLOW JUMP',
-      padding: const EdgeInsets.all(14.0),
-      child: Wrap(
-        spacing: 10.0,
-        runSpacing: 10.0,
-        children: [
-          _buildLauncherChip(context, '1. INTAKE', Icons.login, '/intake'),
-          _buildLauncherChip(context, '2. CAPTURE', Icons.camera_alt_outlined, '/bay-capture'),
-          _buildLauncherChip(context, '3. 360° MAP', Icons.crop_rotate, '/condition-map'),
-          _buildLauncherChip(context, '5. JOB CARD', Icons.assignment_outlined, '/job-card'),
-          _buildLauncherChip(context, '11. PASSPORT', Icons.verified_user_outlined, '/passport'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLauncherChip(BuildContext context, String label, IconData icon, String route) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10.0),
-        onTap: () => GoRouter.maybeOf(context)?.go(route),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(10.0),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16.0, color: AppTokens.brandRed),
-              const SizedBox(width: 6.0),
-              Text(
-                label,
-                style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTokens.textPrimary),
-              ),
-            ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Quick Registration Plate Search Section
+  Widget _buildNeedsAttentionSection(BuildContext context, bool isDesktop) {
+    final attentionItems = _applications
+        .where((app) => (app['pendingItems'] as List).isNotEmpty)
+        .take(3)
+        .map(
+          (app) => {
+            ...app,
+            'actionLabel': 'CONTINUE APPLICATION',
+            'route': '/condition-map',
+          },
+        )
+        .toList();
+
+    return SharpCard(
+      title: 'NEEDS ATTENTION (${attentionItems.length})',
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        children: attentionItems.isEmpty
+            ? [
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('Nothing needs attention.'),
+                ),
+              ]
+            : attentionItems.map((item) {
+                final plate = item['plate'] as String;
+                final model = item['model'] as String;
+                final status = item['status'] as String;
+                final remainingHint = item['remainingHint'] as String;
+                final actionLabel = item['actionLabel'] as String;
+                final route = item['route'] as String;
+                final plateBadge = Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6.0,
+                    vertical: 3.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTokens.base,
+                    borderRadius: AppTokens.inputRadius,
+                    border: Border.all(color: AppTokens.borderSolid),
+                  ),
+                  child: Text(
+                    plate,
+                    style: GoogleFonts.inter(
+                      color: AppTokens.textPrimary,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                );
+                final modelLabel = Text(
+                  model,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: AppTokens.textPrimary,
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w800,
+                  ),
+                );
+                final statusBadge = Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6.0,
+                    vertical: 2.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: status == 'Waiting for approval'
+                        ? AppTokens.orange
+                        : AppTokens.blue,
+                    borderRadius: AppTokens.inputRadius,
+                  ),
+                  child: Text(
+                    status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: status == 'Waiting for approval'
+                          ? AppTokens.inverse
+                          : AppTokens.raised,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                );
+                final hint = Text(
+                  remainingHint,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: AppTokens.textSecondary,
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+                final actionButton = InkWell(
+                  borderRadius: AppTokens.inputRadius,
+                  onTap: () => context.push(
+                    route,
+                    extra: {
+                      'jobCardId': item['id'],
+                      'registrationNumber': plate,
+                    },
+                  ),
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: AppTokens.minTouchTarget,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 12.0,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: AppTokens.inverse,
+                      borderRadius: AppTokens.inputRadius,
+                    ),
+                    child: Text(
+                      actionLabel,
+                      style: GoogleFonts.inter(
+                        color: AppTokens.textOnDark,
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                    color: AppTokens.surfaceSubtle,
+                    borderRadius: AppTokens.cardRadius,
+                    border: Border.all(color: AppTokens.borderLight),
+                  ),
+                  child: isDesktop
+                      ? Row(
+                          children: [
+                            plateBadge,
+                            const SizedBox(width: 8.0),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(child: modelLabel),
+                                      const SizedBox(width: 6.0),
+                                      statusBadge,
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2.0),
+                                  hint,
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8.0),
+                            actionButton,
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(children: [Expanded(child: modelLabel)]),
+                            const SizedBox(height: 6.0),
+                            Wrap(
+                              spacing: AppTokens.minTouchGap,
+                              runSpacing: AppTokens.minTouchGap,
+                              children: [
+                                plateBadge,
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 190.0,
+                                  ),
+                                  child: statusBadge,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6.0),
+                            hint,
+                            const SizedBox(height: 6.0),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: actionButton,
+                            ),
+                          ],
+                        ),
+                );
+              }).toList(),
+      ),
+    );
+  }
+
+  /// Recent Applications (Plain Status + What Remains)
+  Widget _buildRecentApplicationsSection(BuildContext context, bool isDesktop) {
+    final recentApps = _applications.take(3).toList();
+
+    return SharpCard(
+      title: 'RECENT APPLICATIONS',
+      titleTrailing: InkWell(
+        onTap: () => context.go('/applications'),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isDesktop ? 'VIEW ALL IN APPLICATIONS' : 'VIEW ALL',
+              style: GoogleFonts.inter(
+                color: AppTokens.inverse,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 4.0),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              size: 12.0,
+              color: AppTokens.inverse,
+            ),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        children: recentApps.isEmpty
+            ? [
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('Your applications will appear here.'),
+                ),
+              ]
+            : recentApps.map((app) {
+                final plate = app['plate']!;
+                final model = app['model']!;
+                final customer = app['customerName']!;
+                final status = app['status']!;
+                final remainingHint = app['remainingHint']!;
+                final route = app['route']!;
+
+                Color badgeBg;
+                Color badgeText;
+                if (status == 'Ready for pickup') {
+                  badgeBg = AppTokens.green;
+                  badgeText = AppTokens.raised;
+                } else if (status == 'Waiting for approval') {
+                  badgeBg = AppTokens.orange;
+                  badgeText = AppTokens.inverse;
+                } else {
+                  badgeBg = AppTokens.blue;
+                  badgeText = AppTokens.raised;
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: AppTokens.surface,
+                    borderRadius: AppTokens.cardRadius,
+                    border: Border.all(color: AppTokens.borderLight),
+                  ),
+                  child: InkWell(
+                    onTap: () => context.push(
+                      route,
+                      extra: {
+                        'jobCardId': app['id'],
+                        'registrationNumber': plate,
+                      },
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      model,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        color: AppTokens.textPrimary,
+                                        fontSize: 16.0,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8.0),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                      vertical: 4.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: badgeBg,
+                                      borderRadius: AppTokens.inputRadius,
+                                    ),
+                                    child: Text(
+                                      status,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        color: badgeText,
+                                        fontSize: 14.0,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3.0),
+                              Text(
+                                '$plate • $customer',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  color: AppTokens.textTertiary,
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 3.0),
+                              Text(
+                                remainingHint,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  color: AppTokens.textSecondary,
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8.0),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppTokens.textTertiary,
+                          size: 18.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
       ),
     );
   }

@@ -1,7 +1,4 @@
-enum LineItemType {
-  labour,
-  part,
-}
+enum LineItemType { labour, part }
 
 enum PaymentMode {
   cash('CASH'),
@@ -17,11 +14,12 @@ class InvoiceLineItem {
   final String id;
   final LineItemType type;
   final String description;
-  final String code; // SAC 998729 for labour, HSN for parts
+  final String
+  code; // SAC 998714 for motor vehicle repair labour; HSN code for parts
   final int quantity; // Units (or hours for labour)
   final int unitRatePaise; // 1 INR = 100 paise
   final int discountPaise;
-  final int gstRatePercent; // 18 or 28
+  final int gstRatePercent; // 18% standard uniform rate (9% CGST + 9% SGST, effective 22 Sept 2025; CA verification required)
 
   const InvoiceLineItem({
     required this.id,
@@ -31,7 +29,7 @@ class InvoiceLineItem {
     required this.quantity,
     required this.unitRatePaise,
     this.discountPaise = 0,
-    required this.gstRatePercent,
+    this.gstRatePercent = 18,
   });
 
   int get taxableAmountPaise {
