@@ -11,6 +11,33 @@ import '../../ui_kit/tokens/app_tokens.dart';
 import 'condition_map_controller.dart';
 import 'condition_map_models.dart';
 
+@visibleForTesting
+bool shouldRefreshConditionPhotoUrl(DateTime refreshAfter, {DateTime? now}) =>
+    !(now ?? DateTime.now()).isBefore(refreshAfter);
+
+typedef ConditionPhotoUrlLoader = Future<String> Function(
+  String path,
+  int expiresInSeconds,
+);
+
+final conditionPhotoUrlLoaderProvider = Provider<ConditionPhotoUrlLoader>((
+  ref,
+) {
+  final storage = Supabase.instance.client.storage.from('workshop-checkin');
+  return (path, expiresInSeconds) =>
+      storage.createSignedUrl(path, expiresInSeconds);
+});
+
+class _CachedConditionPhotoUrl {
+  const _CachedConditionPhotoUrl({
+    required this.future,
+    required this.refreshAfter,
+  });
+
+  final Future<String> future;
+  final DateTime refreshAfter;
+}
+
 class ConditionMapScreen extends ConsumerStatefulWidget {
   final String? jobCardId;
   final String? registrationNumber;
@@ -31,7 +58,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
   static const _line = AppTokens.borderLight;
   static const _green = AppTokens.brandRed;
   static const _paper = AppTokens.base;
-  final Map<String, Future<String>> _signedPhotoUrls = {};
+  final Map<String, _CachedConditionPhotoUrl> _signedPhotoUrls = {};
 
   @override
   void initState() {
@@ -430,17 +457,17 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
               if (pin.photoPath != null) ...[
                 const SizedBox(height: 9),
                 FutureBuilder<String>(
-                  future: _signedPhotoUrls.putIfAbsent(
-                    pin.photoPath!,
-                    () => Supabase.instance.client.storage
-                        .from('workshop-checkin')
-                        .createSignedUrl(pin.photoPath!, 3600),
-                  ),
+                  future: _signedPhotoUrl(pin.photoPath!),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return const Text(
-                        'Photo unavailable',
-                        style: TextStyle(color: _muted, fontSize: 12),
+                      return TextButton.icon(
+                        onPressed: () => _retrySignedPhoto(pin.photoPath!),
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Photo unavailable · Retry'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: _muted,
+                          padding: EdgeInsets.zero,
+                        ),
                       );
                     }
                     if (!snapshot.hasData) {
@@ -457,14 +484,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                     }
                     return InkWell(
                       borderRadius: BorderRadius.circular(8),
-                      onTap: () => showDialog<void>(
-                        context: context,
-                        builder: (context) => Dialog(
-                          child: InteractiveViewer(
-                            child: Image.network(snapshot.data!),
-                          ),
-                        ),
-                      ),
+                      onTap: () => _showFindingPhoto(pin.photoPath!),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
@@ -472,6 +492,13 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                           width: 112,
                           height: 76,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              TextButton.icon(
+                                onPressed: () =>
+                                    _retrySignedPhoto(pin.photoPath!),
+                                icon: const Icon(Icons.refresh, size: 16),
+                                label: const Text('Reload photo'),
+                              ),
                         ),
                       ),
                     );
@@ -808,6 +835,77 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
       'jpg' || 'jpeg' => 'image/jpeg',
       _ => null,
     };
+  }
+
+  Future<String> _signedPhotoUrl(String path) {
+    final cached = _signedPhotoUrls[path];
+    if (cached != null &&
+        !shouldRefreshConditionPhotoUrl(cached.refreshAfter)) {
+      return cached.future;
+    }
+    final future = ref.read(conditionPhotoUrlLoaderProvider)(path, 3600);
+    _signedPhotoUrls[path] = _CachedConditionPhotoUrl(
+      future: future,
+      refreshAfter: DateTime.now().add(const Duration(minutes: 55)),
+    );
+    return future;
+  }
+
+  void _retrySignedPhoto(String path) {
+    _signedPhotoUrls.remove(path);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showFindingPhoto(String path) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) {
+        late Future<String> photoUrl;
+        Future<String> load() =>
+            ref.read(conditionPhotoUrlLoaderProvider)(path, 3600);
+        photoUrl = load();
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
+            child: FutureBuilder<String>(
+              future: photoUrl,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: TextButton.icon(
+                      onPressed: () => setDialogState(() => photoUrl = load()),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Photo unavailable · Retry'),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData) {
+                  return const SizedBox(
+                    width: 240,
+                    height: 160,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                return InteractiveViewer(
+                  child: Image.network(
+                    snapshot.data!,
+                    errorBuilder: (context, error, stackTrace) => Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: TextButton.icon(
+                        onPressed: () =>
+                            setDialogState(() => photoUrl = load()),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Photo expired · Reload'),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _showSignOffDialog(

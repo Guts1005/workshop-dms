@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,36 @@ import 'package:workshop_dms/features/condition_map/condition_map_screen.dart';
 import 'package:workshop_dms/features/condition_map/condition_map_repository.dart';
 
 void main() {
+  group('Condition photo URL refresh', () {
+    test('keeps a signed URL until its refresh threshold', () {
+      final now = DateTime(2026, 1, 1, 12);
+
+      expect(
+        shouldRefreshConditionPhotoUrl(
+          now.add(const Duration(minutes: 1)),
+          now: now,
+        ),
+        isFalse,
+      );
+    });
+
+    test('refreshes a signed URL at and after its threshold', () {
+      final refreshAfter = DateTime(2026, 1, 1, 12);
+
+      expect(
+        shouldRefreshConditionPhotoUrl(refreshAfter, now: refreshAfter),
+        isTrue,
+      );
+      expect(
+        shouldRefreshConditionPhotoUrl(
+          refreshAfter,
+          now: refreshAfter.add(const Duration(seconds: 1)),
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('ConditionMapScreen Widget Tests', () {
     testWidgets('Renders vehicle condition areas and sign-off progress', (
       WidgetTester tester,
@@ -117,6 +149,70 @@ void main() {
 
       expect(find.textContaining('Finding:'), findsOneWidget);
       expect(find.text('Add a photo (optional)'), findsOneWidget);
+    });
+
+    testWidgets('A failed finding photo URL can be retried', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      final requests = <Completer<String>>[];
+      final container = ProviderContainer(
+        overrides: [
+          conditionMapRepositoryProvider.overrideWithValue(
+            LocalConditionMapRepository(),
+          ),
+          conditionPhotoUrlLoaderProvider.overrideWithValue((path, seconds) {
+            final request = Completer<String>();
+            requests.add(request);
+            return request.future;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: ConditionMapScreen(
+              jobCardId: 'JC-MAP-PHOTO-RETRY',
+              registrationNumber: 'DL01AB9988',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await container
+          .read(conditionMapControllerProvider.notifier)
+          .addPin(
+            view: ConditionViewDirection.sideLeft,
+            nx: .5,
+            ny: .5,
+            type: DefectType.paintChip,
+            severity: DefectSeverity.minor,
+            photoPath: 'test-workshop/test-job/finding.jpg',
+          );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Photo attached'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+
+      expect(requests, hasLength(1));
+      requests.first.completeError(Exception('Expired signed URL'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Photo unavailable · Retry'), findsOneWidget);
+      await tester.tap(find.text('Photo unavailable · Retry'));
+      await tester.pumpAndSettle();
+
+      expect(requests, hasLength(2));
+      requests.last.completeError(Exception('Expired signed URL'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Photo unavailable · Retry'), findsOneWidget);
     });
 
     testWidgets(
