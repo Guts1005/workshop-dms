@@ -22,6 +22,7 @@ final conditionMapControllerProvider =
 class ConditionMapController extends StateNotifier<ConditionMapState> {
   static int _lastPinId = 0;
   final ConditionMapRepository repository;
+  PreWorkSignOff? _pendingSignOff;
 
   ConditionMapController({
     required this.repository,
@@ -210,7 +211,8 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     state = state.copyWith(status: ConditionMapStatus.saving, clearError: true);
 
     try {
-      final now = DateTime.now();
+      final pending = _pendingSignOff;
+      final now = pending?.signedAt ?? DateTime.now();
       final checksum = PreWorkSignOff.generateChecksum(
         jobCardId: state.jobCardId,
         registrationNumber: state.registrationNumber,
@@ -219,14 +221,22 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
         timestamp: now,
       );
 
-      final signOff = PreWorkSignOff(
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        advisorName: advisorName.trim(),
-        signedAt: now,
-        customerAcknowledged: true,
-        sha256Checksum: checksum,
-      );
+      final signOff =
+          pending != null &&
+              pending.customerName == customerName.trim() &&
+              pending.customerPhone == customerPhone.trim() &&
+              pending.advisorName == advisorName.trim() &&
+              pending.sha256Checksum == checksum
+          ? pending
+          : PreWorkSignOff(
+              customerName: customerName.trim(),
+              customerPhone: customerPhone.trim(),
+              advisorName: advisorName.trim(),
+              signedAt: now,
+              customerAcknowledged: true,
+              sha256Checksum: checksum,
+            );
+      _pendingSignOff = signOff;
 
       await repository.saveSignOff(
         jobCardId: state.jobCardId,
@@ -238,6 +248,7 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
         status: ConditionMapStatus.completed,
         clearSelectedPin: true,
       );
+      _pendingSignOff = null;
       return true;
     } catch (e) {
       state = state.copyWith(

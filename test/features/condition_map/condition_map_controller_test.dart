@@ -14,6 +14,26 @@ class MockRemoteSyncClient implements RemoteSyncClient {
   }
 }
 
+class LoseFirstSignOffResponseRepository extends LocalConditionMapRepository {
+  LoseFirstSignOffResponseRepository() : super();
+
+  final List<PreWorkSignOff> submittedSignOffs = [];
+  bool _loseFirstResponse = true;
+
+  @override
+  Future<void> saveSignOff({
+    required String jobCardId,
+    required PreWorkSignOff signOff,
+  }) async {
+    submittedSignOffs.add(signOff);
+    await super.saveSignOff(jobCardId: jobCardId, signOff: signOff);
+    if (_loseFirstResponse) {
+      _loseFirstResponse = false;
+      throw Exception('Simulated response lost after server commit');
+    }
+  }
+}
+
 void main() {
   group('ConditionMapController & Repository Unit Tests', () {
     late MockRemoteSyncClient mockRemoteClient;
@@ -234,6 +254,47 @@ void main() {
       expect(jobCardMutation.payload['status'], 'INSPECTION_PENDING');
       expect(jobCardMutation.payload['conditionPinsCount'], 2);
     });
+
+    test(
+      'Retry after lost sign-off response reuses the exact signed payload',
+      () async {
+        final retryRepository = LoseFirstSignOffResponseRepository();
+        final retryController = ConditionMapController(
+          repository: retryRepository,
+          initialJobCardId: 'JC-RETRY-001',
+          initialRegistration: 'DL01AB9988',
+        );
+        for (final view in ConditionViewDirection.values) {
+          await retryController.markViewReviewed(view);
+        }
+
+        final firstResult = await retryController.confirmPreWorkSignOff(
+          customerName: 'Rohan Sharma',
+          customerPhone: '9876543210',
+          advisorName: 'Manish Verma',
+        );
+        final firstSignOff = retryRepository.submittedSignOffs.single;
+        expect(firstResult, isFalse);
+        expect(retryController.state.status, ConditionMapStatus.error);
+
+        final retryResult = await retryController.confirmPreWorkSignOff(
+          customerName: 'Rohan Sharma',
+          customerPhone: '9876543210',
+          advisorName: 'Manish Verma',
+        );
+
+        expect(retryResult, isTrue);
+        expect(retryRepository.submittedSignOffs, hasLength(2));
+        expect(
+          retryRepository.submittedSignOffs.last.signedAt,
+          firstSignOff.signedAt,
+        );
+        expect(
+          retryRepository.submittedSignOffs.last.sha256Checksum,
+          firstSignOff.sha256Checksum,
+        );
+      },
+    );
 
     test(
       'Modifications are blocked once map is signed off and locked',
