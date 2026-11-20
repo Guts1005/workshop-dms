@@ -60,7 +60,7 @@
 ### P1: Release quality and operational readiness
 
 - Expand coverage for data repositories, Supabase/RLS integration, upload failures, and all workflow states. The current local suite passes, but it does not exercise a live Supabase project.
-- Add CI for formatting, analysis, tests, and web build; add golden tests and accessibility checks for the high-use screens.
+- Add golden tests and accessibility checks for the high-use screens. GitHub Actions now runs formatting, analysis, tests, and a web release build on pushes and pull requests to `master`.
 - Manually validate responsive web, Windows, Android, and iOS behavior, especially camera/gallery permissions, upload failure recovery, and authentication return paths.
 - Set up deployment, environment configuration, backups, monitoring, data retention, and a privacy policy before real customer records are used.
 

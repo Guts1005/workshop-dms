@@ -28,6 +28,6 @@ Workshop DMS is an active prototype. Intake, application listing, bay check-in, 
 1. Apply all thirteen migrations, then verify RLS, auth, photos, invoice numbering, payment reconciliation, stock controls, and the complete workflow against the target Supabase project.
 2. Add customer decision history to vehicle history and connect inventory issue/return controls to active work.
 3. Complete passport and service reminders, then durable offline sync.
-4. Add CI and finish platform, security, accessibility, and release QA.
+4. Add golden tests and finish platform, security, accessibility, and release QA. GitHub Actions now runs formatting, analysis, tests, and a web release build for `master` pushes and pull requests.
 
 See [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md) for detailed priorities, architecture notes, setup, and verification limits. The older `tasks/` documents are historical specifications and do not represent current completion status.

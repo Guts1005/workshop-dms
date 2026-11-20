@@ -87,7 +87,7 @@ class PhasePlaceholderScreen extends StatelessWidget {
                       const SizedBox(width: 8.0),
                       Expanded(
                         child: Text(
-                          'We’ll show updates here as your application progresses.',
+                          'This section is still being built. Existing job records are safe.',
                           style: GoogleFonts.inter(
                             fontSize: 11.0,
                             fontWeight: FontWeight.w700,
