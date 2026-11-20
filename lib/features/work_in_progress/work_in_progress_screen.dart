@@ -109,6 +109,12 @@ class _WorkInProgressScreenState extends ConsumerState<WorkInProgressScreen> {
                         ),
                       ),
                     const SizedBox(height: 8),
+                    ...workspace.scope
+                        .where((item) => item.itemType == 'part')
+                        .map(
+                          (item) =>
+                              _partStockCard(item, controller, state.saving),
+                        ),
                     OutlinedButton.icon(
                       onPressed: () => context.go(
                         '/qc-gate',
@@ -289,6 +295,111 @@ class _WorkInProgressScreenState extends ConsumerState<WorkInProgressScreen> {
       child: Text(message, textAlign: TextAlign.center),
     ),
   );
+
+  Widget _partStockCard(
+    WorkScopeItem item,
+    WorkInProgressController controller,
+    bool saving,
+  ) => _card(
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          item.description,
+          style: AppTokens.fontBody(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          item.inventoryPartId == null
+              ? 'Part ${item.code} is not in the stock catalog.'
+              : 'Stock: ${_quantity(item.stockOnHand)}  |  Issued: ${_quantity(item.quantityIssued)} of ${_quantity(item.quantity)}',
+          style: AppTokens.fontBody(color: AppTokens.textSecondary),
+        ),
+        if (item.inventoryPartId != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: saving || item.stockAvailable <= 0
+                    ? null
+                    : () => _stockMovementDialog(controller, item, 'ISSUE'),
+                icon: const Icon(Icons.north_east),
+                label: const Text('Issue part'),
+              ),
+              OutlinedButton.icon(
+                onPressed: saving || item.quantityIssued <= 0
+                    ? null
+                    : () => _stockMovementDialog(controller, item, 'RETURN'),
+                icon: const Icon(Icons.south_west),
+                label: const Text('Return unused'),
+              ),
+            ],
+          ),
+        ],
+      ],
+    ),
+  );
+
+  Future<void> _stockMovementDialog(
+    WorkInProgressController controller,
+    WorkScopeItem item,
+    String type,
+  ) async {
+    final quantity = TextEditingController();
+    final maximum = type == 'ISSUE' ? item.stockAvailable : item.quantityIssued;
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          type == 'ISSUE'
+              ? 'Issue ${item.description}'
+              : 'Return ${item.description}',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              type == 'ISSUE'
+                  ? 'Up to ${_quantity(maximum)} can be issued from stock and the approved estimate.'
+                  : 'Up to ${_quantity(maximum)} can be returned to stock.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: quantity,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(type == 'ISSUE' ? 'Issue part' : 'Record return'),
+          ),
+        ],
+      ),
+    );
+    if (submitted == true && item.inventoryPartId != null && mounted) {
+      await controller.recordPartMovement(
+        partId: item.inventoryPartId!,
+        type: type,
+        quantityText: quantity.text,
+      );
+    }
+    quantity.dispose();
+  }
 
   Widget _error(String? message, {required VoidCallback onRetry}) => Center(
     child: Padding(

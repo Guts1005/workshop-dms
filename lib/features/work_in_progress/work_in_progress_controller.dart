@@ -87,6 +87,39 @@ class WorkInProgressController extends StateNotifier<WorkInProgressState> {
   void setNote(String value) =>
       state = state.copyWith(note: value, clearError: true);
 
+  Future<bool> recordPartMovement({
+    required String partId,
+    required String type,
+    required String quantityText,
+  }) async {
+    final quantity = num.tryParse(quantityText.trim());
+    if (quantity == null || !quantity.isFinite || quantity <= 0) {
+      state = state.copyWith(errorMessage: 'Enter a valid part quantity.');
+      return false;
+    }
+    state = state.copyWith(saving: true, clearError: true);
+    try {
+      await repository.recordPartMovement(
+        partId: partId,
+        type: type,
+        quantity: quantity,
+        jobCardId: _jobCardId,
+      );
+      state = state.copyWith(
+        workspace: await repository.load(_jobCardId),
+        saving: false,
+        clearError: true,
+      );
+      return true;
+    } catch (_) {
+      state = state.copyWith(
+        saving: false,
+        errorMessage: 'Stock movement was not saved. Check stock and approved quantity, then retry.',
+      );
+      return false;
+    }
+  }
+
   Future<bool> save() async {
     final note = state.note.trim();
     if (note.length < 2 || note.length > 1000) {

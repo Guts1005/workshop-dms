@@ -15,14 +15,26 @@ enum WorkUpdateType {
 
 class WorkScopeItem {
   const WorkScopeItem({
+    required this.code,
     required this.description,
     required this.itemType,
     required this.quantity,
+    this.inventoryPartId,
+    this.stockOnHand = 0,
+    this.quantityIssued = 0,
   });
 
+  final String code;
   final String description;
   final String itemType;
   final num quantity;
+  final String? inventoryPartId;
+  final num stockOnHand;
+  final num quantityIssued;
+
+  num get quantityRemaining => quantity - quantityIssued;
+  num get stockAvailable =>
+      stockOnHand < quantityRemaining ? stockOnHand : quantityRemaining;
 }
 
 class JobWorkUpdate {

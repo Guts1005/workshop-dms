@@ -80,6 +80,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         // 1. One Clear Primary Action: Start New Application
                         _buildStartApplicationBanner(context, isDesktop),
                         const SizedBox(height: 16.0),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: () => context.push('/inventory'),
+                            icon: const Icon(Icons.inventory_2_outlined),
+                            label: const Text('PARTS & INVENTORY'),
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
 
                         // Actionable items are shown before recent work.
                         const SizedBox(height: 16.0),

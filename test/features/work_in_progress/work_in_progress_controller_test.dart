@@ -15,6 +15,7 @@ class _MemoryWorkRepository implements WorkInProgressRepository {
         registrationNumber: 'KA01AB1234',
         scope: const [
           WorkScopeItem(
+            code: 'BRAKE-1',
             description: 'Replace front brake pads',
             itemType: 'part',
             quantity: 1,
@@ -41,6 +42,14 @@ class _MemoryWorkRepository implements WorkInProgressRepository {
       ),
     );
   }
+
+  @override
+  Future<void> recordPartMovement({
+    required String partId,
+    required String type,
+    required num quantity,
+    required String jobCardId,
+  }) async {}
 }
 
 void main() {
