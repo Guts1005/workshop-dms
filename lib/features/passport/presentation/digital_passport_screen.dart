@@ -2,7 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../mechanical_inspection/mechanical_inspection_models.dart';
 import '../../../ui_kit/tokens/app_tokens.dart';
+
+@visibleForTesting
+List<String> formatMechanicalInspectionReadings({
+  required Map<String, dynamic> measurements,
+  required List<String> notApplicable,
+}) => mechanicalMeasurementSpecs.map((spec) {
+  final value = measurements[spec.id];
+  if (value is num) {
+    final displayValue = value == value.toInt()
+        ? value.toInt().toString()
+        : value.toString();
+    return '${spec.label}: $displayValue ${spec.unit}';
+  }
+  if (notApplicable.contains(spec.id)) {
+    return '${spec.label}: Not applicable';
+  }
+  return '${spec.label}: Not recorded';
+}).toList();
 
 String vehicleRecordStatusLabel(String value) => switch (value) {
   'DELIVERED' => 'Completed',
@@ -54,7 +73,25 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
         .select('id, created_at, requested_work, status, intake_odometer_km')
         .eq('vehicle_id', vehicle['id'])
         .order('created_at', ascending: false);
-    return {'vehicle': vehicle, 'history': history};
+    final jobIds = history.map((row) => row['id'] as String).toList();
+    final inspections = jobIds.isEmpty
+        ? <Map<String, dynamic>>[]
+        : await client
+              .from('mechanical_inspections')
+              .select(
+                'job_card_id, inspector_name, odometer_km, measurements, not_applicable, notes, completed_at',
+              )
+              .inFilter('job_card_id', jobIds)
+              .order('completed_at', ascending: false);
+    final inspectionByJob = {
+      for (final inspection in inspections)
+        inspection['job_card_id'] as String: inspection,
+    };
+    return {
+      'vehicle': vehicle,
+      'history': history,
+      'inspectionByJob': inspectionByJob,
+    };
   }
 
   @override
@@ -87,6 +124,7 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
         }
         final vehicle = data['vehicle'] as Map<String, dynamic>;
         final history = data['history'] as List<dynamic>;
+        final inspectionByJob = data['inspectionByJob'] as Map<String, dynamic>;
         return ListView(
           padding: const EdgeInsets.all(18),
           children: [
@@ -134,21 +172,79 @@ class _DigitalPassportScreenState extends State<DigitalPassportScreen> {
                 ),
               )
             else
-              ...history.map((item) {
+              ...history.map<Widget>((item) {
                 final row = item as Map<String, dynamic>;
                 final date = DateTime.tryParse(
                   row['created_at'] as String? ?? '',
                 )?.toLocal();
+                final inspection =
+                    inspectionByJob[row['id'] as String]
+                        as Map<String, dynamic>?;
+                final title =
+                    row['requested_work'] as String? ?? 'Service application';
+                final subtitle =
+                    '${date == null ? '' : '${date.day}/${date.month}/${date.year} · '}'
+                    '${row['intake_odometer_km']} km · '
+                    '${_status(row['status'] as String? ?? '')}';
+                if (inspection == null) {
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      title: Text(title),
+                      subtitle: Text(subtitle),
+                    ),
+                  );
+                }
+                final completedAt = DateTime.tryParse(
+                  inspection['completed_at'] as String? ?? '',
+                )?.toLocal();
+                final completedLabel = completedAt == null
+                    ? ''
+                    : '${completedAt.day}/${completedAt.month}/${completedAt.year}';
+                final measurements =
+                    inspection['measurements'] as Map<String, dynamic>? ?? {};
+                final notApplicable =
+                    (inspection['not_applicable'] as List<dynamic>? ?? [])
+                        .cast<String>();
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    title: Text(
-                      row['requested_work'] as String? ?? 'Service application',
-                    ),
-                    subtitle: Text(
-                      '${date == null ? '' : '${date.day}/${date.month}/${date.year} - '}${row['intake_odometer_km']} km',
-                    ),
-                    trailing: Text(_status(row['status'] as String? ?? '')),
+                  child: ExpansionTile(
+                    leading: const Icon(Icons.fact_check_outlined),
+                    title: Text(title),
+                    subtitle: Text(subtitle),
+                    childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Inspected by ${inspection['inspector_name']} · ${completedLabel.isEmpty ? 'date unavailable' : completedLabel} · ${inspection['odometer_km']} km',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final reading in formatMechanicalInspectionReadings(
+                        measurements: measurements,
+                        notApplicable: notApplicable,
+                      ))
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Text(reading),
+                          ),
+                        ),
+                      if ((inspection['notes'] as String? ?? '')
+                          .trim()
+                          .isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Notes: ${(inspection['notes'] as String).trim()}',
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               }),
