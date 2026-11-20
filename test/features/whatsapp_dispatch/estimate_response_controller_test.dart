@@ -6,6 +6,7 @@ import 'package:workshop_dms/features/whatsapp_dispatch/estimate_response_reposi
 class _MemoryEstimateResponseRepository implements EstimateResponseRepository {
   String? recordedStatus;
   List<EstimateResponseItem>? recordedItems;
+  bool loseNextResponse = false;
 
   @override
   Future<EstimateResponseWorkspace> getWorkspace(String jobCardId) async =>
@@ -53,8 +54,19 @@ class _MemoryEstimateResponseRepository implements EstimateResponseRepository {
         items.every((item) => item.decision == EstimateItemDecision.approved)
         ? 'WORK_IN_PROGRESS'
         : 'ESTIMATE_REVISION_REQUIRED';
+    if (loseNextResponse) {
+      loseNextResponse = false;
+      throw StateError('RPC response was lost after commit');
+    }
     return recordedStatus!;
   }
+
+  @override
+  Future<String?> confirmRecordedResponse({
+    required String jobCardId,
+    required String customerName,
+    required List<EstimateResponseItem> items,
+  }) async => recordedItems?.length == items.length ? recordedStatus : null;
 }
 
 void main() {
@@ -90,6 +102,17 @@ void main() {
       expect(saved, isTrue);
       expect(controller.state.completedStatus, 'WORK_IN_PROGRESS');
       expect(repository.recordedItems, hasLength(2));
+    });
+
+    test('confirms saved decisions after an uncertain RPC response', () async {
+      repository.loseNextResponse = true;
+      await controller.load('job-1');
+      controller.setDecision('item-1', EstimateItemDecision.approved);
+      controller.setDecision('item-2', EstimateItemDecision.approved);
+
+      expect(await controller.save(), isTrue);
+      expect(controller.state.completedStatus, 'WORK_IN_PROGRESS');
+      expect(controller.state.errorMessage, isNull);
     });
 
     test(

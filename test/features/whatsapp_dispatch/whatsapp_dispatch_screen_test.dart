@@ -41,6 +41,13 @@ class _ScreenResponseRepository implements EstimateResponseRepository {
     required String customerName,
     required List<EstimateResponseItem> items,
   }) async => 'WORK_IN_PROGRESS';
+
+  @override
+  Future<String?> confirmRecordedResponse({
+    required String jobCardId,
+    required String customerName,
+    required List<EstimateResponseItem> items,
+  }) async => null;
 }
 
 void main() {

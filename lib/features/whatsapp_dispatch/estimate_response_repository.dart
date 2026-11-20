@@ -9,6 +9,11 @@ abstract class EstimateResponseRepository {
     required String customerName,
     required List<EstimateResponseItem> items,
   });
+  Future<String?> confirmRecordedResponse({
+    required String jobCardId,
+    required String customerName,
+    required List<EstimateResponseItem> items,
+  });
 }
 
 class SupabaseEstimateResponseRepository implements EstimateResponseRepository {
@@ -98,5 +103,41 @@ class SupabaseEstimateResponseRepository implements EstimateResponseRepository {
       throw StateError('The response was saved without a workflow status.');
     }
     return result;
+  }
+
+  @override
+  Future<String?> confirmRecordedResponse({
+    required String jobCardId,
+    required String customerName,
+    required List<EstimateResponseItem> items,
+  }) async {
+    final expectedStatus =
+        items.every((item) => item.decision == EstimateItemDecision.approved)
+        ? 'WORK_IN_PROGRESS'
+        : 'ESTIMATE_REVISION_REQUIRED';
+    final job = await client
+        .from('job_cards')
+        .select('status')
+        .eq('id', jobCardId)
+        .single();
+    if (job['status'] != expectedStatus) return null;
+
+    final rows = await client
+        .from('job_line_items')
+        .select('id, approval_status, approval_note, approval_decided_by')
+        .eq('job_card_id', jobCardId);
+    if (rows.length != items.length) return null;
+    final expectedById = {for (final item in items) item.id: item};
+    if (expectedById.length != items.length) return null;
+    for (final row in rows) {
+      final expected = expectedById[row['id'] as String];
+      if (expected == null ||
+          row['approval_status'] != expected.decision.databaseValue ||
+          (row['approval_note'] as String? ?? '') != expected.note.trim() ||
+          row['approval_decided_by'] != customerName.trim()) {
+        return null;
+      }
+    }
+    return expectedStatus;
   }
 }

@@ -161,6 +161,23 @@ class EstimateResponseController extends StateNotifier<EstimateResponseState> {
       state = state.copyWith(saving: false, completedStatus: status);
       return true;
     } catch (_) {
+      try {
+        final confirmedStatus = await repository.confirmRecordedResponse(
+          jobCardId: workspace.jobCardId,
+          customerName: state.customerName.trim(),
+          items: items,
+        );
+        if (confirmedStatus != null) {
+          state = state.copyWith(
+            saving: false,
+            completedStatus: confirmedStatus,
+            clearError: true,
+          );
+          return true;
+        }
+      } catch (_) {
+        // Keep the original message if persisted state cannot be confirmed.
+      }
       state = state.copyWith(
         saving: false,
         errorMessage: 'Customer response was not saved. Your entries are still here; retry when connected.',
