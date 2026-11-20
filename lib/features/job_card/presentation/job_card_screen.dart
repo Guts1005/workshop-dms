@@ -11,6 +11,7 @@ import '../../../ui_kit/widgets/sharp_card.dart';
 import '../../../ui_kit/widgets/status_chip.dart';
 import '../../billing/gst_engine.dart';
 import '../../vehicle/indian_number_plate.dart';
+import '../estimate_status.dart';
 
 /// Complete, Production-Grade Job Card & Estimate Builder Screen (Page 5)
 /// Matches luxury Rivian + MG i-SMART automotive styling:
@@ -30,6 +31,8 @@ class _JobCardScreenState extends State<JobCardScreen> {
   late String _regNumber;
   late String _jobCardId;
   bool _isApproved = false;
+  bool _isSent = false;
+  String _jobStatus = 'RECEIVED';
   String _vehicleDetails = 'Loading vehicle detailsâ€¦';
   String _customerDetails = 'Loading customer detailsâ€¦';
   String _odometerDetails = 'Loading odometerâ€¦';
@@ -68,7 +71,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
       final job = await client
           .from('job_cards')
           .select(
-            'id, vehicle_id, customer_id, expected_delivery, intake_odometer_km, customer_approved_at',
+            'id, vehicle_id, customer_id, expected_delivery, intake_odometer_km, status, customer_approved_at, estimate_sent_at',
           )
           .eq('id', _jobCardId)
           .single();
@@ -117,6 +120,12 @@ class _JobCardScreenState extends State<JobCardScreen> {
             ? 'Not set'
             : DateFormat('dd MMM yyyy, hh:mm a').format(date);
         _isApproved = job['customer_approved_at'] != null;
+        _jobStatus = job['status'] as String? ?? 'RECEIVED';
+        _isSent =
+            job['estimate_sent_at'] != null ||
+            _jobStatus == 'ESTIMATE_SENT' ||
+            _jobStatus == 'WAITING_APPROVAL' ||
+            _isApproved;
         _labourItems
           ..clear()
           ..addAll(items.where((item) => item.type == LineItemType.labour));
@@ -136,7 +145,12 @@ class _JobCardScreenState extends State<JobCardScreen> {
   }
 
   Future<void> _addLineItem(LineItemType type) async {
-    if (_isApproved) return;
+    if (isEstimateLocked(
+      jobStatus: _jobStatus,
+      customerApproved: _isApproved,
+    )) {
+      return;
+    }
     final description = TextEditingController();
     final code = TextEditingController(
       text: type == LineItemType.labour ? '998714' : '',
@@ -240,24 +254,58 @@ class _JobCardScreenState extends State<JobCardScreen> {
               .single())['workshop_id']
           as String;
 
-  Future<void> _recordApproval() async {
-    if (_computeSummary().grandTotalPaise <= 0 || _isApproved) return;
+  Future<void> _markEstimateSent() async {
+    if (_computeSummary().grandTotalPaise <= 0 || _isSent || _isApproved) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mark estimate as sent?'),
+        content: const Text(
+          'Confirm that you shared this estimate with the customer. The estimate will be locked while you wait for their response.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm sent'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     try {
       final client = Supabase.instance.client;
-      await client
+      final now = DateTime.now().toUtc().toIso8601String();
+      final updatedRows = await client
           .from('job_cards')
           .update({
-            'customer_approved_at': DateTime.now().toUtc().toIso8601String(),
-            'customer_approved_by':
+            'estimate_sent_at': now,
+            'estimate_sent_by':
                 client.auth.currentUser?.email ?? 'Workshop user',
-            'status': 'WAITING_APPROVAL',
+            'status': 'ESTIMATE_SENT',
+            'updated_at': now,
           })
-          .eq('id', _jobCardId);
-      if (mounted) setState(() => _isApproved = true);
+          .eq('id', _jobCardId)
+          .eq('status', 'INSPECTION_PENDING')
+          .select('id');
+      if (updatedRows.isEmpty) {
+        throw StateError('This estimate can no longer be marked as sent.');
+      }
+      if (mounted) {
+        setState(() {
+          _isSent = true;
+          _jobStatus = 'ESTIMATE_SENT';
+        });
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not record approval: $error')),
+          SnackBar(content: Text('Could not mark estimate as sent: $error')),
         );
       }
     }
@@ -469,12 +517,15 @@ class _JobCardScreenState extends State<JobCardScreen> {
             ],
           ),
           StatusChip(
-            label: _isApproved
-                ? 'APPROVAL RECORDED'
-                : (_labourItems.isEmpty && _partsItems.isEmpty
-                      ? 'NO ESTIMATE ITEMS'
-                      : 'DRAFT ESTIMATE'),
-            icon: _isApproved ? Icons.verified : Icons.pending_outlined,
+            label: estimateStatusLabel(
+              jobStatus: _jobStatus,
+              hasEstimateItems:
+                  _labourItems.isNotEmpty || _partsItems.isNotEmpty,
+              customerApproved: _isApproved,
+            ),
+            icon: _isApproved || _isSent
+                ? Icons.pending_outlined
+                : Icons.edit_note_outlined,
             type: _isApproved ? StatusType.ok : StatusType.neutral,
           ),
         ],
@@ -630,7 +681,10 @@ class _JobCardScreenState extends State<JobCardScreen> {
               padding: EdgeInsets.all(12),
               child: Text('No labour has been added to this estimate.'),
             ),
-          if (!_isApproved)
+          if (!isEstimateLocked(
+            jobStatus: _jobStatus,
+            customerApproved: _isApproved,
+          ))
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -718,7 +772,10 @@ class _JobCardScreenState extends State<JobCardScreen> {
               padding: EdgeInsets.all(12),
               child: Text('No parts have been added to this estimate.'),
             ),
-          if (!_isApproved)
+          if (!isEstimateLocked(
+            jobStatus: _jobStatus,
+            customerApproved: _isApproved,
+          ))
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -825,7 +882,7 @@ class _JobCardScreenState extends State<JobCardScreen> {
   /// Quick Action Buttons Card
   Widget _buildQuickActionsCard(String grandTotalRupees) {
     return SharpCard(
-      title: 'CUSTOMER APPROVAL',
+      title: 'CUSTOMER REVIEW',
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -860,33 +917,53 @@ class _JobCardScreenState extends State<JobCardScreen> {
           ),
           const SizedBox(height: 10.0),
 
-          // Record approval after receiving it from the customer.
+          // Mark sent only after the customer has received the current estimate.
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 13.0),
               shape: const RoundedRectangleBorder(
                 borderRadius: AppTokens.cardRadius,
               ),
-              side: const BorderSide(color: AppTokens.green, width: 1.2),
+              side: const BorderSide(color: AppTokens.borderSolid, width: 1.2),
             ),
             icon: const Icon(
-              Icons.verified_user,
-              color: AppTokens.green,
+              Icons.send_outlined,
+              color: AppTokens.textPrimary,
               size: 18.0,
             ),
             label: Text(
               _isApproved
-                  ? 'CUSTOMER APPROVAL VERIFIED'
-                  : 'RECORD CUSTOMER APPROVAL',
+                  ? 'CUSTOMER APPROVAL RECORDED'
+                  : _isSent
+                  ? 'WAITING FOR CUSTOMER RESPONSE'
+                  : isEstimateLocked(
+                      jobStatus: _jobStatus,
+                      customerApproved: _isApproved,
+                    )
+                  ? 'ESTIMATE LOCKED'
+                  : 'MARK ESTIMATE AS SENT',
               style: GoogleFonts.inter(
                 fontSize: 14.0,
                 fontWeight: FontWeight.bold,
-                color: AppTokens.green,
+                color: AppTokens.textPrimary,
               ),
             ),
-            onPressed: _isApproved || _computeSummary().grandTotalPaise == 0
+            onPressed:
+                isEstimateLocked(
+                      jobStatus: _jobStatus,
+                      customerApproved: _isApproved,
+                    ) ||
+                    _computeSummary().grandTotalPaise == 0
                 ? null
-                : _recordApproval,
+                : _markEstimateSent,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _isSent ? 'Estimate items are locked until the customer responds.' : 'Copy the summary, share it with the customer, then mark it as sent.',
+            style: AppTokens.fontBody(
+              fontSize: 13,
+              color: AppTokens.textSecondary,
+            ),
           ),
           const SizedBox(height: 10.0),
 
