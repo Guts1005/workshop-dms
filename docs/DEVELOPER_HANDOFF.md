@@ -1,7 +1,7 @@
 # Workshop DMS developer handoff
 
 **Status date:** 21 November 2026  
-**Current state:** Active prototype with Supabase-backed workflows. All 16 repository migrations are applied to the configured Supabase project; the `workshop-checkin` bucket is private and its workshop-scoped Storage policies are present. Authenticated end-to-end testing, second-workshop isolation testing, and device camera/gallery testing remain. This is not yet a production release.
+**Current state:** Active prototype with Supabase-backed workflows. All 17 repository migrations are applied to the configured Supabase project; the `workshop-checkin` bucket is private and its workshop-scoped Storage policies are present. Authenticated end-to-end testing, second-workshop isolation testing, and device camera/gallery testing remain. This is not yet a production release.
 
 ## What is implemented
 
@@ -14,18 +14,18 @@
 - Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with persisted line-item creation, estimate-sent state, and revision editing. WhatsApp launch requires customer consent; the customer response screen captures per-item approval, decline, or revision requests. A server RPC writes audit snapshots and advances only unanimous approval to work in progress. Database grants and row policies prevent direct lifecycle changes or estimate edits after dispatch.
 - Vehicle history/passport view and GST helpers exist. Reminder calculations use recorded odometer history only, but the reminders route and reminder persistence/dispatch are not complete.
-- Sixteen SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, work-progress history, quality sign-off, persisted GST invoices, payment ledger, audited delivery, inventory, idempotent application intake and condition signoff, and restricted trigger-function access. All are applied to the configured Supabase project.
+- Seventeen SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, work-progress history, quality sign-off, persisted GST invoices, payment ledger, audited delivery, inventory, idempotent application intake and condition signoff, restricted trigger-function access, and idempotent delivery retries. All are applied to the configured Supabase project.
 - Work-in-progress page shows approved estimate scope and appends technician progress, parts-delay, and customer-update notes through an audited RPC. It does not change job lifecycle status; QC is a separate sign-off gate.
 - QC screen captures completed-work confirmation, four vehicle checks, and road-test result. A failed check remains in service; only an audited pass advances to `QC_PASSED`.
 - Invoice screen issues one immutable tax invoice per QC-passed job for a GST-registered supplier, snapshots the approved estimate and billing identities, allocates a per-workshop financial-year number, calculates paise totals in a database RPC, and generates a printable PDF. State codes determine the intra-state or inter-state tax split. Rates and place-of-supply classification need review by the workshop's tax adviser; unregistered bill-of-supply documents and IRN/e-invoice submission are not implemented. Invoice fields follow the [CBIC tax invoice rules](https://cbic-gst.gov.in/gst-invoice-rules.html).
-- Payment and handover screen records append-only payments against an issued invoice, reconciles the balance, and allows delivery after full payment. Payment requests carry idempotency IDs to avoid duplicate entries after a lost response. A workshop owner can approve outstanding credit with a required recorded reason.
+- Payment and handover screen records append-only payments against an issued invoice, reconciles the balance, and allows delivery after full payment. Payment requests carry idempotency IDs to avoid duplicate entries after a lost response. Invoice and delivery screens confirm commits after a lost RPC response; the delivery RPC returns the original timestamp for a repeated request. A workshop owner can approve outstanding credit with a required recorded reason.
 - Inventory screen keeps parts, supplier records, on-hand quantities, low-stock thresholds, and append-only stock movement history scoped to the workshop. Receipt and count adjustment flows are available from the home shortcut. Work-in-progress exposes issue/return controls limited to parts and quantities on the approved estimate.
 
 ## Remaining work, in priority order
 
 ### P0: Run authenticated end-to-end and isolation checks
 
-- All sixteen migrations are applied to the configured project. Live schema inspection confirms the later workflow tables exist, RLS is enabled, `workshop-checkin` is private, and the bucket has authenticated select/insert/update/delete policies. A duplicate-safe signoff and intake RPC are installed.
+- All seventeen migrations are applied to the configured project. Live schema inspection confirms the later workflow tables exist, RLS is enabled, `workshop-checkin` is private, and the bucket has authenticated select/insert/update/delete policies. Duplicate-safe intake, signoff, and delivery RPCs are installed.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
 - Exercise signup/sign-in, workshop creation, customer/vehicle creation, application creation, six mandatory check-in photos, optional photo selection, finding save/reload, report sign-off, and application progress from a clean account.
 - Verify upload, signed-photo viewing, deletion cleanup, email-confirmation settings, and RLS behavior for a second workshop account. Database-level policies are present, but no authenticated app session was used in this pass.
@@ -76,14 +76,14 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 - Supabase is the live repository path for the current intake, applications, bay capture, and condition map modules.
 - `env.json` is intentionally ignored. `env.example.json` contains placeholders and is safe to share.
-- `supabase/migrations/` is the source of truth for the database schema in this repo. The configured Supabase project has all sixteen migrations applied as of 21 November 2026; check migration state before applying to another environment.
+- `supabase/migrations/` is the source of truth for the database schema in this repo. The configured Supabase project has all seventeen migrations applied as of 21 November 2026; check migration state before applying to another environment.
 - Do not use real customer information in screenshots, fixtures, or test data.
 - `tasks/plan.md` and the original task checklist were written before the current implementation and are historical requirements, not reliable completion tracking. Use this handoff and `BUILD_PROGRESS.md` for current status.
 
 ## Verification already completed
 
-- Local Flutter verification: the focused condition signoff and intake suites passed, all 134 tests passed, and `flutter analyze` reported no issues. The release web build also succeeded.
-- Live Supabase inspection confirmed all sixteen migrations, all workflow tables with RLS enabled, the private photo bucket, and workshop-scoped Storage policies. The trigger-only approval guard cannot be called through RPC; the authenticated signoff RPC remains callable and anon cannot call it. Supabase's remaining security warnings are for intended authenticated, input-validating RPCs; leaked-password protection remains disabled in project Auth settings.
+- Local Flutter verification after the retry-recovery changes: all 138 tests passed, `flutter analyze` reported no issues, and the release web build succeeded. Focused invoice/payment suites cover lost invoice, payment, refresh, and delivery responses.
+- Live Supabase inspection confirmed all seventeen migrations, all workflow tables with RLS enabled, the private photo bucket, and workshop-scoped Storage policies. The trigger-only approval guard cannot be called through RPC; the authenticated signoff RPC remains callable and anon cannot call it. Supabase's remaining security warnings are for intended authenticated, input-validating RPCs; leaked-password protection remains disabled in project Auth settings.
 - Authenticated RPC behavior, actual photo upload/view/delete, second-workshop isolation, and physical-device camera/gallery permissions remain unverified. No test customer, job, or photo was inserted into the live project.
 
 ## First recommended developer session

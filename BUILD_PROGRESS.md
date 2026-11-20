@@ -2,7 +2,7 @@
 
 **Updated:** 21 November 2026
 
-Workshop DMS is an active prototype. All 16 repository migrations are now applied to the configured Supabase project. The private check-in photo bucket and workshop-scoped Storage policies are present. The core intake-to-condition path still needs an authenticated end-to-end run, including device camera/gallery behavior. Reminders and durable offline sync remain incomplete.
+Workshop DMS is an active prototype. All 17 repository migrations are now applied to the configured Supabase project. The private check-in photo bucket and workshop-scoped Storage policies are present. The core intake-to-condition path still needs an authenticated end-to-end run, including device camera/gallery behavior. Reminders and durable offline sync remain incomplete.
 
 ## Current snapshot
 
@@ -19,7 +19,7 @@ Workshop DMS is an active prototype. All 16 repository migrations are now applie
 | Inventory | Implemented; authenticated live QA pending | Workshop-scoped parts, suppliers, low-stock thresholds, stock receipt and adjustment history are implemented. Approved-job issue/return RPCs enforce estimate quantity limits. |
 | QC / road test | Implemented; authenticated live QA pending | Requires repair-complete confirmation, four explicit checks, and a road-test result or reason. Failed QC keeps work in progress; audited pass moves to `QC_PASSED`. |
 | GST invoice | Implemented; authenticated live QA pending | For GST-registered suppliers, uses approved-estimate rates, creates an immutable snapshot and FY serial in a database RPC, computes state-based tax split, and prints a PDF. Bill-of-supply and IRN submission are not implemented; tax classification needs accountant verification. |
-| Payment / delivery | Implemented; authenticated live QA pending | Payment ledger, balance checks, owner-only audited credit override, and server-enforced handover are implemented. |
+| Payment / delivery | Implemented; authenticated live QA pending | Payment ledger, balance checks, owner-only audited credit override, and server-enforced handover are implemented. Invoice, payment, and delivery flows recover safely from lost RPC responses; delivery retries are idempotent in the database. |
 | Vehicle passport / reminders | Partial | Internal history exists. Reminder mileage projections require two valid readings and customer messages avoid unsupported repair suggestions; reminders route, persistence, and dispatch remain incomplete. Public QR/passport is also incomplete. |
 | Offline-first sync | Not implemented | Current outbox service is in-memory and is not wired as a durable background worker. |
 

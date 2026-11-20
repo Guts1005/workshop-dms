@@ -55,6 +55,7 @@ class PaymentController extends StateNotifier<PaymentState> {
   final _uuid = const Uuid();
   String _jobCardId = '';
   String? _pendingPaymentRequestId;
+  String? _pendingPaymentFingerprint;
 
   Future<void> load(String jobCardId) async {
     _jobCardId = jobCardId;
@@ -94,16 +95,31 @@ class PaymentController extends StateNotifier<PaymentState> {
       return false;
     }
     state = state.copyWith(saving: true, clearError: true, clearSuccess: true);
+    final fingerprint = [
+      _jobCardId,
+      paise,
+      method.databaseValue,
+      reference.trim(),
+    ].join('|');
+    if (_pendingPaymentRequestId == null ||
+        _pendingPaymentFingerprint != fingerprint) {
+      _pendingPaymentRequestId = _uuid.v4();
+      _pendingPaymentFingerprint = fingerprint;
+    }
     try {
       await repository.record(
         jobCardId: _jobCardId,
         amountPaise: paise,
         method: method,
         reference: reference,
-        requestId: _pendingPaymentRequestId ??= _uuid.v4(),
+        requestId: _pendingPaymentRequestId!,
       );
-      _pendingPaymentRequestId = null;
       await load(_jobCardId);
+      if (state.errorMessage != null) {
+        throw StateError('Payment was recorded but could not be reloaded.');
+      }
+      _pendingPaymentRequestId = null;
+      _pendingPaymentFingerprint = null;
       state = state.copyWith(successMessage: 'Payment recorded.');
       return true;
     } catch (_) {
@@ -134,9 +150,26 @@ class PaymentController extends StateNotifier<PaymentState> {
         creditOverrideReason: creditOverrideReason,
       );
       await load(_jobCardId);
+      if (state.errorMessage != null) {
+        throw StateError('Delivery was recorded but could not be reloaded.');
+      }
       state = state.copyWith(successMessage: 'Vehicle handover recorded.');
       return true;
     } catch (_) {
+      try {
+        final refreshedWorkspace = await repository.load(_jobCardId);
+        if (refreshedWorkspace.deliveredAt != null) {
+          state = state.copyWith(
+            workspace: refreshedWorkspace,
+            saving: false,
+            clearError: true,
+            successMessage: 'Vehicle handover recorded.',
+          );
+          return true;
+        }
+      } catch (_) {
+        // Preserve the actionable error below if the status cannot be confirmed.
+      }
       state = state.copyWith(
         saving: false,
         errorMessage: 'Delivery was not recorded. Refresh and try again.',

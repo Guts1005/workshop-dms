@@ -97,6 +97,23 @@ class InvoiceController extends StateNotifier<InvoiceState> {
       );
       return true;
     } catch (_) {
+      // The insert may have committed even if the RPC response was lost.
+      // Reload the immutable invoice snapshot before telling the user to retry.
+      try {
+        final refreshedWorkspace = await repository.load(_jobCardId);
+        final existingInvoice = refreshedWorkspace.existingInvoice;
+        if (existingInvoice != null) {
+          state = state.copyWith(
+            workspace: refreshedWorkspace,
+            issuedInvoice: existingInvoice,
+            issuing: false,
+            clearError: true,
+          );
+          return true;
+        }
+      } catch (_) {
+        // Keep the original actionable message if the invoice cannot be confirmed.
+      }
       state = state.copyWith(
         issuing: false,
         errorMessage: 'Invoice was not issued. Check the details and retry.',

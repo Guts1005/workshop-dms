@@ -78,6 +78,74 @@ void main() {
     });
 
     test(
+      'uses a new request id when retrying changed payment details',
+      () async {
+        final repository = _FakePaymentRepository()..failAfterNextCommit = true;
+        final controller = PaymentController(repository: repository);
+        await controller.load('job-1');
+
+        expect(
+          await controller.record(
+            amountText: '42.75',
+            method: PaymentMethod.cash,
+            reference: 'receipt-7',
+          ),
+          isFalse,
+        );
+        final firstRequestId = repository.lastRequestId;
+        expect(
+          await controller.record(
+            amountText: '57.25',
+            method: PaymentMethod.cash,
+            reference: 'receipt-8',
+          ),
+          isTrue,
+        );
+
+        expect(repository.lastRequestId, isNot(firstRequestId));
+        expect(repository.paidPaise, 10000);
+      },
+    );
+
+    test('retains payment request id when post-commit refresh fails', () async {
+      final repository = _FakePaymentRepository();
+      final controller = PaymentController(repository: repository);
+      await controller.load('job-1');
+      repository.failNextLoad = true;
+
+      expect(
+        await controller.record(
+          amountText: '42.75',
+          method: PaymentMethod.cash,
+          reference: 'receipt-7',
+        ),
+        isFalse,
+      );
+      final firstRequestId = repository.lastRequestId;
+      expect(
+        await controller.record(
+          amountText: '42.75',
+          method: PaymentMethod.cash,
+          reference: 'receipt-7',
+        ),
+        isTrue,
+      );
+
+      expect(repository.lastRequestId, firstRequestId);
+      expect(repository.paidPaise, 4275);
+    });
+
+    test('recovers when delivery commits but response is lost', () async {
+      final repository = _FakePaymentRepository()..failAfterNextDelivery = true;
+      final controller = PaymentController(repository: repository);
+      await controller.load('job-1');
+
+      expect(await controller.deliver('approved credit'), isTrue);
+      expect(controller.state.workspace?.deliveredAt, isNotNull);
+      expect(controller.state.errorMessage, isNull);
+    });
+
+    test(
       'only owner can hand over with an outstanding balance and reason',
       () async {
         final repository = _FakePaymentRepository(isOwner: false);
@@ -110,29 +178,38 @@ class _FakePaymentRepository implements PaymentRepository {
   String? lastRequestId;
   int paidPaise = 0;
   bool failAfterNextCommit = false;
+  bool failAfterNextDelivery = false;
+  bool failNextLoad = false;
+  DateTime? deliveredAt;
   final _requests = <String>{};
 
   @override
-  Future<PaymentWorkspace> load(String jobCardId) async => PaymentWorkspace(
-    jobCardId: jobCardId,
-    registrationNumber: 'KA01AB1234',
-    customerName: 'Sample Customer',
-    invoiceNumber: 'INV/2026-27/00001',
-    invoiceTotalPaise: 10000,
-    payments: [
-      if (paidPaise > 0)
-        PaymentEntry(
-          amountPaise: paidPaise,
-          method: lastMethod ?? PaymentMethod.cash,
-          reference: '',
-          receivedBy: 'advisor',
-          createdAt: DateTime.utc(2026),
-        ),
-    ],
-    isOwner: isOwner,
-    deliveredAt: null,
-    creditOverrideReason: null,
-  );
+  Future<PaymentWorkspace> load(String jobCardId) async {
+    if (failNextLoad) {
+      failNextLoad = false;
+      throw StateError('Refresh failed');
+    }
+    return PaymentWorkspace(
+      jobCardId: jobCardId,
+      registrationNumber: 'KA01AB1234',
+      customerName: 'Sample Customer',
+      invoiceNumber: 'INV/2026-27/00001',
+      invoiceTotalPaise: 10000,
+      payments: [
+        if (paidPaise > 0)
+          PaymentEntry(
+            amountPaise: paidPaise,
+            method: lastMethod ?? PaymentMethod.cash,
+            reference: '',
+            receivedBy: 'advisor',
+            createdAt: DateTime.utc(2026),
+          ),
+      ],
+      isOwner: isOwner,
+      deliveredAt: deliveredAt,
+      creditOverrideReason: null,
+    );
+  }
 
   @override
   Future<void> record({
@@ -159,5 +236,10 @@ class _FakePaymentRepository implements PaymentRepository {
     required String creditOverrideReason,
   }) async {
     deliveryCalls++;
+    deliveredAt = DateTime.utc(2026, 11, 21);
+    if (failAfterNextDelivery) {
+      failAfterNextDelivery = false;
+      throw StateError('Response lost after database commit');
+    }
   }
 }

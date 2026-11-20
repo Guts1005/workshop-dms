@@ -6,6 +6,7 @@ import 'package:workshop_dms/features/billing/invoice_repository.dart';
 
 class _MemoryInvoiceRepository implements InvoiceRepository {
   IssuedInvoice? issued;
+  bool loseNextIssueResponse = false;
 
   @override
   Future<InvoiceWorkspace> load(String jobCardId) async => InvoiceWorkspace(
@@ -57,7 +58,12 @@ class _MemoryInvoiceRepository implements InvoiceRepository {
       grandTotalPaise: 11800,
       lines: const [],
     );
-    return issued!;
+    final saved = issued!;
+    if (loseNextIssueResponse) {
+      loseNextIssueResponse = false;
+      throw StateError('Response lost after database commit');
+    }
+    return saved;
   }
 }
 
@@ -104,5 +110,26 @@ void main() {
       );
       expect(controller.state.issuedInvoice?.grandTotalPaise, 11800);
     });
+
+    test(
+      'recovers when invoice commit succeeds but response is lost',
+      () async {
+        repository.loseNextIssueResponse = true;
+        await controller.load('job-1');
+        const details = InvoiceIssueDetails(
+          supplierName: 'Workshop One',
+          supplierAddress: '1 Main Road, Bengaluru',
+          supplierGstin: '29ABCDE1234F1Z5',
+          supplierStateCode: '29',
+          recipientAddress: '2 Market Road, Bengaluru',
+          recipientGstin: '',
+          placeOfSupplyStateCode: '29',
+        );
+
+        expect(await controller.issue(details), isTrue);
+        expect(controller.state.issuedInvoice?.id, 'invoice-1');
+        expect(controller.state.errorMessage, isNull);
+      },
+    );
   });
 }
