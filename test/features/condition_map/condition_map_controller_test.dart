@@ -276,6 +276,24 @@ void main() {
         final firstSignOff = retryRepository.submittedSignOffs.single;
         expect(firstResult, isFalse);
         expect(retryController.state.status, ConditionMapStatus.error);
+        expect(
+          () => retryController.addPin(
+            view: ConditionViewDirection.front,
+            nx: 0.5,
+            ny: 0.5,
+            type: DefectType.dent,
+            severity: DefectSeverity.minor,
+          ),
+          throwsStateError,
+        );
+
+        final changedSignerResult = await retryController.confirmPreWorkSignOff(
+          customerName: 'Rohan Sharma',
+          customerPhone: '9876543210',
+          advisorName: 'Another Advisor',
+        );
+        expect(changedSignerResult, isFalse);
+        expect(retryRepository.submittedSignOffs, hasLength(1));
 
         final retryResult = await retryController.confirmPreWorkSignOff(
           customerName: 'Rohan Sharma',

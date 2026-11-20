@@ -39,6 +39,9 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     required String jobCardId,
     required String registrationNumber,
   }) async {
+    if (state.jobCardId != jobCardId) {
+      _pendingSignOff = null;
+    }
     state = state.copyWith(
       jobCardId: jobCardId,
       registrationNumber: registrationNumber,
@@ -94,11 +97,7 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     Uint8List? photoBytes,
     String? photoContentType,
   }) async {
-    if (state.isLocked) {
-      throw StateError(
-        'Condition map is signed off and locked against modifications.',
-      );
-    }
+    _ensureEditable();
 
     final nowId = DateTime.now().microsecondsSinceEpoch;
     final newId = nowId > _lastPinId ? nowId : _lastPinId + 1;
@@ -138,9 +137,7 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
   }
 
   Future<void> updatePin(ConditionPin updatedPin) async {
-    if (state.isLocked) {
-      throw StateError('Condition map is locked. Cannot edit pins.');
-    }
+    _ensureEditable();
 
     final savedPin = await repository.savePin(
       jobCardId: state.jobCardId,
@@ -158,9 +155,7 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
   }
 
   Future<void> deletePin(int pinId) async {
-    if (state.isLocked) {
-      throw StateError('Condition map is locked. Cannot delete pins.');
-    }
+    _ensureEditable();
 
     await repository.deletePin(jobCardId: state.jobCardId, pinId: pinId);
 
@@ -193,6 +188,14 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
     return null;
   }
 
+  void _ensureEditable() {
+    if (state.isLocked || _pendingSignOff != null) {
+      throw StateError(
+        'This condition report is signed or awaiting sign-off confirmation.',
+      );
+    }
+  }
+
   Future<bool> confirmPreWorkSignOff({
     required String customerName,
     required String customerPhone,
@@ -208,10 +211,20 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
       return false;
     }
 
+    final pending = _pendingSignOff;
+    if (pending != null &&
+        (pending.customerName != customerName.trim() ||
+            pending.customerPhone != customerPhone.trim() ||
+            pending.advisorName != advisorName.trim())) {
+      state = state.copyWith(
+        errorMessage: 'Retry with the same customer and advisor details to safely confirm the saved sign-off.',
+      );
+      return false;
+    }
+
     state = state.copyWith(status: ConditionMapStatus.saving, clearError: true);
 
     try {
-      final pending = _pendingSignOff;
       final now = pending?.signedAt ?? DateTime.now();
       final checksum = PreWorkSignOff.generateChecksum(
         jobCardId: state.jobCardId,
@@ -220,22 +233,24 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
         customerPhone: customerPhone,
         timestamp: now,
       );
+      if (pending != null && pending.sha256Checksum != checksum) {
+        state = state.copyWith(
+          status: ConditionMapStatus.error,
+          errorMessage: 'The condition details changed after sign-off began. Reload this report before continuing.',
+        );
+        return false;
+      }
 
       final signOff =
-          pending != null &&
-              pending.customerName == customerName.trim() &&
-              pending.customerPhone == customerPhone.trim() &&
-              pending.advisorName == advisorName.trim() &&
-              pending.sha256Checksum == checksum
-          ? pending
-          : PreWorkSignOff(
-              customerName: customerName.trim(),
-              customerPhone: customerPhone.trim(),
-              advisorName: advisorName.trim(),
-              signedAt: now,
-              customerAcknowledged: true,
-              sha256Checksum: checksum,
-            );
+          pending ??
+          PreWorkSignOff(
+            customerName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            advisorName: advisorName.trim(),
+            signedAt: now,
+            customerAcknowledged: true,
+            sha256Checksum: checksum,
+          );
       _pendingSignOff = signOff;
 
       await repository.saveSignOff(
