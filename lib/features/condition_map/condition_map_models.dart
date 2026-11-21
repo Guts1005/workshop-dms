@@ -146,20 +146,30 @@ class PreWorkSignOff {
     required String customerPhone,
     required DateTime timestamp,
   }) {
-    final payload = StringBuffer()
-      ..write('JC:$jobCardId|')
-      ..write('REG:$registrationNumber|')
-      ..write('PHONE:$customerPhone|')
-      ..write('PINS:');
+    final canonicalPins = pins.toList()
+      ..sort((first, second) => first.id.compareTo(second.id));
+    final payload = jsonEncode({
+      'jobCardId': jobCardId,
+      'registrationNumber': registrationNumber,
+      'customerPhone': customerPhone,
+      'signedAt': timestamp.toUtc().toIso8601String(),
+      'findings': canonicalPins
+          .map(
+            (pin) => {
+              'id': pin.id,
+              'area': pin.view.name,
+              'type': pin.type.name,
+              'severity': pin.severity.name,
+              'x': pin.normalizedX,
+              'y': pin.normalizedY,
+              'note': pin.note,
+              'photoPath': pin.photoPath,
+            },
+          )
+          .toList(),
+    });
 
-    for (final p in pins) {
-      payload.write(
-        '${p.id}-${p.view.name}-${p.type.name}-${p.severity.name}-(${p.normalizedX.toStringAsFixed(3)},${p.normalizedY.toStringAsFixed(3)})|',
-      );
-    }
-    payload.write('TIME:${timestamp.toIso8601String()}');
-
-    return sha256.convert(utf8.encode(payload.toString())).toString();
+    return sha256.convert(utf8.encode(payload)).toString();
   }
 
   Map<String, dynamic> toJson() => {

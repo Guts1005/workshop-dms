@@ -63,6 +63,79 @@ class LoseFirstFindingResponseRepository extends LocalConditionMapRepository {
 }
 
 void main() {
+  group('PreWorkSignOff checksum', () {
+    final signedAt = DateTime.utc(2026, 11, 21, 10);
+
+    ConditionPin finding({String? note, String? photoPath}) => ConditionPin(
+      id: 42,
+      view: ConditionViewDirection.front,
+      normalizedX: .25,
+      normalizedY: .75,
+      type: DefectType.dent,
+      severity: DefectSeverity.moderate,
+      note: note,
+      photoPath: photoPath,
+      createdAt: signedAt,
+    );
+
+    String checksum(ConditionPin pin) => PreWorkSignOff.generateChecksum(
+      jobCardId: 'job-42',
+      registrationNumber: 'KA01AB1234',
+      pins: [pin],
+      customerPhone: '9876543210',
+      timestamp: signedAt,
+    );
+
+    test('covers finding notes and attached photo paths', () {
+      final original = checksum(
+        finding(
+          note: 'Small dent near headlamp',
+          photoPath: 'photo/hash-a.jpg',
+        ),
+      );
+
+      expect(
+        checksum(
+          finding(note: 'Small dent at bumper', photoPath: 'photo/hash-a.jpg'),
+        ),
+        isNot(original),
+      );
+      expect(
+        checksum(
+          finding(
+            note: 'Small dent near headlamp',
+            photoPath: 'photo/hash-b.jpg',
+          ),
+        ),
+        isNot(original),
+      );
+    });
+
+    test('is independent of finding list order', () {
+      final first = finding(note: 'First');
+      final second = ConditionPin(
+        id: 8,
+        view: ConditionViewDirection.rear,
+        normalizedX: .5,
+        normalizedY: .4,
+        type: DefectType.surfaceScuff,
+        severity: DefectSeverity.minor,
+        note: 'Second',
+        createdAt: signedAt,
+      );
+
+      String hash(List<ConditionPin> pins) => PreWorkSignOff.generateChecksum(
+        jobCardId: 'job-42',
+        registrationNumber: 'KA01AB1234',
+        pins: pins,
+        customerPhone: '9876543210',
+        timestamp: signedAt,
+      );
+
+      expect(hash([first, second]), hash([second, first]));
+    });
+  });
+
   group('ConditionMapController & Repository Unit Tests', () {
     late MockRemoteSyncClient mockRemoteClient;
     late OutboxSyncService outboxService;
