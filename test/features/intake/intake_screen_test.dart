@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:workshop_dms/features/intake/presentation/intake_controller.dart';
@@ -59,6 +59,75 @@ void main() {
       expect(find.text('Vehicle model is required'), findsOneWidget);
       expect(find.text('Odometer reading is required'), findsOneWidget);
     });
+
+    testWidgets(
+      'clears stale matched vehicle and customer details after changing identifiers',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final repository = LocalIntakeRepository();
+        await repository.submitIntake(
+          IntakeFormState(
+            registrationNumber: 'KA01AB1234',
+            customerPhone: '9876543210',
+            customerName: 'Existing Customer',
+            make: 'HONDA',
+            model: 'City ZX',
+            odometer: '25000',
+            requestedWork: 'Inspect brakes',
+            expectedDelivery: DateTime.now().add(const Duration(days: 1)),
+          ),
+          requestId: 'seed-existing-record',
+        );
+
+        await tester.pumpWidget(createIntakeScreen(customRepo: repository));
+        await tester.pumpAndSettle();
+
+        final registrationField = find.byKey(const Key('input_registration'));
+        await tester.enterText(registrationField, 'KA01AB1234');
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('input_model')))
+              .controller!
+              .text,
+          'City ZX',
+        );
+
+        await tester.enterText(registrationField, 'DL01AB1234');
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('input_model')))
+              .controller!
+              .text,
+          isEmpty,
+        );
+
+        final phoneField = find.byKey(const Key('input_phone'));
+        await tester.enterText(phoneField, '9876543210');
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('input_name')))
+              .controller!
+              .text,
+          'Existing Customer',
+        );
+
+        await tester.enterText(phoneField, '9876500000');
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('input_name')))
+              .controller!
+              .text,
+          isEmpty,
+        );
+      },
+    );
 
     testWidgets(
       'Unknown vehicle does not show invented customer or service records',

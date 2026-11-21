@@ -49,20 +49,19 @@ class _IntakeScreenState extends ConsumerState<IntakeScreen> {
         ),
       );
     }
-    if (_vinController.text != state.vin && state.vin.isNotEmpty) {
+    if (_vinController.text != state.vin) {
       _vinController.value = TextEditingValue(
         text: state.vin,
         selection: TextSelection.collapsed(offset: state.vin.length),
       );
     }
-    if (_modelController.text != state.model && state.model.isNotEmpty) {
+    if (_modelController.text != state.model) {
       _modelController.value = TextEditingValue(
         text: state.model,
         selection: TextSelection.collapsed(offset: state.model.length),
       );
     }
-    if (_nameController.text != state.customerName &&
-        state.customerName.isNotEmpty) {
+    if (_nameController.text != state.customerName) {
       _nameController.value = TextEditingValue(
         text: state.customerName,
         selection: TextSelection.collapsed(offset: state.customerName.length),
