@@ -1,11 +1,11 @@
 # Workshop DMS developer handoff
 
 **Status date:** 21 November 2026  
-**Current state:** Active prototype with Supabase-backed workflows. All 17 repository migrations are applied to the configured project; the workshop-checkin bucket is private and its workshop-scoped Storage policies are present. A labeled synthetic QA application was created and advanced through intake to the condition report. Finding/photo save and sign-off still need a live retest. Six-photo camera capture, second-workshop isolation testing, and device camera/gallery testing remain. This is not yet a production release.
+**Current state:** Active prototype with Supabase-backed workflows. The 17 migrations present at the last live inspection are applied; reminder migration `202611210002_service_reminder_settings.sql` was added afterward and remains unapplied/unverified. The workshop-checkin bucket is private with workshop-scoped Storage policies. A labeled synthetic QA application reached the condition report; finding/photo save and sign-off need a live retest. Six-photo camera capture, second-workshop isolation, and device camera/gallery testing remain. This is not yet a production release.
 
 ## What is implemented
 
-- Flutter app shell with Home, Applications, and Vehicles navigation.
+- Flutter app shell with Home, Jobs, Vehicles, and Reminders navigation.
 - Supabase email authentication, workshop setup, workshop-scoped records, and an empty setup state when configuration or data is missing.
 - Customer/vehicle intake and application creation backed by Supabase. Retries reuse a request ID only while submitted details are unchanged; editing after a failed attempt starts a new request. Migration `202611200011_idempotent_application_intake.sql` enforces the key in the database and restricts job-card creation to the RPC.
 - Application list and dashboard reads from workshop records.
@@ -13,8 +13,8 @@
 - Vehicle condition findings and sign-off, including optional private finding photos. Photos are stored in the `workshop-checkin` bucket. A finding retry reuses its record ID and content-addressed storage path; failed replacement uploads keep the previous photo reference intact. Signed photo URLs refresh before expiry, and failed thumbnail or full-size loads offer a retry.
 - Mechanical inspection with brake, tyre, and battery readings, explicit not-applicable choices, odometer validation, and Supabase persistence. Application cards route to inspection after the signed condition report and to the estimate after inspection.
 - Job card page with persisted line-item creation, estimate-sent state, and revision editing. WhatsApp launch requires customer consent; the customer response screen captures per-item approval, decline, or revision requests. A server RPC writes audit snapshots and advances only unanimous approval to work in progress. After an uncertain response, the app confirms the persisted decisions before reporting failure. Database grants and row policies prevent direct lifecycle changes or estimate edits after dispatch.
-- Vehicle history/passport view and GST helpers exist. Reminder calculations use recorded odometer history only, but the reminders route and reminder persistence/dispatch are not complete.
-- Seventeen SQL migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, work-progress history, quality sign-off, persisted GST invoices, payment ledger, audited delivery, inventory, idempotent application intake and condition signoff, restricted trigger-function access, and idempotent delivery retries. All are applied to the configured Supabase project.
+- Vehicle history/passport view and GST helpers exist. The Reminders route is implemented with recorded delivery history, manager-configured intervals, heads-up timing, and a live WhatsApp-consent recheck. The new settings migration still needs to be applied to the configured Supabase project before this route can load/save settings there.
+- The 17 previously applied migrations define authentication/workshop, customer, vehicle, job-card, line-item, bay-photo, condition-report, access hardening, check-in photo-gate behavior, mechanical inspection records, estimate dispatch, audited customer responses, restricted estimate editing, work-progress history, quality sign-off, persisted GST invoices, payment ledger, audited delivery, inventory, idempotent application intake and condition signoff, restricted trigger-function access, and idempotent delivery retries. The newer reminder settings migration is not yet confirmed applied.
 - Work-in-progress page shows approved estimate scope and appends technician progress, parts-delay, and customer-update notes through an audited RPC. It does not change job lifecycle status; QC is a separate sign-off gate.
 - QC screen captures completed-work confirmation, four vehicle checks, and road-test result. A failed check remains in service; only an audited pass advances to `QC_PASSED`.
 - Invoice screen issues one immutable tax invoice per QC-passed job for a GST-registered supplier, snapshots the approved estimate and billing identities, allocates a per-workshop financial-year number, calculates paise totals in a database RPC, and generates a printable PDF. State codes determine the intra-state or inter-state tax split. Rates and place-of-supply classification need review by the workshop's tax adviser; unregistered bill-of-supply documents and IRN/e-invoice submission are not implemented. Invoice fields follow the [CBIC tax invoice rules](https://cbic-gst.gov.in/gst-invoice-rules.html).
@@ -25,7 +25,7 @@
 
 ### P0: Run authenticated end-to-end and isolation checks
 
-- All seventeen migrations are applied to the configured project. Live schema inspection confirms the later workflow tables exist, RLS is enabled, `workshop-checkin` is private, and the bucket has authenticated select/insert/update/delete policies. Duplicate-safe intake, signoff, and delivery RPCs are installed.
+- The 17 earlier migrations were confirmed applied to the configured project. Live schema inspection confirmed the later workflow tables exist, RLS is enabled, `workshop-checkin` is private, and the bucket has authenticated select/insert/update/delete policies. Duplicate-safe intake, signoff, and delivery RPCs are installed.
 - Configure a local `env.json` from `env.example.json`; never commit `env.json`, a service-role key, user credentials, or real customer data.
 - Resume the existing synthetic QA job at condition report; save/reload the finding and photo, complete report sign-off, and verify the application advances. The intake, job-card creation, manager override, and route to condition report already worked in this QA run.
 - Exercise signup/sign-in and workshop creation from a clean account, then capture the six mandatory check-in photos and test application progress.
@@ -49,7 +49,7 @@
 ### P2: Complete vehicle history and reminders
 
 - The internal vehicle history now expands saved mechanical readings, customer estimate decisions, not-applicable values, and inspection notes. Verify the joined Supabase history with a real saved inspection; then complete customer-facing passport/QR access with plate privacy and explicit public-data rules.
-- Persist odometer/service history for reminders, implement the reminders route, and add consent-aware dispatch. The current calculation helper does not infer mileage without two valid service readings.
+- Apply `202611210002_service_reminder_settings.sql` to the configured Supabase project, then verify settings persistence and completed-delivery queries in an authenticated session. Reminders derive from recorded visits and never infer mileage without two valid readings; WhatsApp opening rechecks current consent.
 
 ### P1: Replace the demo outbox with reliable offline sync
 
@@ -66,9 +66,7 @@
 
 ## Routes that are still placeholders
 
-`lib/routing/app_router.dart` currently routes these pages to `PhasePlaceholderScreen`:
-
-- `/reminders`
+`lib/routing/app_router.dart` no longer routes `/reminders` to `PhasePlaceholderScreen`. Other workflow routes have implemented screens; a customer-facing public vehicle passport/QR and debtor reporting are not complete product features.
 
 Debtor reporting is not complete. The passport route currently shows an internal vehicle history view; it is not a secured customer-facing QR product.
 
@@ -76,24 +74,25 @@ Debtor reporting is not complete. The passport route currently shows an internal
 
 - Supabase is the live repository path for the current intake, applications, bay capture, and condition map modules.
 - `env.json` is intentionally ignored. `env.example.json` contains placeholders and is safe to share.
-- `supabase/migrations/` is the source of truth for the database schema in this repo. The configured Supabase project has all seventeen migrations applied as of 21 November 2026; check migration state before applying to another environment.
+- `supabase/migrations/` is the source of truth for the database schema in this repo. The configured project had all seventeen earlier migrations applied as of 21 November 2026; migration `202611210002_service_reminder_settings.sql` was added afterward and is not yet confirmed applied. Check migration state before applying to any environment.
 - Do not use real customer information in screenshots, fixtures, or test data.
 - `tasks/plan.md` and the original task checklist were written before the current implementation and are historical requirements, not reliable completion tracking. Use this handoff and `BUILD_PROGRESS.md` for current status.
 
 ## Verification already completed
 
-- Local Flutter verification after the condition retry, photo cleanup and retry, intake gauge, phone layout, and vehicle history changes: all 152 tests passed, `flutter analyze` reported no issues, and the release web build succeeded. Focused suites cover lost invoice, payment, refresh, delivery, customer-response, condition-finding retries, uncertain photo cleanup, signed-photo expiry and retry, unobserved fuel levels, bay check-in at phone size, and vehicle-history formatting and decision labels.
+- Local Flutter verification after the reminder/navigation work: all 159 tests passed, `flutter analyze` reported no issues, and `flutter build web --release --dart-define-from-file=env.json` succeeded. Reminder coverage includes recorded-visit calculations, interval configuration and display refresh, current-consent rechecks, and Indian phone formatting. Earlier 152-test coverage included lost invoice, payment, refresh, delivery, customer-response, condition-finding retries, uncertain photo cleanup, signed-photo expiry and retry, unobserved fuel levels, bay check-in at phone size, and vehicle history.
 - GitHub Actions run [44819644659](https://github.com/Guts1005/workshop-dms/actions/runs/44819644659) passed for commit `e409005`.
 - Bay check-in rendered without a `RenderFlex` overflow at a 390 x 844 phone viewport. The observed 183-pixel overflow was emitted while DevTools reported a 1 x 1-pixel app constraint; it was not reproduced at a usable mobile viewport. Physical-device and camera/gallery checks remain pending.
 - Live Supabase inspection confirmed all seventeen migrations, all workflow tables with RLS enabled, the private photo bucket, and workshop-scoped Storage policies. The trigger-only approval guard cannot be called through RPC; the authenticated signoff RPC remains callable and anon cannot call it. Supabase's remaining security warnings are for intended authenticated, input-validating RPCs; leaked-password protection remains disabled in project Auth settings.
 - Live synthetic owner-flow QA created a labeled test job card, reached photo check-in, recorded a labeled QA manager override, and opened the condition report. Selecting a labeled synthetic image showed its preview and uploaded successfully, but saving the finding failed because the client sent a timestamp-sized ID to a PostgreSQL 32-bit integer column. Supabase Storage logs confirmed the uploaded object was removed after the row failed; no finding/photo remains saved. The ID generator is now constrained to positive 32-bit values, with retry recovery for uncertain writes. A live retry and condition sign-off remain unverified because the browser connection dropped. The synthetic QA job and override remain in the project; they are test data, not real customer/vehicle records.
 - Remaining authenticated QA: retry the synthetic condition finding/photo, verify private photo retrieval, complete condition sign-off, verify second-workshop isolation, and test camera/gallery permissions on a physical device.
 - Photo replacement cleanup now removes a newly uploaded object only when a follow-up database read confirms the failed write did not reference it. If the reference check itself fails, the private upload is retained for safety; the unreferenced-object cleanup path remains a manual/live verification item.
+- Reminder unit and widget tests cover recorded-visit calculations, interval configuration, updated UI, current-consent checks, and India phone formatting. Supabase integration tests remain pending until the new migration is applied and an authenticated session is available.
 
 ## First recommended developer session
 
 1. Read `README.md`, this handoff, `supabase/migrations/`, and the intake, capture, condition, and mechanical-inspection repositories.
-2. Set up Flutter and the configured Supabase project using `README.md`; migrations are already applied to that project.
+2. Set up Flutter and the configured Supabase project using `README.md`; confirm migration state and apply `202611210002_service_reminder_settings.sql` before testing reminders.
 3. Run the full suite and `flutter analyze`.
 4. Walk the P0 real-account flow and fix the first persistence, RLS, or media issue found.
 5. Verify per-item customer responses, then continue through QC, invoice, and payment gates.

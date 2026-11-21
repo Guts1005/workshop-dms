@@ -17,21 +17,21 @@ import '../features/quality_gate/quality_gate_screen.dart';
 import '../features/billing/invoice_screen.dart';
 import '../features/payment_gate/payment_gate_screen.dart';
 import '../features/inventory/inventory_screen.dart';
+import '../features/reminders/service_reminders_screen.dart';
 import '../features/job_card/presentation/job_card_screen.dart';
-import 'placeholder_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
 );
 
 /// Production-Grade Application Router
-/// Exactly 3 simple top-level sections: Home, Applications, and Vehicles.
+/// Simple top-level destinations: Home, Jobs, Vehicles, and Reminders.
 /// Internal workflow orchestration steps are accessible through active jobs.
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   routes: [
-    // --- 3 Simple Top-Level Navigation Sections Shell ---
+    // --- Four simple top-level navigation sections ---
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         final screenWidth = MediaQuery.of(context).size.width;
@@ -87,7 +87,7 @@ final GoRouter appRouter = GoRouter(
                     ),
                     const SizedBox(width: 16.0),
 
-                    // Desktop Header Navigation: Exactly 3 Simple Top-Level Sections
+                    // Desktop navigation keeps the four primary destinations visible.
                     if (isDesktop) ...[
                       Expanded(
                         child: Row(
@@ -101,7 +101,7 @@ final GoRouter appRouter = GoRouter(
                             const SizedBox(width: 6.0),
                             _buildDesktopHeaderTab(
                               1,
-                              'APPLICATIONS',
+                              'JOBS',
                               Icons.assignment_rounded,
                               navigationShell,
                             ),
@@ -110,6 +110,13 @@ final GoRouter appRouter = GoRouter(
                               2,
                               'VEHICLES',
                               Icons.directions_car_rounded,
+                              navigationShell,
+                            ),
+                            const SizedBox(width: 6.0),
+                            _buildDesktopHeaderTab(
+                              3,
+                              'REMINDERS',
+                              Icons.notifications_active_outlined,
                               navigationShell,
                             ),
                           ],
@@ -124,7 +131,7 @@ final GoRouter appRouter = GoRouter(
             ),
           ),
           body: navigationShell,
-          // Mobile Bottom Navigation Bar: Exactly 3 Simple Primary Sections
+          // Mobile bottom navigation mirrors the four primary destinations.
           bottomNavigationBar: isDesktop
               ? null
               : SafeArea(
@@ -145,7 +152,7 @@ final GoRouter appRouter = GoRouter(
                         Expanded(
                           child: _buildNavItem(
                             0,
-                            'HOME',
+                            'Home',
                             Icons.home_rounded,
                             navigationShell,
                           ),
@@ -153,7 +160,7 @@ final GoRouter appRouter = GoRouter(
                         Expanded(
                           child: _buildNavItem(
                             1,
-                            'APPLICATIONS',
+                            'Jobs',
                             Icons.assignment_rounded,
                             navigationShell,
                           ),
@@ -161,8 +168,16 @@ final GoRouter appRouter = GoRouter(
                         Expanded(
                           child: _buildNavItem(
                             2,
-                            'VEHICLES',
+                            'Vehicles',
                             Icons.directions_car_rounded,
+                            navigationShell,
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildNavItem(
+                            3,
+                            'Reminders',
+                            Icons.notifications_active_outlined,
                             navigationShell,
                           ),
                         ),
@@ -234,6 +249,15 @@ final GoRouter appRouter = GoRouter(
                   initialPlate: extra?['registrationNumber'] as String?,
                 );
               },
+            ),
+          ],
+        ),
+        // Section 4: Configurable service reminders from completed visit records.
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/reminders',
+              builder: (context, state) => const ServiceRemindersScreen(),
             ),
           ],
         ),
@@ -369,17 +393,6 @@ final GoRouter appRouter = GoRouter(
           model: extra?['model'] as String?,
         );
       },
-    ),
-
-    // Predictive Service Reminders
-    GoRoute(
-      path: '/reminders',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PhasePlaceholderScreen(
-        pageNumber: 12,
-        title: 'Predictive Service Reminders',
-        description: 'KM/day calculation guarded against rollback and anomalous readings.',
-      ),
     ),
   ],
 );

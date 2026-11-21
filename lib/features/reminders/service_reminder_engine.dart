@@ -13,6 +13,12 @@ class ServiceReminderResult {
   final bool isDueSoon;
   final String triggerReason;
 
+  DateTime get nextDueDate =>
+      projectedKmDueDate != null &&
+          projectedKmDueDate!.isBefore(calendarDueDate)
+      ? projectedKmDueDate!
+      : calendarDueDate;
+
   const ServiceReminderResult({
     required this.customerName,
     required this.mobileNumber,
@@ -32,11 +38,12 @@ class ServiceReminderResult {
   /// Builds a customer message containing only recorded facts and estimates.
   String buildWhatsAppUrl({
     required String workshopName,
-    required String workshopPhone,
-    required String workshopAddress,
+    String? workshopPhone,
+    String? workshopAddress,
   }) {
     final cleanPhone = mobileNumber.replaceAll(RegExp(r'[^0-9]'), '');
-    final phoneWithCountry = cleanPhone.startsWith('91')
+    final phoneWithCountry =
+        cleanPhone.length == 12 && cleanPhone.startsWith('91')
         ? cleanPhone
         : '91$cleanPhone';
 
@@ -45,22 +52,30 @@ class ServiceReminderResult {
       ..writeln()
       ..writeln('Hello $customerName,')
       ..writeln(
-        'Our records show that your $vehicleModel ($registrationNumber) may be due for service.',
+        'Our records show your $vehicleModel ($registrationNumber) last visited us on ${_formatDate(lastServiceDate)}.',
       )
-      ..writeln('Last recorded service: ${_formatDate(lastServiceDate)}')
-      ..writeln('Odometer at that visit: $lastServiceOdometerKm km')
+      ..writeln('Odometer at check-in: $lastServiceOdometerKm km')
+      ..writeln(
+        'Our reminder interval suggests a check-in around ${_formatDate(nextDueDate)}.',
+      )
       ..writeln('Reminder basis: $triggerReason');
 
     if (hasMileageProjection && projectedCurrentKm != null) {
       text.writeln('Estimated current odometer: about $projectedCurrentKm km');
     }
 
-    text
-      ..writeln()
-      ..writeln(
-        'Please contact us to confirm your vehicle\'s needs or arrange a visit.',
-      )
-      ..writeln('$workshopPhone - $workshopAddress');
+    text.writeln();
+    if ((workshopPhone ?? '').trim().isNotEmpty ||
+        (workshopAddress ?? '').trim().isNotEmpty) {
+      text.writeln(
+        [workshopPhone, workshopAddress]
+            .where((value) => value != null && value.trim().isNotEmpty)
+            .join(' · '),
+      );
+    }
+    text.writeln(
+      'Please contact us to confirm your vehicle\'s needs or arrange a visit.',
+    );
 
     final encodedText = Uri.encodeComponent(text.toString());
     return 'https://wa.me/$phoneWithCountry?text=$encodedText';
@@ -98,10 +113,13 @@ class ServiceReminderEngine {
     int? previousServiceOdometerKm,
     required int intervalKm,
     required int intervalDays,
+    int dueSoonDays = 14,
     DateTime? now,
   }) {
-    if (intervalKm <= 0 || intervalDays <= 0) {
-      throw ArgumentError('Service intervals must be greater than zero.');
+    if (intervalKm <= 0 || intervalDays <= 0 || dueSoonDays <= 0) {
+      throw ArgumentError(
+        'Service intervals and heads-up days must be greater than zero.',
+      );
     }
     if (lastServiceOdometerKm < 0) {
       throw ArgumentError('Odometer readings cannot be negative.');
@@ -139,7 +157,8 @@ class ServiceReminderEngine {
     final earliestDueDate = isKmFirst ? projectedKmDueDate : calendarDueDate;
     final isOverdue = currentNow.isAfter(earliestDueDate);
     final isDueSoon =
-        !isOverdue && earliestDueDate.difference(currentNow).inDays <= 14;
+        !isOverdue &&
+        earliestDueDate.difference(currentNow).inDays <= dueSoonDays;
 
     return ServiceReminderResult(
       customerName: customerName,

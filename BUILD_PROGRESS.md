@@ -2,7 +2,7 @@
 
 **Updated:** 21 November 2026
 
-Workshop DMS is an active prototype. All 17 repository migrations are now applied to the configured Supabase project. A synthetic QA application was created and advanced to the condition report; the first finding save exposed an ID-range bug that is now fixed locally. Live finding/photo save and sign-off retesting, device camera/gallery behavior, reminders, and durable offline sync remain incomplete.
+Workshop DMS is an active prototype. The 17 migrations that existed at the last live database inspection are applied to the configured Supabase project. Migration `202611210002_service_reminder_settings.sql` is new and still needs to be applied there. A synthetic QA application was created and advanced to the condition report; the first finding save exposed an ID-range bug that is fixed locally. Live finding/photo save and sign-off retesting, device camera/gallery behavior, and durable offline sync remain incomplete.
 
 ## Current snapshot
 
@@ -20,14 +20,14 @@ Workshop DMS is an active prototype. All 17 repository migrations are now applie
 | QC / road test | Implemented; authenticated live QA pending | Requires repair-complete confirmation, four explicit checks, and a road-test result or reason. Failed QC keeps work in progress; audited pass moves to `QC_PASSED`. |
 | GST invoice | Implemented; authenticated live QA pending | For GST-registered suppliers, uses approved-estimate rates, creates an immutable snapshot and FY serial in a database RPC, computes state-based tax split, and prints a PDF. Bill-of-supply and IRN submission are not implemented; tax classification needs accountant verification. |
 | Payment / delivery | Implemented; authenticated live QA pending | Payment ledger, balance checks, owner-only audited credit override, and server-enforced handover are implemented. Invoice, payment, and delivery flows recover safely from lost RPC responses; delivery retries are idempotent in the database. |
-| Vehicle passport / reminders | Partial | Internal history now expands saved mechanical measurements, customer estimate decisions, not-applicable values, and inspection notes. Live query verification, reminder routing/persistence/dispatch, and a public QR/passport remain incomplete. |
+| Vehicle passport / reminders | Partial | Internal history expands saved mechanical measurements, customer estimate decisions, not-applicable values, and inspection notes. A four-tab Reminders section now uses completed delivery/visit records, workshop-configured intervals, and consent rechecks before opening WhatsApp. Its new settings migration still needs applying; live query verification and public QR/passport remain incomplete. |
 | Offline-first sync | Not implemented | Current outbox service is in-memory and is not wired as a durable background worker. |
 
 ## Next work
 
 1. Resume the synthetic QA job at condition report; save and reload a finding/photo, complete sign-off, verify private photo access, then test six-photo capture and workshop isolation with a second account.
 2. Walk the remaining estimate, approval, work, QC, invoice, and payment/delivery lifecycle with a clean, authorized test account.
-3. Verify customer decisions in vehicle history, finish the internal passport and service reminders, then implement durable offline sync.
+3. Apply the new reminder-settings migration, then verify the reminder query and settings against the authenticated Supabase project; continue vehicle history and internal passport work before durable offline sync.
 4. Add golden tests and finish device, platform, accessibility, and release QA. GitHub Actions runs formatting, analysis, tests, and a web release build for `master` pushes and pull requests.
 
 See [docs/DEVELOPER_HANDOFF.md](docs/DEVELOPER_HANDOFF.md) for detailed priorities, architecture notes, setup, and verification limits. The older `tasks/` documents are historical specifications and do not represent current completion status.

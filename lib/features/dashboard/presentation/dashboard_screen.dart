@@ -89,6 +89,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 8.0),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: () => context.go('/reminders'),
+                            icon: const Icon(
+                              Icons.notifications_active_outlined,
+                            ),
+                            label: const Text('SERVICE REMINDERS'),
+                          ),
+                        ),
 
                         // Actionable items are shown before recent work.
                         const SizedBox(height: 16.0),
