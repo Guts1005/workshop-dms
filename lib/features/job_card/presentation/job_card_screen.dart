@@ -153,127 +153,18 @@ class _JobCardScreenState extends State<JobCardScreen> {
     )) {
       return;
     }
-    final description = TextEditingController(
-      text: existing?.description ?? '',
-    );
-    final code = TextEditingController(text: existing?.code ?? '');
-    final quantity = TextEditingController(
-      text: existing?.quantity.toString() ?? '1',
-    );
-    final gstRate = TextEditingController(
-      text: existing?.gstRatePercent.toString() ?? '',
-    );
-    final rate = TextEditingController(
-      text: existing == null
-          ? ''
-          : (existing.unitRatePaise / 100).toStringAsFixed(2),
-    );
-    final formKey = GlobalKey<FormState>();
-    final save = await showDialog<bool>(
+    final draft = await showDialog<EstimateLineItemDraft>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          '${existing == null ? 'Add' : 'Edit'} ${type == LineItemType.labour ? 'labour' : 'part'}',
-        ),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: description,
-                decoration: const InputDecoration(labelText: 'Description'),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Enter a description'
-                    : null,
-              ),
-              TextFormField(
-                controller: code,
-                decoration: InputDecoration(
-                  labelText: type == LineItemType.labour
-                      ? 'SAC code'
-                      : 'HSN code',
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Enter the code' : null,
-              ),
-              TextFormField(
-                controller: quantity,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(labelText: 'Quantity'),
-                validator: (v) => !_isValidDecimal(v, minimum: 0.01)
-                    ? 'Enter a positive quantity'
-                    : null,
-              ),
-              TextFormField(
-                controller: rate,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Unit price (INR)',
-                ),
-                validator: (v) => !_isValidDecimal(v, minimum: 0.01)
-                    ? 'Enter a positive price'
-                    : null,
-              ),
-              TextFormField(
-                controller: gstRate,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'GST rate (%)',
-                  helperText: 'Enter the rate applicable to this item',
-                ),
-                validator: (value) {
-                  final parsed = double.tryParse(value?.trim() ?? '');
-                  if (!_isValidDecimal(value, minimum: 0, maximum: 100)) {
-                    return 'Enter a GST rate from 0 to 100';
-                  }
-                  if (parsed == null) return 'Enter a GST rate';
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(dialogContext, true);
-              }
-            },
-            child: Text(existing == null ? 'Add' : 'Save changes'),
-          ),
-        ],
-      ),
+      builder: (_) => EstimateLineItemDialog(type: type, existing: existing),
     );
-    final itemDescription = description.text.trim();
-    final itemCode = code.text.trim();
-    final itemQuantity = double.tryParse(quantity.text.trim());
-    final itemRate = double.tryParse(rate.text.trim());
-    final itemGstRate = double.tryParse(gstRate.text.trim());
-    description.dispose();
-    code.dispose();
-    quantity.dispose();
-    rate.dispose();
-    gstRate.dispose();
-    if (save != true || !mounted) return;
+    if (draft == null || !mounted) return;
     try {
       final payload = {
-        'description': itemDescription,
-        'code': itemCode,
-        'quantity': itemQuantity,
-        'unit_rate_paise': (itemRate! * 100).round(),
-        'gst_rate_percent': itemGstRate,
+        'description': draft.description,
+        'code': draft.code,
+        'quantity': draft.quantity,
+        'unit_rate_paise': (draft.unitRateInr * 100).round(),
+        'gst_rate_percent': draft.gstRatePercent,
       };
       if (existing == null) {
         await Supabase.instance.client.from('job_line_items').insert({
@@ -297,21 +188,6 @@ class _JobCardScreenState extends State<JobCardScreen> {
         );
       }
     }
-  }
-
-  bool _isValidDecimal(
-    String? value, {
-    required double minimum,
-    double? maximum,
-  }) {
-    final parsed = double.tryParse(value?.trim() ?? '');
-    if (parsed == null ||
-        parsed < minimum ||
-        (maximum != null && parsed > maximum)) {
-      return false;
-    }
-    final parts = value!.trim().split('.');
-    return parts.length <= 2 && (parts.length == 1 || parts.last.length <= 2);
   }
 
   Future<void> _deleteLineItem(InvoiceLineItem item) async {
@@ -1144,5 +1020,184 @@ class _JobCardScreenState extends State<JobCardScreen> {
         ],
       ),
     );
+  }
+}
+
+class EstimateLineItemDraft {
+  const EstimateLineItemDraft({
+    required this.description,
+    required this.code,
+    required this.quantity,
+    required this.unitRateInr,
+    required this.gstRatePercent,
+  });
+
+  final String description;
+  final String code;
+  final double quantity;
+  final double unitRateInr;
+  final double gstRatePercent;
+}
+
+class EstimateLineItemDialog extends StatefulWidget {
+  const EstimateLineItemDialog({super.key, required this.type, this.existing});
+
+  final LineItemType type;
+  final InvoiceLineItem? existing;
+
+  @override
+  State<EstimateLineItemDialog> createState() => _EstimateLineItemDialogState();
+}
+
+class _EstimateLineItemDialogState extends State<EstimateLineItemDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _description;
+  late final TextEditingController _code;
+  late final TextEditingController _quantity;
+  late final TextEditingController _rate;
+  late final TextEditingController _gstRate;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _description = TextEditingController(text: existing?.description ?? '');
+    _code = TextEditingController(text: existing?.code ?? '');
+    _quantity = TextEditingController(
+      text: existing?.quantity.toString() ?? '1',
+    );
+    _rate = TextEditingController(
+      text: existing == null
+          ? ''
+          : (existing.unitRatePaise / 100).toStringAsFixed(2),
+    );
+    _gstRate = TextEditingController(
+      text: existing?.gstRatePercent.toString() ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _description.dispose();
+    _code.dispose();
+    _quantity.dispose();
+    _rate.dispose();
+    _gstRate.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(
+      '${widget.existing == null ? 'Add' : 'Edit'} ${widget.type == LineItemType.labour ? 'labour' : 'part'}',
+    ),
+    content: SizedBox(
+      width: 420,
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _description,
+                decoration: const InputDecoration(labelText: 'Description'),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter a description'
+                    : null,
+              ),
+              TextFormField(
+                controller: _code,
+                decoration: InputDecoration(
+                  labelText: widget.type == LineItemType.labour
+                      ? 'SAC code'
+                      : 'HSN code',
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter the code'
+                    : null,
+              ),
+              TextFormField(
+                controller: _quantity,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'Quantity'),
+                validator: (value) => !_isValidDecimal(value, minimum: 0.01)
+                    ? 'Enter a positive quantity'
+                    : null,
+              ),
+              TextFormField(
+                controller: _rate,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Unit price (INR)',
+                ),
+                validator: (value) => !_isValidDecimal(value, minimum: 0.01)
+                    ? 'Enter a positive price'
+                    : null,
+              ),
+              TextFormField(
+                controller: _gstRate,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'GST rate (%)',
+                  helperText: 'Enter the rate applicable to this item',
+                ),
+                validator: (value) =>
+                    !_isValidDecimal(value, minimum: 0, maximum: 100)
+                    ? 'Enter a GST rate from 0 to 100'
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _save,
+        child: Text(widget.existing == null ? 'Add' : 'Save changes'),
+      ),
+    ],
+  );
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.pop(
+      context,
+      EstimateLineItemDraft(
+        description: _description.text.trim(),
+        code: _code.text.trim(),
+        quantity: double.parse(_quantity.text.trim()),
+        unitRateInr: double.parse(_rate.text.trim()),
+        gstRatePercent: double.parse(_gstRate.text.trim()),
+      ),
+    );
+  }
+
+  bool _isValidDecimal(
+    String? value, {
+    required double minimum,
+    double? maximum,
+  }) {
+    final trimmed = value?.trim() ?? '';
+    final parsed = double.tryParse(trimmed);
+    if (parsed == null ||
+        !parsed.isFinite ||
+        parsed < minimum ||
+        (maximum != null && parsed > maximum)) {
+      return false;
+    }
+    final parts = trimmed.split('.');
+    return parts.length <= 2 && (parts.length == 1 || parts.last.length <= 2);
   }
 }
