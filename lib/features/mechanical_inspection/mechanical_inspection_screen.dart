@@ -67,6 +67,14 @@ class _MechanicalInspectionScreenState
           ? _message('Open an inspection from an existing application.')
           : state.loading
           ? const Center(child: CircularProgressIndicator())
+          : !state.ready
+          ? _loadFailure(
+              state.errorMessage ?? 'The application could not be loaded.',
+              () => controller.initSession(
+                jobCardId: widget.jobCardId!.trim(),
+                registrationNumber: widget.registrationNumber!.trim(),
+              ),
+            )
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 760),
@@ -334,6 +342,35 @@ class _MechanicalInspectionScreenState
     child: Padding(
       padding: const EdgeInsets.all(24),
       child: Text(text, style: AppTokens.fontBody(fontSize: 16)),
+    ),
+  );
+
+  Widget _loadFailure(String message, VoidCallback retry) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off_outlined, size: 42),
+          const SizedBox(height: 12),
+          const Text(
+            'Could not load this application',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppTokens.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: retry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry loading'),
+          ),
+        ],
+      ),
     ),
   );
 }

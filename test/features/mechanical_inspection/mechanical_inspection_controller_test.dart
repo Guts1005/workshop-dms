@@ -22,6 +22,19 @@ class _MemoryInspectionRepository implements MechanicalInspectionRepository {
   }
 }
 
+class _FlakyInspectionRepository extends _MemoryInspectionRepository {
+  bool failIntakeOdometer = true;
+
+  @override
+  Future<int> getIntakeOdometer(String jobCardId) async {
+    if (failIntakeOdometer) {
+      failIntakeOdometer = false;
+      throw StateError('Temporary network failure');
+    }
+    return super.getIntakeOdometer(jobCardId);
+  }
+}
+
 void main() {
   group('MechanicalInspectionController', () {
     late _MemoryInspectionRepository repository;
@@ -100,5 +113,31 @@ void main() {
       expect(controller.state.measurementTexts['front_brake_pad_mm'], '6.0');
       expect(controller.state.notes, 'Normal wear');
     });
+
+    test(
+      'blocks saving after a load failure until the source data is retried',
+      () async {
+        final flakyRepository = _FlakyInspectionRepository();
+        final flakyController = MechanicalInspectionController(
+          repository: flakyRepository,
+        );
+        addTearDown(flakyController.dispose);
+
+        await flakyController.initSession(
+          jobCardId: 'job-1',
+          registrationNumber: 'KA01AB1234',
+        );
+        expect(flakyController.state.ready, isFalse);
+        expect(await flakyController.save(), isFalse);
+        expect(flakyRepository.saved, isNull);
+
+        await flakyController.initSession(
+          jobCardId: 'job-1',
+          registrationNumber: 'KA01AB1234',
+        );
+        expect(flakyController.state.ready, isTrue);
+        expect(flakyController.state.intakeOdometerKm, 35000);
+      },
+    );
   });
 }

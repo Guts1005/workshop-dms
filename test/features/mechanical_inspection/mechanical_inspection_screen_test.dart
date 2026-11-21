@@ -21,6 +21,19 @@ class _ScreenInspectionRepository implements MechanicalInspectionRepository {
   }) async {}
 }
 
+class _FlakyScreenInspectionRepository extends _ScreenInspectionRepository {
+  bool failFirstLoad = true;
+
+  @override
+  Future<int> getIntakeOdometer(String jobCardId) async {
+    if (failFirstLoad) {
+      failFirstLoad = false;
+      throw StateError('Temporary network failure');
+    }
+    return super.getIntakeOdometer(jobCardId);
+  }
+}
+
 void main() {
   testWidgets('shows inspection measurements and vehicle context', (
     tester,
@@ -52,4 +65,41 @@ void main() {
     expect(find.text('Battery measured CCA'), findsOneWidget);
     expect(find.text('Save inspection and continue'), findsOneWidget);
   });
+
+  testWidgets(
+    'offers retry and hides inspection form if application load fails',
+    (tester) async {
+      final repository = _FlakyScreenInspectionRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            mechanicalInspectionRepositoryProvider.overrideWithValue(
+              repository,
+            ),
+          ],
+          child: const MaterialApp(
+            home: MechanicalInspectionScreen(
+              jobCardId: 'job-1',
+              registrationNumber: 'KA01AB1234',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load this application'), findsOneWidget);
+      expect(find.text('Inspector name'), findsNothing);
+      expect(find.text('Retry loading'), findsOneWidget);
+
+      await tester.tap(find.text('Retry loading'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Could not load this application'), findsNothing);
+      expect(find.text('Inspector name'), findsOneWidget);
+      expect(
+        find.text('Must be at least 24000 km from check-in'),
+        findsOneWidget,
+      );
+    },
+  );
 }

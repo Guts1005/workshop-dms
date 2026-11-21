@@ -30,6 +30,7 @@ class MechanicalInspectionState {
     this.notApplicable = const {},
     this.notes = '',
     this.loading = false,
+    this.ready = false,
     this.saving = false,
     this.saved = false,
     this.errorMessage,
@@ -44,6 +45,7 @@ class MechanicalInspectionState {
   final Set<String> notApplicable;
   final String notes;
   final bool loading;
+  final bool ready;
   final bool saving;
   final bool saved;
   final String? errorMessage;
@@ -58,6 +60,7 @@ class MechanicalInspectionState {
     Set<String>? notApplicable,
     String? notes,
     bool? loading,
+    bool? ready,
     bool? saving,
     bool? saved,
     String? errorMessage,
@@ -72,6 +75,7 @@ class MechanicalInspectionState {
     notApplicable: notApplicable ?? this.notApplicable,
     notes: notes ?? this.notes,
     loading: loading ?? this.loading,
+    ready: ready ?? this.ready,
     saving: saving ?? this.saving,
     saved: saved ?? this.saved,
     errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -84,15 +88,18 @@ class MechanicalInspectionController
     : super(const MechanicalInspectionState());
 
   final MechanicalInspectionRepository repository;
+  int _loadAttempt = 0;
 
   Future<void> initSession({
     required String jobCardId,
     required String registrationNumber,
   }) async {
+    final attempt = ++_loadAttempt;
     state = state.copyWith(
       jobCardId: jobCardId,
       registrationNumber: registrationNumber,
       loading: true,
+      ready: false,
       clearError: true,
     );
     try {
@@ -102,6 +109,7 @@ class MechanicalInspectionController
       ]);
       final intakeOdometer = results[0] as int;
       final inspection = results[1] as MechanicalInspectionRecord?;
+      if (attempt != _loadAttempt) return;
       state = state.copyWith(
         intakeOdometerKm: intakeOdometer,
         inspectorName: inspection?.inspectorName ?? '',
@@ -115,11 +123,14 @@ class MechanicalInspectionController
         notes: inspection?.notes ?? '',
         saved: inspection != null,
         loading: false,
+        ready: true,
         clearError: true,
       );
     } catch (_) {
+      if (attempt != _loadAttempt) return;
       state = state.copyWith(
         loading: false,
+        ready: false,
         errorMessage:
             'Could not load the inspection. Check your connection and retry.',
       );
@@ -164,6 +175,12 @@ class MechanicalInspectionController
       state = state.copyWith(notes: value, saved: false, clearError: true);
 
   Future<bool> save() async {
+    if (!state.ready) {
+      state = state.copyWith(
+        errorMessage: 'Load the application before saving this inspection.',
+      );
+      return false;
+    }
     final odometer = int.tryParse(state.odometerText.trim());
     final error = validateMechanicalInspection(
       inspectorName: state.inspectorName,
