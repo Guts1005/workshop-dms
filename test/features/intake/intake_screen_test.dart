@@ -26,6 +26,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('NEW APPLICATION: VEHICLE CHECK-IN'), findsOneWidget);
+      expect(find.text('VEHICLE DETAILS'), findsOneWidget);
+      expect(find.text('CUSTOMER DETAILS'), findsOneWidget);
+      expect(find.text('VEHICLE CONDITION'), findsOneWidget);
+      expect(find.text('REQUESTED SERVICE'), findsOneWidget);
+      expect(find.text('ITEMS LEFT IN VEHICLE'), findsOneWidget);
+      expect(find.textContaining('1. VEHICLE'), findsNothing);
       expect(find.byKey(const Key('input_registration')), findsOneWidget);
       expect(find.byKey(const Key('input_phone')), findsOneWidget);
       expect(find.byKey(const Key('input_name')), findsOneWidget);

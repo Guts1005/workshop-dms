@@ -293,7 +293,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     final controller = widget.controller;
 
     return SharpCard(
-      title: '1. VEHICLE REGISTRATION & IDENTITY',
+      title: 'VEHICLE DETAILS',
       titleTrailing: state.isExistingVehicle
           ? const Icon(Icons.verified, color: Color(0xFF16A34A), size: 16.0)
           : null,
@@ -1030,7 +1030,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     final controller = widget.controller;
 
     return SharpCard(
-      title: '2. CUSTOMER CONTACT & CONCIERGE',
+      title: 'CUSTOMER DETAILS',
       titleTrailing: state.isExistingCustomer
           ? const StatusChip(
               label: 'RETURNING',
@@ -1260,7 +1260,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     final controller = widget.controller;
 
     return SharpCard(
-      title: '3. ODOMETER & FUEL TELEMETRY HUB',
+      title: 'VEHICLE CONDITION',
       padding: const EdgeInsets.all(16.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1492,7 +1492,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
         : 'SELECT EXPECTED DELIVERY DATE & TIME';
 
     return SharpCard(
-      title: '4. REQUESTED WORK & TARGET DELIVERY',
+      title: 'REQUESTED SERVICE',
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1672,7 +1672,7 @@ class _IntakeDesktopViewState extends State<IntakeDesktopView> {
     final controller = widget.controller;
 
     return SharpCard(
-      title: '5. IN-VEHICLE INVENTORY & VALUABLES CHECKLIST',
+      title: 'ITEMS LEFT IN VEHICLE',
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [

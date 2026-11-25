@@ -110,15 +110,18 @@ class IntakeController extends StateNotifier<IntakeFormState> {
   }
 
   void onPhoneChanged(String value) {
+    final previousPhone = IntakeValidators.normalizeMobile(state.customerPhone);
+    final normalized = IntakeValidators.normalizeMobile(value);
+    final phoneChanged = previousPhone != normalized;
     final resetCustomer = state.isExistingCustomer;
     state = state.copyWith(
       customerPhone: value,
       customerName: resetCustomer ? '' : state.customerName,
       isExistingCustomer: resetCustomer ? false : state.isExistingCustomer,
+      whatsappConsent: phoneChanged ? false : state.whatsappConsent,
       errors: Map.from(state.errors)..remove('phone'),
     );
 
-    final normalized = IntakeValidators.normalizeMobile(value);
     if (normalized.length == 10) {
       lookupCustomer(normalized);
     }

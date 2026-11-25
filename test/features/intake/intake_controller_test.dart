@@ -68,6 +68,37 @@ void main() {
       expect(state.customerName, isEmpty);
     });
 
+    test(
+      'Changing a matched customer phone clears inherited consent',
+      () async {
+        await repository.submitIntake(
+          IntakeFormState(
+            registrationNumber: 'KA01AB1234',
+            customerPhone: '9876543210',
+            customerName: 'Consent Test Customer',
+            make: 'TOYOTA',
+            model: 'ETIOS',
+            odometer: '25000',
+            requestedWork: 'Inspect brakes',
+            expectedDelivery: DateTime(2026, 11, 26),
+            whatsappConsent: true,
+          ),
+          requestId: 'seed-consent-customer',
+        );
+
+        controller.onPhoneChanged('9876543210');
+        await pumpEventQueue();
+        expect(controller.state.isExistingCustomer, isTrue);
+        expect(controller.state.whatsappConsent, isTrue);
+
+        controller.onPhoneChanged('9876543211');
+        expect(controller.state.whatsappConsent, isFalse);
+        await pumpEventQueue();
+        expect(controller.state.isExistingCustomer, isFalse);
+        expect(controller.state.whatsappConsent, isFalse);
+      },
+    );
+
     test('Adjusting the fuel slider records the observed intake level', () {
       controller.onFuelLevelChanged(25);
 
