@@ -573,6 +573,49 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
     var isPickingPhoto = false;
     var saved = false;
     final controller = ref.read(conditionMapControllerProvider.notifier);
+
+    Future<void> pickFindingPhoto(
+      ImageSource source,
+      BuildContext dialogContext,
+      StateSetter setDialogState,
+    ) async {
+      setDialogState(() {
+        isPickingPhoto = true;
+        photoError = null;
+      });
+      try {
+        final picked = await ImagePicker().pickImage(
+          source: source,
+          imageQuality: 85,
+          maxWidth: 1800,
+          maxHeight: 1800,
+        );
+        if (picked == null) return;
+
+        final bytes = await picked.readAsBytes();
+        if (!dialogContext.mounted) return;
+        setDialogState(() {
+          final contentType = _imageMimeType(picked.name, picked.mimeType);
+          if (contentType == null) {
+            photoError = 'Choose a JPEG, PNG, or WebP photo.';
+            return;
+          }
+          photoBytes = bytes;
+          photoContentType = contentType;
+        });
+      } catch (_) {
+        if (dialogContext.mounted) {
+          setDialogState(
+            () => photoError = 'Could not add photo. Please try again.',
+          );
+        }
+      } finally {
+        if (dialogContext.mounted) {
+          setDialogState(() => isPickingPhoto = false);
+        }
+      }
+    }
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -652,95 +695,45 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
                   ),
                   const SizedBox(height: 12),
                   if (photoBytes == null)
-                    OutlinedButton.icon(
-                      onPressed: isPickingPhoto
-                          ? null
-                          : () async {
-                              final source =
-                                  await showModalBottomSheet<ImageSource>(
-                                    context: context,
-                                    builder: (sheetContext) => SafeArea(
-                                      child: Wrap(
-                                        children: [
-                                          ListTile(
-                                            leading: const Icon(
-                                              Icons.camera_alt_outlined,
-                                            ),
-                                            title: const Text('Take a photo'),
-                                            onTap: () => Navigator.pop(
-                                              sheetContext,
-                                              ImageSource.camera,
-                                            ),
-                                          ),
-                                          ListTile(
-                                            leading: const Icon(
-                                              Icons.photo_library_outlined,
-                                            ),
-                                            title: const Text(
-                                              'Choose from photos',
-                                            ),
-                                            onTap: () => Navigator.pop(
-                                              sheetContext,
-                                              ImageSource.gallery,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                              if (source == null || !context.mounted) return;
-                              setDialogState(() {
-                                isPickingPhoto = true;
-                                photoError = null;
-                              });
-                              try {
-                                final picked = await ImagePicker().pickImage(
-                                  source: source,
-                                  imageQuality: 85,
-                                  maxWidth: 1800,
-                                  maxHeight: 1800,
-                                );
-                                if (picked != null) {
-                                  final bytes = await picked.readAsBytes();
-                                  if (context.mounted) {
-                                    setDialogState(() {
-                                      final contentType = _imageMimeType(
-                                        picked.name,
-                                        picked.mimeType,
-                                      );
-                                      if (contentType == null) {
-                                        photoError = 'Choose a JPEG, PNG, or WebP photo.';
-                                        return;
-                                      }
-                                      photoBytes = bytes;
-                                      photoContentType = contentType;
-                                    });
-                                  }
-                                }
-                              } catch (_) {
-                                if (context.mounted) {
-                                  setDialogState(
-                                    () => photoError = 'Could not add photo. Please try again.',
-                                  );
-                                }
-                              } finally {
-                                if (context.mounted) {
-                                  setDialogState(() => isPickingPhoto = false);
-                                }
-                              }
-                            },
-                      icon: isPickingPhoto
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.add_a_photo_outlined),
-                      label: Text(
-                        isPickingPhoto
-                            ? 'Opening photos...'
-                            : 'Add a photo (optional)',
-                      ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: isPickingPhoto
+                              ? null
+                              : () => pickFindingPhoto(
+                                  ImageSource.gallery,
+                                  context,
+                                  setDialogState,
+                                ),
+                          icon: isPickingPhoto
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.add_a_photo_outlined),
+                          label: Text(
+                            isPickingPhoto
+                                ? 'Opening photos...'
+                                : 'Add a photo (optional)',
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: isPickingPhoto
+                              ? null
+                              : () => pickFindingPhoto(
+                                  ImageSource.camera,
+                                  context,
+                                  setDialogState,
+                                ),
+                          icon: const Icon(Icons.camera_alt_outlined),
+                          label: const Text('Take photo'),
+                        ),
+                      ],
                     )
                   else
                     Row(

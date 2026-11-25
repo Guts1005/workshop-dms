@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:workshop_dms/features/condition_map/condition_map_controller.dart';
 import 'package:workshop_dms/features/condition_map/condition_map_models.dart';
 import 'package:workshop_dms/features/condition_map/condition_map_screen.dart';
@@ -151,6 +152,46 @@ void main() {
       expect(find.text('Add a photo (optional)'), findsOneWidget);
     });
 
+    testWidgets('Photo sources launch directly from their user tap', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      final oldPicker = ImagePickerPlatform.instance;
+      final fakePicker = _FakeImagePickerPlatform();
+      ImagePickerPlatform.instance = fakePicker;
+      addTearDown(() => ImagePickerPlatform.instance = oldPicker);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            conditionMapRepositoryProvider.overrideWithValue(
+              LocalConditionMapRepository(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: ConditionMapScreen(
+              jobCardId: 'JC-MAP-PHOTO-TAP',
+              registrationNumber: 'DL01AB9988',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add finding').first);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Add a photo (optional)'));
+      await tester.pump();
+      expect(fakePicker.sources, [ImageSource.gallery]);
+      await tester.pumpAndSettle();
+      expect(find.text('Add a photo (optional)'), findsOneWidget);
+
+      await tester.tap(find.text('Take photo'));
+      await tester.pump();
+      expect(fakePicker.sources, [ImageSource.gallery, ImageSource.camera]);
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('A failed finding photo URL can be retried', (
       WidgetTester tester,
     ) async {
@@ -276,4 +317,20 @@ void main() {
       },
     );
   });
+}
+
+class _FakeImagePickerPlatform extends ImagePickerPlatform {
+  final List<ImageSource> sources = [];
+
+  @override
+  Future<XFile?> getImage({
+    required ImageSource source,
+    double? maxWidth,
+    double? maxHeight,
+    int? imageQuality,
+    CameraDevice preferredCameraDevice = CameraDevice.rear,
+  }) async {
+    sources.add(source);
+    return null;
+  }
 }
