@@ -347,58 +347,22 @@ class _WorkInProgressScreenState extends ConsumerState<WorkInProgressScreen> {
     WorkScopeItem item,
     String type,
   ) async {
-    final quantity = TextEditingController();
     final maximum = type == 'ISSUE' ? item.stockAvailable : item.quantityIssued;
-    final submitted = await showDialog<bool>(
+    final quantityText = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          type == 'ISSUE'
-              ? 'Issue ${item.description}'
-              : 'Return ${item.description}',
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              type == 'ISSUE'
-                  ? 'Up to ${_quantity(maximum)} can be issued from stock and the approved estimate.'
-                  : 'Up to ${_quantity(maximum)} can be returned to stock.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: quantity,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Quantity',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(type == 'ISSUE' ? 'Issue part' : 'Record return'),
-          ),
-        ],
+      builder: (_) => StockMovementDialog(
+        type: type,
+        description: item.description,
+        maximum: maximum,
       ),
     );
-    if (submitted == true && item.inventoryPartId != null && mounted) {
+    if (quantityText != null && item.inventoryPartId != null && mounted) {
       await controller.recordPartMovement(
         partId: item.inventoryPartId!,
         type: type,
-        quantityText: quantity.text,
+        quantityText: quantityText,
       );
     }
-    quantity.dispose();
   }
 
   Widget _error(String? message, {required VoidCallback onRetry}) => Center(
@@ -437,3 +401,97 @@ class _WorkInProgressScreenState extends ConsumerState<WorkInProgressScreen> {
     return '$day/$month/${local.year} $hour:$minute ${local.hour >= 12 ? 'PM' : 'AM'}';
   }
 }
+
+class StockMovementDialog extends StatefulWidget {
+  const StockMovementDialog({
+    super.key,
+    required this.type,
+    required this.description,
+    required this.maximum,
+  });
+
+  final String type;
+  final String description;
+  final num maximum;
+
+  @override
+  State<StockMovementDialog> createState() => _StockMovementDialogState();
+}
+
+class _StockMovementDialogState extends State<StockMovementDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _quantity = TextEditingController();
+
+  @override
+  void dispose() {
+    _quantity.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(
+      widget.type == 'ISSUE'
+          ? 'Issue ${widget.description}'
+          : 'Return ${widget.description}',
+    ),
+    content: SizedBox(
+      width: 380,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.type == 'ISSUE'
+                  ? 'Up to ${_formatMovementQuantity(widget.maximum)} can be issued from stock and the approved estimate.'
+                  : 'Up to ${_formatMovementQuantity(widget.maximum)} can be returned to stock.',
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _quantity,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+              ),
+              validator: _validateQuantity,
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _save,
+        child: Text(widget.type == 'ISSUE' ? 'Issue part' : 'Record return'),
+      ),
+    ],
+  );
+
+  String? _validateQuantity(String? value) {
+    final quantity = num.tryParse(value?.trim() ?? '');
+    if (quantity == null || !quantity.isFinite || quantity <= 0) {
+      return 'Enter a positive quantity';
+    }
+    if (quantity > widget.maximum) {
+      return 'Maximum available: ${_formatMovementQuantity(widget.maximum)}';
+    }
+    return null;
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.pop(context, _quantity.text.trim());
+  }
+}
+
+String _formatMovementQuantity(num value) =>
+    value % 1 == 0 ? value.toInt().toString() : value.toString();
