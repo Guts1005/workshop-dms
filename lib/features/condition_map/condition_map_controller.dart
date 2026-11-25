@@ -78,10 +78,18 @@ class ConditionMapController extends StateNotifier<ConditionMapState> {
   }
 
   Future<void> markViewReviewed(ConditionViewDirection view) async {
-    final reviewed = Set<ConditionViewDirection>.from(state.reviewedViews)
-      ..add(view);
-    await repository.saveReviewedViews(state.jobCardId, reviewed);
-    state = state.copyWith(reviewedViews: reviewed, clearError: true);
+    _ensureEditable();
+    try {
+      final reviewed = Set<ConditionViewDirection>.from(state.reviewedViews)
+        ..add(view);
+      await repository.saveReviewedViews(state.jobCardId, reviewed);
+      state = state.copyWith(reviewedViews: reviewed, clearError: true);
+    } catch (_) {
+      state = state.copyWith(
+        errorMessage:
+            'Could not save this check. Check your connection and try again.',
+      );
+    }
   }
 
   void selectPin(ConditionPin? pin) {

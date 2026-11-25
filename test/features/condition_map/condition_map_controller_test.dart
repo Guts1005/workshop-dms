@@ -62,6 +62,16 @@ class LoseFirstFindingResponseRepository extends LocalConditionMapRepository {
   }
 }
 
+class FailReviewedAreaRepository extends LocalConditionMapRepository {
+  @override
+  Future<void> saveReviewedViews(
+    String jobCardId,
+    Set<ConditionViewDirection> views,
+  ) async {
+    throw Exception('Simulated database write failure');
+  }
+}
+
 void main() {
   group('PreWorkSignOff checksum', () {
     final signedAt = DateTime.utc(2026, 11, 21, 10);
@@ -165,6 +175,26 @@ void main() {
       expect(state.activeView, ConditionViewDirection.sideLeft);
       expect(state.selectedPin, isNull);
     });
+
+    test(
+      'Failed no-issue save keeps area unchecked and shows retry guidance',
+      () async {
+        final failingController = ConditionMapController(
+          repository: FailReviewedAreaRepository(),
+          initialJobCardId: 'JC-MAP-OFFLINE',
+          initialRegistration: 'DL01AB9988',
+        );
+        addTearDown(failingController.dispose);
+
+        await failingController.markViewReviewed(ConditionViewDirection.front);
+
+        expect(failingController.state.reviewedViews, isEmpty);
+        expect(
+          failingController.state.errorMessage,
+          'Could not save this check. Check your connection and try again.',
+        );
+      },
+    );
 
     test(
       'Switching views updates activeView and deselects active pin',
