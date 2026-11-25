@@ -776,9 +776,7 @@ class _ConditionMapScreenState extends ConsumerState<ConditionMapScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: isPickingPhoto
-                  ? null
-                  : () => Navigator.pop(dialogContext),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             FilledButton(
